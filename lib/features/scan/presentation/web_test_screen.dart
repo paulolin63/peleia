@@ -15,8 +15,10 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/gemini_skin_service.dart';
+import '../../../core/services/quota_service.dart';
 import '../data/skin_analysis_result.dart';
 import 'scan_provider.dart';
 
@@ -53,6 +55,30 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
     });
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final isPro = prefs.getBool('is_premium') ?? false;
+      final quota = await QuotaService.checkQuota(isPro: isPro);
+
+      if (!quota.canScan) {
+        setState(() {
+          _isLoading = false;
+          _status = '';
+        });
+        if (mounted) {
+          if (quota.blockReason == QuotaBlockReason.proDailyExceeded) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: const Color(0xFF1C1712),
+                content: Text(quota.statusText, style: const TextStyle(color: Color(0xFFE8C9A0))),
+              ),
+            );
+          } else {
+            context.push('/premium');
+          }
+        }
+        return;
+      }
+
       final picker = ImagePicker();
       final picked = await picker.pickImage(
         source: ImageSource.gallery,
@@ -87,6 +113,9 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
       setState(() => _status = '📋 Gerando relatório PT-BR...');
       final report = await gemini.generateReport(analysis);
       final products = ProductCatalog.getRecommendations(analysis);
+
+      // Consome cota
+      await QuotaService.consumeQuota(isPro: isPro);
 
       // Salva no provider
       ref.read(scanProvider.notifier).setResultDirectly(

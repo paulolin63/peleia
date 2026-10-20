@@ -9,6 +9,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/revenuecat_service.dart';
+import '../../../core/services/quota_service.dart';
 import '../data/subscription_plan.dart';
 
 // ── Estado ───────────────────────────────────────────────
@@ -84,37 +85,48 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
   Future<void> purchase() async {
     state = state.copyWith(step: PurchaseStep.loading, errorMessage: null);
 
-    // Web: simula compra para dev/demo
-    if (kIsWeb) {
-      await Future.delayed(const Duration(seconds: 2));
-      await _savePremiumLocally();
-      state = state.copyWith(
-        step: PurchaseStep.success,
-        isPremium: true,
-      );
-      return;
-    }
-
-    // Encontra o Package do RevenueCat pelo productId do plano
     final selectedPlanData = kPlans.firstWhere(
       (p) => p.interval == state.selectedPlan,
     );
+
+    // Web / Modo Simulação
+    if (kIsWeb) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (selectedPlanData.isConsumable) {
+        await QuotaService.addSosCredits(3);
+        state = state.copyWith(step: PurchaseStep.success);
+      } else {
+        await _savePremiumLocally();
+        state = state.copyWith(step: PurchaseStep.success, isPremium: true);
+      }
+      return;
+    }
 
     try {
       final Package? package = _findPackage(selectedPlanData.productId);
 
       if (package == null) {
-        // Fallback: sem RevenueCat configurado (dev mode)
+        // Fallback: dev mode
         await Future.delayed(const Duration(seconds: 1));
-        await _savePremiumLocally();
-        state = state.copyWith(step: PurchaseStep.success, isPremium: true);
+        if (selectedPlanData.isConsumable) {
+          await QuotaService.addSosCredits(3);
+          state = state.copyWith(step: PurchaseStep.success);
+        } else {
+          await _savePremiumLocally();
+          state = state.copyWith(step: PurchaseStep.success, isPremium: true);
+        }
         return;
       }
 
       final success = await RevenueCatService.purchasePackage(package);
       if (success) {
-        await _savePremiumLocally();
-        state = state.copyWith(step: PurchaseStep.success, isPremium: true);
+        if (selectedPlanData.isConsumable) {
+          await QuotaService.addSosCredits(3);
+          state = state.copyWith(step: PurchaseStep.success);
+        } else {
+          await _savePremiumLocally();
+          state = state.copyWith(step: PurchaseStep.success, isPremium: true);
+        }
       } else {
         state = state.copyWith(
           step: PurchaseStep.error,
@@ -124,7 +136,6 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('cancelled') || msg.contains('cancel')) {
-        // Usuário cancelou — não é erro
         state = state.copyWith(step: PurchaseStep.idle);
       } else {
         state = state.copyWith(

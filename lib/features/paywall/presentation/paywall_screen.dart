@@ -319,6 +319,15 @@ class PaywallScreen extends ConsumerWidget {
                                     : const Color(0xFFF5F0EC),
                               ),
                             ),
+                            const SizedBox(height: 2),
+                            Text(
+                              plan.quotaSubtitle,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF8A7A6E),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             if (plan.hasTrial)
                               const Text(
                                 '✅ 3 dias grátis incluídos',

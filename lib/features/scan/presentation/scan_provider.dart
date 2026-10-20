@@ -7,8 +7,10 @@
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/gemini_skin_service.dart';
+import '../../../core/services/quota_service.dart';
 import '../data/skin_analysis_result.dart';
 
 // ── Estado do fluxo de scan ──────────────────────────────
@@ -18,6 +20,7 @@ enum ScanStep {
   analyzing,        // Enviando para Gemini Vision
   generatingReport, // Gerando texto PT-BR
   done,             // Análise completa
+  quotaBlocked,     // Cota esgotada (abre Paywall ou avisa)
   error,            // Algo deu errado
 }
 
@@ -27,6 +30,7 @@ class ScanState {
   final SkinAnalysisRaw? analysis;
   final String? report;
   final List<AffiliateProduct> products;
+  final QuotaBlockReason quotaReason;
   final String? errorMessage;
   final String statusMessage;
 
@@ -36,6 +40,7 @@ class ScanState {
     this.analysis,
     this.report,
     this.products = const [],
+    this.quotaReason = QuotaBlockReason.none,
     this.errorMessage,
     this.statusMessage = '',
   });
@@ -46,6 +51,7 @@ class ScanState {
     SkinAnalysisRaw? analysis,
     String? report,
     List<AffiliateProduct>? products,
+    QuotaBlockReason? quotaReason,
     String? errorMessage,
     String? statusMessage,
   }) {
@@ -55,6 +61,7 @@ class ScanState {
       analysis: analysis ?? this.analysis,
       report: report ?? this.report,
       products: products ?? this.products,
+      quotaReason: quotaReason ?? this.quotaReason,
       errorMessage: errorMessage,
       statusMessage: statusMessage ?? this.statusMessage,
     );
@@ -71,9 +78,26 @@ class ScanNotifier extends StateNotifier<ScanState> {
   final _picker = ImagePicker();
   final _gemini = GeminiSkinService.instance;
 
-  // ── Método unificado: pega foto e analisa ─────────────
+  Future<bool> _isUserPro() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('is_premium') ?? false;
+  }
+
+  // ── Método unificado: verifica cota, pega foto e analisa ──
   Future<void> _analyzeXFile(XFile xFile) async {
     try {
+      final isPro = await _isUserPro();
+      final quota = await QuotaService.checkQuota(isPro: isPro);
+
+      if (!quota.canScan) {
+        state = state.copyWith(
+          step: ScanStep.quotaBlocked,
+          quotaReason: quota.blockReason,
+          errorMessage: quota.statusText,
+        );
+        return;
+      }
+
       // Lê bytes — funciona em Web, Android, iOS, macOS
       final bytes = await xFile.readAsBytes();
       state = state.copyWith(imageBytes: bytes);
@@ -94,6 +118,9 @@ class ScanNotifier extends StateNotifier<ScanState> {
       final report = await _gemini.generateReport(analysis);
       final products = ProductCatalog.getRecommendations(analysis);
 
+      // Consome a cota após sucesso comprovado
+      await QuotaService.consumeQuota(isPro: isPro);
+
       state = state.copyWith(
         step: ScanStep.done,
         report: report,
@@ -110,6 +137,18 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
   // ── Câmera frontal (Android/iOS) ──────────────────────
   Future<void> captureAndAnalyze() async {
+    final isPro = await _isUserPro();
+    final quota = await QuotaService.checkQuota(isPro: isPro);
+
+    if (!quota.canScan) {
+      state = state.copyWith(
+        step: ScanStep.quotaBlocked,
+        quotaReason: quota.blockReason,
+        errorMessage: quota.statusText,
+      );
+      return;
+    }
+
     state = state.copyWith(
       step: ScanStep.capturing,
       statusMessage: 'Abrindo câmera...',
@@ -133,6 +172,18 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
   // ── Galeria (Web + Android + iOS) ─────────────────────
   Future<void> pickFromGallery() async {
+    final isPro = await _isUserPro();
+    final quota = await QuotaService.checkQuota(isPro: isPro);
+
+    if (!quota.canScan) {
+      state = state.copyWith(
+        step: ScanStep.quotaBlocked,
+        quotaReason: quota.blockReason,
+        errorMessage: quota.statusText,
+      );
+      return;
+    }
+
     state = state.copyWith(
       step: ScanStep.capturing,
       statusMessage: 'Escolhendo foto...',

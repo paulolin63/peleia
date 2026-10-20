@@ -8,6 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/quota_service.dart';
 import 'scan_provider.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
@@ -43,14 +44,61 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     super.dispose();
   }
 
+  void _showDailyLimitDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1712),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Text('🌙 ', style: TextStyle(fontSize: 22)),
+            Text(
+              'Limite Diário',
+              style: TextStyle(color: Color(0xFFF5F0EC), fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'A pele precisa de tempo para absorver os ativos dos produtos. Volte amanhã para um novo diagnóstico!',
+              style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.5),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Entendido', style: TextStyle(color: Color(0xFFC8714A), fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scanState = ref.watch(scanProvider);
 
-    // Navega para resultado quando análise concluir
+    // Navega para resultado ou Paywall quando necessário
     ref.listen<ScanState>(scanProvider, (prev, next) {
       if (next.step == ScanStep.done) {
         context.push('/result');
+      } else if (next.step == ScanStep.quotaBlocked) {
+        if (next.quotaReason == QuotaBlockReason.proDailyExceeded) {
+          _showDailyLimitDialog(context, next.errorMessage ?? '');
+        } else {
+          // Limite gratuito atingido → abre tela de planos
+          context.push('/premium');
+        }
       }
     });
 
@@ -580,6 +628,46 @@ class _FeatureTag extends StatelessWidget {
   final String label;
 
   const _FeatureTag({required this.emoji, required this.label});
+
+  void _showDailyLimitDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1712),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Text('🌙 ', style: TextStyle(fontSize: 22)),
+            Text(
+              'Limite Diário',
+              style: TextStyle(color: Color(0xFFF5F0EC), fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'A pele precisa de tempo para absorver os ativos dos produtos. Volte amanhã para um novo diagnóstico!',
+              style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.5),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Entendido', style: TextStyle(color: Color(0xFFC8714A), fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
