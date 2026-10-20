@@ -12,6 +12,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/revenuecat_service.dart';
+import 'core/services/product_remote_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,9 @@ void main() async {
 
   // Inicializa RevenueCat (só Android/iOS, ignorado no Web automaticamente)
   await RevenueCatService.initialize();
+
+  // Sincroniza catálogo de produtos online em background (sem bloquear UI)
+  ProductRemoteService.syncProducts();
 
   runApp(
     const ProviderScope(

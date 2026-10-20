@@ -502,13 +502,27 @@ class ResultScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFF6AB187).withAlpha(50)),
             ),
-            child: Text(
-              '💰 Rotina estimada: R\$ ${_calcTotal(products).toStringAsFixed(0).replaceAll(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), r'$1.')} — todos os produtos recomendados para o seu tipo de pele',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF6AB187),
-              ),
-              textAlign: TextAlign.center,
+            child: Column(
+              children: [
+                Text(
+                  '💰 Rotina completa estimada: ~R\$ ${_calcTotal(products).toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF6AB187),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '*Preços estimados. Valores sujeitos a alteração e promoções na loja parceira.',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF8A7A6E),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ],
@@ -705,7 +719,7 @@ class ResultScreen extends ConsumerWidget {
   }
 
   double _calcTotal(List<AffiliateProduct> products) {
-    return products.fold(0, (sum, p) => sum + p.priceReais);
+    return products.fold(0.0, (sum, p) => sum + p.priceEstimated);
   }
 
   Future<void> _openAffiliateLink(String url) async {

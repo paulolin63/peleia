@@ -1,0 +1,37 @@
+name: Auto Update Skincare Products & Prices
+
+on:
+  schedule:
+    # Roda a cada 10 dias às 03:00 UTC (meia-noite de Brasília)
+    - cron: '0 3 */10 * *'
+  # Permite disparar manualmente pelo botão "Run workflow" no GitHub
+  workflow_dispatch:
+
+jobs:
+  update-catalog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Update Script
+        env:
+          SHOPEE_AFFILIATE_TAG: ${{ secrets.SHOPEE_AFFILIATE_TAG }}
+          AMAZON_AFFILIATE_TAG: ${{ secrets.AMAZON_AFFILIATE_TAG }}
+        run: |
+          python scripts/update_products_cron.py
+
+      - name: Commit & Push if Changed
+        run: |
+          git config --global user.name "PeleIA Bot"
+          git config --global user.email "bot@peleia.app"
+          git add assets/data/products.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(catalog): auto-update products & affiliate prices [skip ci]" && git push)
