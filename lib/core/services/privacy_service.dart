@@ -115,10 +115,12 @@ class PrivacyService {
 
               _buildPrivacyPoint(
                 emoji: '🛡️',
-                title: 'Diretrizes do Provedor de IA (Google AI)',
-                desc: 'Nas contas comerciais pagas, seus dados de entrada não são utilizados para '
-                    'treinamento de modelos públicos. Conforme as regras oficiais do Google AI for Developers, '
-                    'registros técnicos podem ser retidos por até 30 dias exclusivamente para monitoramento de segurança e abuso.',
+                title: 'Transparência sobre o Processamento pelo Provedor',
+                desc: 'As imagens enviadas para análise são processadas pelo serviço de IA utilizado pelo PeleIA. '
+                    'A retenção de conteúdo e de dados técnicos pelo provedor segue as condições aplicáveis ao serviço '
+                    'e aos recursos utilizados. Em serviços pagos da Gemini API, determinados registros de solicitações '
+                    'e respostas podem ser mantidos por período limitado para fins de segurança e prevenção de abusos.\n\n'
+                    'O PeleIA não armazena intencionalmente imagens em seus próprios registros de aplicação, ferramentas de telemetria ou servidores.',
               ),
               const SizedBox(height: 14),
 

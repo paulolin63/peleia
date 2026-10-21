@@ -6,5 +6,11 @@ compatibility_date = "2026-10-01"
 GEMINI_MODEL = "gemini-3.6-flash"
 ENVIRONMENT = "production"
 
+# Binding para ledger de cotas no servidor (Launch Hardening P0-C)
+# Crie via: wrangler kv:namespace create QUOTA_KV
+[[kv_namespaces]]
+binding = "QUOTA_KV"
+id = "local_or_remote_kv_id"
+
 # Os segredos devem ser configurados via CLI:
 # wrangler secret put GEMINI_API_KEY

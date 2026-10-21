@@ -42,9 +42,9 @@ void main() {
       expect(parsed.skinType, equals('oleosa'));
       expect(parsed.scoreGeral, equals(68));
       expect(parsed.scores.oleosidade, equals(8));
-      expect(parsed.scores.acneCravos, equals(0)); // fallback seguro
-      expect(parsed.scores.manchasSolares, equals(0));
-      expect(parsed.confianca, equals(0.85)); // fallback default
+      expect(parsed.scores.acneCravos, equals(3)); // fallback seguro mediano
+      expect(parsed.scores.manchasSolares, equals(3));
+      expect(parsed.confianca, equals(0.8)); // fallback default
     });
 
     // ── 2. Marco Zero vs Comparação ────────────────────────
@@ -150,10 +150,10 @@ void main() {
 
     // ── 4. Proteção de Custos e Limite de Cotas ────────────
     test('4. Controle de Abuso: Limites de cota Free vs Pro', () async {
-      // Usuário gratuito: 1 análise grátis
+      // Usuário gratuito: 1 análise cortesia de boas-vindas
       var status = await QuotaService.checkQuota(isPro: false);
       expect(status.canScan, isTrue);
-      expect(status.remainingToday, equals(1));
+      expect(status.freeRemaining, equals(1));
 
       // Consome a análise gratuita
       await QuotaService.consumeQuota(isPro: false);
@@ -161,14 +161,14 @@ void main() {
       // Nova verificação gratuita: deve bloquear
       status = await QuotaService.checkQuota(isPro: false);
       expect(status.canScan, isFalse);
-      expect(status.remainingToday, equals(0));
-      expect(status.blockReason, equals(QuotaBlockReason.freeTrialUsed));
+      expect(status.freeRemaining, equals(0));
+      expect(status.blockReason, equals(QuotaBlockReason.freeUsed));
 
       // Adiciona crédito de emergência (SOS pack)
       await QuotaService.addSosCredits(3);
       status = await QuotaService.checkQuota(isPro: false);
       expect(status.canScan, isTrue);
-      expect(status.remainingToday, equals(3));
+      expect(status.sosCredits, equals(3));
       expect(status.blockReason, equals(QuotaBlockReason.none));
     });
   });
