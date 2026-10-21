@@ -333,7 +333,7 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '💡 Dicas para melhor resultado',
+                        '💡 3 Regras de Ouro para o Diagnóstico:',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -341,10 +341,10 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                       ),
                       const SizedBox(height: 10),
                       ...[
-                        '☀️ Use uma foto com boa iluminação natural',
-                        '📐 Rosto centralizado, sem óculos ou máscaras',
-                        '📷 Foto recente (não filtrada)',
-                        '🔍 Quanto mais próximo, mais preciso o diagnóstico',
+                        '☀️ Fique de frente para luz natural (evite luz de costas)',
+                        '✨ Desative o modo embelezador/filtro da câmera',
+                        '🧼 Rosto limpo e sem maquiagem para ver os poros reais',
+                        '📐 Rosto centralizado e alinhado na altura dos olhos',
                       ].map((tip) => Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Text(

@@ -275,6 +275,45 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             _FeatureTag(emoji: '💧', label: 'Hidratação'),
           ],
         ).animate().fadeIn(delay: 600.ms),
+
+        const SizedBox(height: 20),
+
+        // ── Dicas de Ouro para Foto Precisa ──────────────
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1712),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
+          ),
+          child: Column(
+            children: [
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('💡 ', style: TextStyle(fontSize: 14)),
+                  Text(
+                    'Para a IA acertar com 100% de precisão:',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFE8C9A0),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: const [
+                  _CaptureMiniTip(emoji: '☀️', label: 'Luz Natural'),
+                  _CaptureMiniTip(emoji: '✨', label: 'Sem Filtro/Beleza'),
+                  _CaptureMiniTip(emoji: '🧼', label: 'Pele sem Make'),
+                ],
+              ),
+            ],
+          ),
+        ).animate().fadeIn(delay: 700.ms),
       ],
     );
   }
@@ -693,6 +732,32 @@ class _FeatureTag extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Widget auxiliar: dica rápida de captura ──────────────
+class _CaptureMiniTip extends StatelessWidget {
+  final String emoji;
+  final String label;
+  const _CaptureMiniTip({required this.emoji, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 13)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFFF5F0EC),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

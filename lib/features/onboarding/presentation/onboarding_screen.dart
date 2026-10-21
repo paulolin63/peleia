@@ -656,68 +656,141 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
     }
   }
 
+  Widget _buildTipRow(String emoji, String title, String desc) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 16)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFE8C9A0),
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                desc,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF8A7A6E),
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Resultado do quiz
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF2C1A10), Color(0xFF1C1712)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: const Color(0xFFC8714A).withAlpha(75),
                   ),
                 ),
                 child: Column(
                   children: [
-                    const Text('✨', style: TextStyle(fontSize: 48))
+                    const Text('✨', style: TextStyle(fontSize: 36))
                         .animate()
                         .scale(curve: Curves.elasticOut, duration: 800.ms),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     const Text(
-                      'Identificamos seu tipo de pele:',
+                      'Pelo quiz rápido, seu tipo de pele é:',
                       style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           color: Color(0xFF8A7A6E),
                           fontWeight: FontWeight.w600),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       _skinTypeLabel,
                       style: const TextStyle(
-                        fontSize: 26,
+                        fontSize: 22,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFFE8C9A0),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Para um diagnóstico completo e preciso,\ntire uma selfie agora!',
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF8A7A6E),
-                          height: 1.6),
                       textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 18),
+
+              // ── Dicas de Ouro para Foto Perfeita ────────────
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C1712),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Text('📸 ', style: TextStyle(fontSize: 16)),
+                        Text(
+                          '3 Dicas de Ouro para a IA Acertar:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFF5F0EC),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTipRow(
+                      '☀️',
+                      'Luz Natural de Frente',
+                      'Fique de frente para uma janela. Evite lâmpadas amarelas ou luz de costas.',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildTipRow(
+                      '✨',
+                      'Desative o Filtro de Beleza',
+                      'Câmeras de celular costumam aplicar suavização. Desligue o embelezador para a IA ver sua textura real!',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildTipRow(
+                      '🧼',
+                      'Pele Limpa e Sem Make',
+                      'Bases e corretivos mascaram manchas e oleosidade. Foto ao natural é muito mais precisa.',
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
+
+              const SizedBox(height: 20),
 
               // Permissão câmera
               const Text('📸', style: TextStyle(fontSize: 56))
