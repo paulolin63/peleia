@@ -164,6 +164,32 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             ],
           ),
         ),
+        const Spacer(),
+        GestureDetector(
+          onTap: () => context.push('/history'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1712),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFC8714A).withAlpha(75)),
+            ),
+            child: const Row(
+              children: [
+                Text('📈', style: TextStyle(fontSize: 14)),
+                SizedBox(width: 6),
+                Text(
+                  'Evolução',
+                  style: TextStyle(
+                    color: Color(0xFFE8C9A0),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0);
   }

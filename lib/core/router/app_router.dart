@@ -11,6 +11,7 @@ import '../../features/paywall/presentation/paywall_screen.dart';
 import '../../features/scan/presentation/scan_screen.dart';
 import '../../features/scan/presentation/web_test_screen.dart';
 import '../../features/report/presentation/result_screen.dart';
+import '../../features/history/presentation/history_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -40,6 +41,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/premium',
         builder: (context, state) => const PaywallScreen(),
+      ),
+      GoRoute(
+        path: '/history',
+        builder: (context, state) => const HistoryScreen(),
       ),
     ],
   );

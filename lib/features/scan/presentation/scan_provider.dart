@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/gemini_skin_service.dart';
 import '../../../core/services/quota_service.dart';
+import '../../../core/services/history_service.dart';
 import '../data/skin_analysis_result.dart';
 
 // ── Estado do fluxo de scan ──────────────────────────────
@@ -121,6 +122,13 @@ class ScanNotifier extends StateNotifier<ScanState> {
       // Consome a cota após sucesso comprovado
       await QuotaService.consumeQuota(isPro: isPro);
 
+      // Salva no histórico de evolução da pele
+      await HistoryService.saveAnalysis(
+        analysis: analysis,
+        report: report,
+        rawImageBytes: bytes,
+      );
+
       state = state.copyWith(
         step: ScanStep.done,
         report: report,
@@ -215,6 +223,14 @@ class ScanNotifier extends StateNotifier<ScanState> {
     required List<AffiliateProduct> products,
     Uint8List? imageBytes,
   }) {
+    if (imageBytes != null && imageBytes.isNotEmpty) {
+      HistoryService.saveAnalysis(
+        analysis: analysis,
+        report: report,
+        rawImageBytes: imageBytes,
+      );
+    }
+
     state = state.copyWith(
       step: ScanStep.done,
       analysis: analysis,

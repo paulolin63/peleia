@@ -118,7 +118,41 @@ class ResultScreen extends ConsumerWidget {
                     .fadeIn(delay: 450.ms)
                     .slideY(begin: 0.2),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
+                // ── Botão Ver Evolução (Antes & Depois) ──────────
+                GestureDetector(
+                  onTap: () => context.push('/history'),
+                  child: Container(
+                    height: 54,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2C1A10), Color(0xFF1C1712)],
+                      ),
+                      border: Border.all(
+                        color: const Color(0xFFC8714A).withAlpha(120),
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('📈', style: TextStyle(fontSize: 18)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Ver Minha Evolução (Antes & Depois)',
+                          style: TextStyle(
+                            color: Color(0xFFE8C9A0),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ).animate().fadeIn(delay: 480.ms),
+
+                const SizedBox(height: 12),
 
                 // ── Botão nova análise ───────────────────────
                 GestureDetector(

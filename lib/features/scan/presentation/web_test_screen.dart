@@ -117,11 +117,12 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
       // Consome cota
       await QuotaService.consumeQuota(isPro: isPro);
 
-      // Salva no provider
+      // Salva no provider com bytes para miniatura de histórico
       ref.read(scanProvider.notifier).setResultDirectly(
             analysis: analysis,
             report: report,
             products: products,
+            imageBytes: bytes,
           );
 
       if (mounted) context.push('/result');
@@ -177,6 +178,33 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                     ]),
                   ),
                   const Spacer(),
+                  GestureDetector(
+                    onTap: () => context.push('/history'),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1712),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: const Color(0xFFC8714A).withAlpha(100)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Text('📈', style: TextStyle(fontSize: 12)),
+                          SizedBox(width: 4),
+                          Text(
+                            'Evolução',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFFE8C9A0),
+                                fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
