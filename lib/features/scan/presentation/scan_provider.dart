@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/gemini_skin_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/history_service.dart';
+import '../../history/data/history_entry.dart';
 import '../data/skin_analysis_result.dart';
 
 // ── Estado do fluxo de scan ──────────────────────────────
@@ -34,6 +35,7 @@ class ScanState {
   final QuotaBlockReason quotaReason;
   final String? errorMessage;
   final String statusMessage;
+  final HistoryEntry? previousEntry; // Memória inteligente: análise anterior
 
   const ScanState({
     this.step = ScanStep.idle,
@@ -44,6 +46,7 @@ class ScanState {
     this.quotaReason = QuotaBlockReason.none,
     this.errorMessage,
     this.statusMessage = '',
+    this.previousEntry,
   });
 
   ScanState copyWith({
@@ -55,6 +58,8 @@ class ScanState {
     QuotaBlockReason? quotaReason,
     String? errorMessage,
     String? statusMessage,
+    HistoryEntry? previousEntry,
+    bool clearPreviousEntry = false,
   }) {
     return ScanState(
       step: step ?? this.step,
@@ -65,6 +70,7 @@ class ScanState {
       quotaReason: quotaReason ?? this.quotaReason,
       errorMessage: errorMessage,
       statusMessage: statusMessage ?? this.statusMessage,
+      previousEntry: clearPreviousEntry ? null : (previousEntry ?? this.previousEntry),
     );
   }
 
@@ -112,11 +118,19 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
       state = state.copyWith(
         analysis: analysis,
-        statusMessage: '📋 Criando sua rotina personalizada...',
+        statusMessage: '📋 Consultando histórico e gerando relatório...',
         step: ScanStep.generatingReport,
       );
 
-      final report = await _gemini.generateReport(analysis);
+      // 🧠 Recupera a última análise anterior antes de salvar a nova
+      final previousEntries = await HistoryService.getEntries();
+      final previousEntry =
+          previousEntries.isNotEmpty ? previousEntries.first : null;
+
+      final report = await _gemini.generateReport(
+        analysis,
+        previousEntry: previousEntry,
+      );
       final products = ProductCatalog.getRecommendations(analysis);
 
       // Consome a cota após sucesso comprovado
@@ -133,6 +147,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
         step: ScanStep.done,
         report: report,
         products: products,
+        previousEntry: previousEntry,
         statusMessage: '✅ Pronto!',
       );
     } catch (e) {
@@ -222,6 +237,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
     required String report,
     required List<AffiliateProduct> products,
     Uint8List? imageBytes,
+    HistoryEntry? previousEntry,
   }) {
     if (imageBytes != null && imageBytes.isNotEmpty) {
       HistoryService.saveAnalysis(
@@ -237,6 +253,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
       report: report,
       products: products,
       imageBytes: imageBytes,
+      previousEntry: previousEntry,
       statusMessage: '✅ Pronto!',
     );
   }

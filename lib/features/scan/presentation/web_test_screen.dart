@@ -18,7 +18,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/gemini_skin_service.dart';
+import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
+import '../../history/data/history_entry.dart';
 import '../data/skin_analysis_result.dart';
 import 'scan_provider.dart';
 
@@ -110,8 +112,15 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
         analysis = await gemini.analyzeImageBytes(bytes);
       }
 
-      setState(() => _status = '📋 Gerando relatório PT-BR...');
-      final report = await gemini.generateReport(analysis);
+      setState(() => _status = '📋 Consultando histórico e gerando relatório...');
+      final previousEntries = await HistoryService.getEntries();
+      final previousEntry =
+          previousEntries.isNotEmpty ? previousEntries.first : null;
+
+      final report = await gemini.generateReport(
+        analysis,
+        previousEntry: previousEntry,
+      );
       final products = ProductCatalog.getRecommendations(analysis);
 
       // Consome cota
@@ -123,6 +132,7 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
             report: report,
             products: products,
             imageBytes: bytes,
+            previousEntry: previousEntry,
           );
 
       if (mounted) context.push('/result');

@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../history/data/history_entry.dart';
 import '../../paywall/presentation/paywall_provider.dart';
 import '../../scan/data/skin_analysis_result.dart';
 import '../../scan/presentation/scan_provider.dart';
@@ -82,6 +83,14 @@ class ResultScreen extends ConsumerWidget {
                 _buildOverallScore(analysis)
                     .animate()
                     .fadeIn(delay: 100.ms)
+                    .slideY(begin: 0.2),
+
+                const SizedBox(height: 16),
+
+                // ── Memória Inteligente / Evolução ───────────
+                _buildEvolutionCard(analysis, state.previousEntry)
+                    .animate()
+                    .fadeIn(delay: 150.ms)
                     .slideY(begin: 0.2),
 
                 const SizedBox(height: 16),
@@ -375,6 +384,271 @@ class ResultScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEvolutionCard(SkinAnalysisRaw analysis, HistoryEntry? prev) {
+    if (prev != null) {
+      final scoreDelta = analysis.scoreGeral - prev.scoreGeral;
+      final daysDiff = DateTime.now().difference(prev.date).inDays;
+      final timeAgoStr = daysDiff == 0
+          ? 'Hoje mais cedo'
+          : daysDiff == 1
+              ? 'Ontem'
+              : 'Há $daysDiff dias (${prev.formattedDate})';
+
+      final isBetter = scoreDelta > 0;
+      final isSame = scoreDelta == 0;
+
+      final deltaColor = isBetter
+          ? const Color(0xFF6AB187)
+          : isSame
+              ? const Color(0xFFE8A44A)
+              : const Color(0xFFE05353);
+
+      final deltaText = isBetter
+          ? '+$scoreDelta pts (Melhora!)'
+          : isSame
+              ? 'Estável (=)'
+              : '$scoreDelta pts (Oscilação)';
+
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF241C16),
+              Color(0xFF1C1712),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFC8714A).withAlpha(90),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC8714A).withAlpha(40),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Text('🧠', style: TextStyle(fontSize: 16)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Memória Inteligente PeleIA',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFE8C9A0),
+                        ),
+                      ),
+                      Text(
+                        'Comparado com: $timeAgoStr',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF8A7A6E),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: deltaColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: deltaColor.withAlpha(80)),
+                  ),
+                  child: Text(
+                    deltaText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: deltaColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // Linha com comparação de métricas chave
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF120E0B),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildMetricDelta(
+                    label: 'Score',
+                    oldVal: '${prev.scoreGeral}',
+                    newVal: '${analysis.scoreGeral}',
+                    improved: analysis.scoreGeral >= prev.scoreGeral,
+                  ),
+                  _buildMetricDivider(),
+                  _buildMetricDelta(
+                    label: 'Acne',
+                    oldVal: '${prev.acne}',
+                    newVal: '${analysis.scores.acneCravos}',
+                    improved: analysis.scores.acneCravos <= prev.acne,
+                  ),
+                  _buildMetricDivider(),
+                  _buildMetricDelta(
+                    label: 'Oleosidade',
+                    oldVal: '${prev.oleosidade}',
+                    newVal: '${analysis.scores.oleosidade}',
+                    improved: analysis.scores.oleosidade <= prev.oleosidade,
+                  ),
+                  _buildMetricDivider(),
+                  _buildMetricDelta(
+                    label: 'Hidratação',
+                    oldVal: '${prev.hidratacao}',
+                    newVal: '${analysis.scores.hidratacao}',
+                    improved: analysis.scores.hidratacao >= prev.hidratacao,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 13, color: Color(0xFFC8714A)),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'A IA comparou suas mudanças e adaptou as recomendações do relatório abaixo.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFFD4C2B2),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Primeira análise (Marco Zero / Baseline)
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1712),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF6AB187).withAlpha(60),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6AB187).withAlpha(30),
+                shape: BoxShape.circle,
+              ),
+              child: const Text('🌱', style: TextStyle(fontSize: 20)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Primeira Análise Concluída!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFE8C9A0),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Seu score inicial (${analysis.scoreGeral}/100) foi salvo na memória segura do seu celular. Na próxima selfie, a IA fará um comparativo automático da sua evolução!',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF8A7A6E),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildMetricDivider() {
+    return Container(
+      width: 1,
+      height: 28,
+      color: Colors.white.withAlpha(15),
+    );
+  }
+
+  Widget _buildMetricDelta({
+    required String label,
+    required String oldVal,
+    required String newVal,
+    required bool improved,
+  }) {
+    final color = improved ? const Color(0xFF6AB187) : const Color(0xFFE05353);
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Color(0xFF8A7A6E),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              oldVal,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF8A7A6E),
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
+            const SizedBox(width: 3),
+            const Icon(Icons.arrow_forward, size: 10, color: Color(0xFF8A7A6E)),
+            const SizedBox(width: 3),
+            Text(
+              newVal,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

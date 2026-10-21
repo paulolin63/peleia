@@ -12,6 +12,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image/image.dart' as img;
 
+import '../../features/history/data/history_entry.dart';
 import '../../features/scan/data/skin_analysis_result.dart';
 
 // Importação condicional de dart:io — só disponível em mobile/desktop
@@ -143,10 +144,46 @@ Rules:
   }
 
   // ─────────────────────────────────────────────────────────
-  //  Gera relatório em Português do Brasil
+  //  Gera relatório em Português do Brasil com Memória Evolutiva
   // ─────────────────────────────────────────────────────────
-  Future<String> generateReport(SkinAnalysisRaw analysis) async {
+  Future<String> generateReport(
+    SkinAnalysisRaw analysis, {
+    HistoryEntry? previousEntry,
+  }) async {
     initialize();
+
+    String memorySection = '';
+    String memoryHeader = '';
+
+    if (previousEntry != null) {
+      final daysDiff = DateTime.now().difference(previousEntry.date).inDays;
+      final timeAgoStr = daysDiff == 0
+          ? 'hoje mais cedo'
+          : daysDiff == 1
+              ? 'ontem'
+              : 'há $daysDiff dias (${previousEntry.formattedDate})';
+
+      memorySection = '''
+MEMÓRIA HISTÓRICA DO USUÁRIO (ANÁLISE ANTERIOR FEITA $timeAgoStr):
+- Score Geral anterior: ${previousEntry.scoreGeral}/100 ➔ Atual: ${analysis.scoreGeral}/100
+- Oleosidade anterior: ${previousEntry.oleosidade}/10 ➔ Atual: ${analysis.scores.oleosidade}/10
+- Acne/Cravos anterior: ${previousEntry.acne}/10 ➔ Atual: ${analysis.scores.acneCravos}/10
+- Manchas Solares anterior: ${previousEntry.manchas}/10 ➔ Atual: ${analysis.scores.manchasSolares}/10
+- Hidratação anterior: ${previousEntry.hidratacao}/10 ➔ Atual: ${analysis.scores.hidratacao}/10
+''';
+
+      memoryHeader = '''
+📈 **Evolução da Sua Pele (Memória PeleIA)**
+[Faça um comparativo amigável e caloroso com a análise de $timeAgoStr.
+- Se houve melhora (score subiu, menos acne ou manchas): comemore como uma amiga médica, parabenize a disciplina com a rotina e o protetor solar.
+- Se piorou ou a oleosidade subiu: acolha com empatia, lembre que no calor/umidade do Brasil oscilações são normais e recomende um ajuste tático rápido.]
+''';
+    } else {
+      memoryHeader = '''
+🌱 **Início da Sua Jornada de Pele**
+[Acolha com carinho especial por ser a primeira análise! Diga que seu score base (${analysis.scoreGeral}/100) foi salvo na memória do app e convide-o a manter a rotina pelos próximos 7 a 14 dias para acompanhar a transformação no próximo escaneamento.]
+''';
+    }
 
     final prompt = '''
 Você é uma dermatologista virtual brasileira especialista em skincare para o clima tropical do Brasil.
@@ -158,7 +195,11 @@ NÃO use termos de Portugal (como "ecrã", "pele mista a oleosa em excesso", "fa
 ANÁLISE E SCORES DO USUÁRIO:
 ${jsonEncode(analysis.toJson())}
 
+$memorySection
+
 FORMATO EXATO OBRIGATÓRIO (use rigorosamente estes títulos e emojis):
+
+$memoryHeader
 
 🔍 **Diagnóstico da Sua Pele**
 [2 frases diretas: diga o tipo de pele e contextualize com o clima brasileiro de alta umidade/calor. Se o fototipo for moreno/negro, alerte sobre a facilidade de manchas de sol/melasma]
@@ -182,7 +223,7 @@ FORMATO EXATO OBRIGATÓRIO (use rigorosamente estes títulos e emojis):
 [1 dica de ouro super brasileira: ex: "Deixe lencinhos antioleosidade na bolsa", "Evite lavar o rosto com água quente do chuveiro para não dar efeito rebote", "Guarde seu sérum na geladeira no verão para acalmar a pele"]
 
 Regras obrigatórias:
-- Máximo 320 palavras
+- Máximo 350 palavras
 - Seja super empática e encorajadora
 - Se oleosidade >= 7: enfatize "sem efeito rebote" e produtos "toque seco"
 - Se manchas >= 5 ou tom_de_pele morena/negra: dê ênfase máxima à prevenção do melasma com protetor de amplo espectro
