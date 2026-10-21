@@ -1,0 +1,16 @@
+{
+  "name": "peleia-gemini-proxy",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker Proxy Seguro com Durable Objects para PeleIA",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240925.0",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1",
+    "wrangler": "^3.78.10"
+  }
+}
