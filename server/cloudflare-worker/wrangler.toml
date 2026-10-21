@@ -1,0 +1,10 @@
+name = "peleia-gemini-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+GEMINI_MODEL = "gemini-3.6-flash"
+ENVIRONMENT = "production"
+
+# Os segredos devem ser configurados via CLI:
+# wrangler secret put GEMINI_API_KEY

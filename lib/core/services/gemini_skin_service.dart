@@ -10,6 +10,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 
 import '../../features/history/data/history_entry.dart';
@@ -26,31 +27,46 @@ class GeminiSkinService {
 
   late final GenerativeModel _visionModel;
   late final GenerativeModel _reportModel;
+  String _proxyUrl = '';
   bool _initialized = false;
 
   void initialize() {
     if (_initialized) return;
 
-    // 1️⃣ Tenta dotenv (.env file — funciona em Android/iOS/desktop)
+    // 0️⃣ Verifica se há backend proxy configurado (Arquitetura Segura de Produção)
+    try {
+      _proxyUrl = dotenv.env['GEMINI_PROXY_URL'] ?? '';
+    } catch (_) {}
+    if (_proxyUrl.isEmpty) {
+      _proxyUrl = const String.fromEnvironment('GEMINI_PROXY_URL');
+    }
+
+    // Se estiver usando proxy seguro, não precisa expor a GEMINI_API_KEY no cliente
+    if (_proxyUrl.isNotEmpty) {
+      debugPrint('🛡️ GeminiSkinService: Conectado ao Proxy Seguro ($_proxyUrl)');
+      _initialized = true;
+      return;
+    }
+
+    // 1️⃣ Fallback para desenvolvimento local: Tenta dotenv / --dart-define
     String apiKey = '';
     try {
       apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
     } catch (_) {}
 
-    // 2️⃣ Fallback: --dart-define (funciona no Web e CI/CD)
     if (apiKey.isEmpty) {
       apiKey = const String.fromEnvironment('GEMINI_API_KEY');
     }
 
     if (apiKey.isEmpty) {
       throw Exception(
-        'GEMINI_API_KEY não encontrada!\n'
-        '• Web: flutter run -d chrome --dart-define=GEMINI_API_KEY=AIza...\n'
-        '• Android: adicione ao arquivo .env',
+        'Configuração de API não encontrada!\n'
+        '• Produção: configure GEMINI_PROXY_URL\n'
+        '• Dev local: adicione GEMINI_API_KEY no .env',
       );
     }
 
-    // 3️⃣ Configuração do modelo (Migração para versão suportada: gemini-3.6-flash ou gemini-3.8-flash)
+    // 2️⃣ Configuração do modelo (Migração para versão suportada: gemini-3.6-flash ou gemini-3.8-flash)
     String modelName = '';
     try {
       modelName = dotenv.env['GEMINI_MODEL'] ?? '';
@@ -136,14 +152,37 @@ Rules:
 ''';
 
     try {
-      final response = await _visionModel.generateContent([
-        Content.multi([
-          TextPart(prompt),
-          DataPart('image/jpeg', bytes),
-        ]),
-      ]);
+      String text = '';
 
-      final text = response.text ?? '';
+      if (_proxyUrl.isNotEmpty) {
+        // Envio seguro via Backend Proxy (sem expor API key no client)
+        final res = await http.post(
+          Uri.parse(_proxyUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'task': 'vision',
+            'image_base64': base64Encode(bytes),
+            'prompt': prompt,
+          }),
+        );
+
+        if (res.statusCode != 200) {
+          throw Exception('Servidor de IA indisponível (${res.statusCode}). Tente novamente.');
+        }
+
+        final bodyJson = jsonDecode(res.body);
+        text = bodyJson['output'] as String? ?? '';
+      } else {
+        // Fallback local SDK
+        final response = await _visionModel.generateContent([
+          Content.multi([
+            TextPart(prompt),
+            DataPart('image/jpeg', bytes),
+          ]),
+        ]);
+        text = response.text ?? '';
+      }
+
       if (text.isEmpty) throw Exception('Resposta vazia da IA. Tente novamente.');
 
       // Remove possíveis blocos de markdown que o modelo inserir
@@ -248,6 +287,22 @@ Regras obrigatórias:
 - Se oleosidade >= 7: enfatize fórmulas "toque seco" e "sem efeito rebote"
 - Finalize com: "⚠️ *Guia cosmético para rotina diária. Não substitui consulta médica dermatológica.*"
 ''';
+
+    if (_proxyUrl.isNotEmpty) {
+      final res = await http.post(
+        Uri.parse(_proxyUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'task': 'report',
+          'prompt': prompt,
+        }),
+      );
+      if (res.statusCode != 200) {
+        throw Exception('Erro ao gerar relatório no servidor de IA.');
+      }
+      final bodyJson = jsonDecode(res.body);
+      return bodyJson['output'] as String? ?? 'Erro ao gerar relatório.';
+    }
 
     final response = await _reportModel.generateContent([Content.text(prompt)]);
     return response.text ?? 'Erro ao gerar relatório. Tente novamente.';
