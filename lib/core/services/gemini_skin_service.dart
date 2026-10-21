@@ -50,8 +50,20 @@ class GeminiSkinService {
       );
     }
 
+    // 3️⃣ Configuração do modelo (Migração para versão suportada: gemini-3.6-flash ou gemini-3.8-flash)
+    String modelName = '';
+    try {
+      modelName = dotenv.env['GEMINI_MODEL'] ?? '';
+    } catch (_) {}
+    if (modelName.isEmpty) {
+      modelName = const String.fromEnvironment(
+        'GEMINI_MODEL',
+        defaultValue: 'gemini-3.6-flash',
+      );
+    }
+
     _visionModel = GenerativeModel(
-      model: 'gemini-2.0-flash',
+      model: modelName,
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.2,
@@ -65,7 +77,7 @@ class GeminiSkinService {
     );
 
     _reportModel = GenerativeModel(
-      model: 'gemini-2.0-flash',
+      model: modelName,
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.7,
