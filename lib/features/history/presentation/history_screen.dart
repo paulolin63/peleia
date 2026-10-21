@@ -49,6 +49,64 @@ class _HistoryScreenState extends State<HistoryScreen>
     });
   }
 
+  Future<void> _showClearHistoryDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1712),
+        title: const Text(
+          'Excluir Histórico (Privacidade LGPD)',
+          style: TextStyle(
+            color: Color(0xFFE8C9A0),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Deseja apagar permanentemente todas as fotos e avaliações salvas no seu aparelho?\n\n'
+          'Suas fotos são mantidas exclusivamente na memória local do seu dispositivo e essa exclusão é definitiva.',
+          style: TextStyle(
+            color: Color(0xFFD4C2B2),
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Color(0xFF8A7A6E)),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE05353),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Excluir Tudo',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await HistoryService.clearAllHistory();
+      _loadHistory();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Todo o histórico de fotos foi apagado com sucesso.'),
+            backgroundColor: Color(0xFF2C1A10),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,6 +125,14 @@ class _HistoryScreenState extends State<HistoryScreen>
             fontSize: 18,
           ),
         ),
+        actions: [
+          if (_entries.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Color(0xFF8A7A6E)),
+              tooltip: 'Excluir Histórico (LGPD)',
+              onPressed: _showClearHistoryDialog,
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: const Color(0xFFC8714A),

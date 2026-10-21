@@ -14,6 +14,7 @@ import 'package:image/image.dart' as img;
 
 import '../../features/history/data/history_entry.dart';
 import '../../features/scan/data/skin_analysis_result.dart';
+import 'comparison_service.dart';
 
 // Importação condicional de dart:io — só disponível em mobile/desktop
 // No Web usamos XFile.readAsBytes() antes de chamar o serviço.
@@ -85,10 +86,14 @@ class GeminiSkinService {
     final bytes = await _compressBytes(rawBytes);
 
     const prompt = '''
-You are a professional dermatology AI assistant specialized in Brazilian skin types.
+You are a cosmetic skincare routine assistant specialized in Brazilian visual skin observations.
 
-Analyze this facial selfie and return a JSON object with skin assessment optimized for
+Analyze this facial selfie and return a JSON object with cosmetic visual skin assessment optimized for
 Brazilian climate: high UV index, tropical heat and humidity.
+
+IMPORTANT LEGAL & MEDICAL NOTICE:
+This is strictly a cosmetic visual evaluation of a selfie photo for daily skincare routines.
+It is NOT a medical diagnosis, clinical assessment, or dermatological treatment.
 
 IMPORTANT: Return ONLY valid JSON. No markdown, no explanation, no code blocks.
 
@@ -112,9 +117,10 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanation, no code blocks.
 }
 
 Rules:
-- oleosidade 7-10 = very oily (common in Brazilian humid climate)
+- oleosidade 7-10 = high visible oiliness / shine (common in Brazilian humid climate)
 - urgencia_protetor_solar = "alta" for morena/negra/oleosa types
-- If not a clear face photo: {"error":"Foto não reconhecida como rosto. Use uma selfie com boa iluminação."}
+- If photo is blurry, uncentered, or poor lighting: {"error":"Foto com baixa nitidez ou iluminação inadequada. Tire uma selfie frontal nítida com luz natural."}
+- If not a clear face photo: {"error":"Rosto não detectado com clareza. Centralize seu rosto com boa luz sem maquiagem pesada."}
 ''';
 
     try {
@@ -144,55 +150,54 @@ Rules:
   }
 
   // ─────────────────────────────────────────────────────────
-  //  Gera relatório em Português do Brasil com Memória Evolutiva
+  //  Gera relatório em Português do Brasil com Separação Causal e Ética
   // ─────────────────────────────────────────────────────────
   Future<String> generateReport(
     SkinAnalysisRaw analysis, {
     HistoryEntry? previousEntry,
+    SkinComparisonResult? comparison,
   }) async {
     initialize();
 
     String memorySection = '';
     String memoryHeader = '';
 
-    if (previousEntry != null) {
-      final daysDiff = DateTime.now().difference(previousEntry.date).inDays;
-      final timeAgoStr = daysDiff == 0
-          ? 'hoje mais cedo'
-          : daysDiff == 1
-              ? 'ontem'
-              : 'há $daysDiff dias (${previousEntry.formattedDate})';
+    // Se temos o resultado determinístico do ComparisonService, usamos ele
+    final comp = comparison ??
+        (previousEntry != null
+            ? ComparisonService.compare(current: analysis, previous: previousEntry)
+            : null);
 
+    if (comp != null && comp.hasPrevious) {
       memorySection = '''
-MEMÓRIA HISTÓRICA DO USUÁRIO (ANÁLISE ANTERIOR FEITA $timeAgoStr):
-- Score Geral anterior: ${previousEntry.scoreGeral}/100 ➔ Atual: ${analysis.scoreGeral}/100
-- Oleosidade anterior: ${previousEntry.oleosidade}/10 ➔ Atual: ${analysis.scores.oleosidade}/10
-- Acne/Cravos anterior: ${previousEntry.acne}/10 ➔ Atual: ${analysis.scores.acneCravos}/10
-- Manchas Solares anterior: ${previousEntry.manchas}/10 ➔ Atual: ${analysis.scores.manchasSolares}/10
-- Hidratação anterior: ${previousEntry.hidratacao}/10 ➔ Atual: ${analysis.scores.hidratacao}/10
+FATOS MATEMÁTICOS VERIFICADOS (NÃO INVENTE NÚMEROS NEM CAUSALIDADE DIRETA):
+${comp.deterministicSummary}
 ''';
 
       memoryHeader = '''
-📈 **Evolução da Sua Pele (Memória PeleIA)**
-[Faça um comparativo amigável e caloroso com a análise de $timeAgoStr.
-- Se houve melhora (score subiu, menos acne ou manchas): comemore como uma amiga médica, parabenize a disciplina com a rotina e o protetor solar.
-- Se piorou ou a oleosidade subiu: acolha com empatia, lembre que no calor/umidade do Brasil oscilações são normais e recomende um ajuste tático rápido.]
+📈 **Acompanhamento da Sua Pele (Comparativo Visual)**
+[Explique de forma acolhedora a tendência observada no comparativo acima:
+- Se o indicador geral estiver estável (dentro da variação esperada): explique com naturalidade que a pele manteve o equilíbrio e que variações de até 3 pontos decorrem de iluminação ou ângulo da foto.
+- Se houver melhora visual de oleosidade ou acne: parabenize a consistência dos cuidados cosméticos.
+- Se houver aumento de brilho ou acne: NÃO afirme categoricamente a causa (ex: jamais diga "porque fez calor"). Diga apenas que fatores como clima úmido, estresse ou mudanças na rotina podem ser fatores associados.]
 ''';
     } else {
       memoryHeader = '''
-🌱 **Início da Sua Jornada de Pele**
-[Acolha com carinho especial por ser a primeira análise! Diga que seu score base (${analysis.scoreGeral}/100) foi salvo na memória do app e convide-o a manter a rotina pelos próximos 7 a 14 dias para acompanhar a transformação no próximo escaneamento.]
+🌱 **Início da Sua Jornada de Cuidados**
+[Acolha com carinho por ser a primeira avaliação visual! Explique que o indicador inicial (${analysis.scoreGeral}/100) servirá de referência cosmética para futuras selfies sob luz similar.]
 ''';
     }
 
     final prompt = '''
-Você é uma dermatologista virtual brasileira especialista em skincare para o clima tropical do Brasil.
-Seu estilo é acolhedor, descontraído e direto — como uma melhor amiga dermato ("dermofriend") que entende o sufoco de manter a pele sequinha no calor de 35°C.
+Você é uma assistente de rotina de skincare (dermofriend) focada em cuidados cosméticos diários para o clima do Brasil.
+Seu estilo é acolhedor, descontraído, seguro e responsável.
 
-Com base nesta análise, escreva um relatório de skincare altamente prático em Português do Brasil (PT-BR autêntico).
-NÃO use termos de Portugal (como "ecrã", "pele mista a oleosa em excesso", "fato"). Use o linguajar brasileiro ("pele sequinha", "toque seco", "zona T", "reaplicar protetor", "brilho controlado").
+LIMITES REGULATÓRIOS E ÉTICOS (ANVISA / GOOGLE PLAY / APPLE HEALTH):
+- Este é um guia cosmético de rotina diária, NÃO é diagnóstico médico nem tratamento de doenças.
+- NUNCA use termos como "diagnóstico médico", "cura" ou se passe por médico dermatologista clínico.
+- NÃO afirme causalidade absoluta (não afirme razões definitivas para oscilações sem comprovação).
 
-ANÁLISE E SCORES DO USUÁRIO:
+ANÁLISE E INDICADORES VISUAIS DO USUÁRIO:
 ${jsonEncode(analysis.toJson())}
 
 $memorySection
@@ -201,32 +206,35 @@ FORMATO EXATO OBRIGATÓRIO (use rigorosamente estes títulos e emojis):
 
 $memoryHeader
 
-🔍 **Diagnóstico da Sua Pele**
-[2 frases diretas: diga o tipo de pele e contextualize com o clima brasileiro de alta umidade/calor. Se o fototipo for moreno/negro, alerte sobre a facilidade de manchas de sol/melasma]
+🔍 **Mapeamento Visual da Pele**
+[2 frases diretas: descreva o aspecto visual da pele e contextualize com a rotina diária no calor/umidade do Brasil]
 
-⚠️ **Pontos de Atenção Urgentes**
-• [Problema 1 explicado de forma prática]
-• [Problema 2]
-• [Problema 3 se houver]
+⚠️ **Pontos de Atenção para a Rotina**
+• [Ponto cosmético 1 para cuidar]
+• [Ponto 2]
+• [Ponto 3 se houver]
 
 🌅 **Rotina da Manhã (Toque Seco & Proteção)**
-1. 🧴 Limpeza: [Gel de limpeza específico + ativo, ex: Ácido Salicílico ou Glicerina]
-2. 💧 Tratamento: [Sérum leve/aquoso, ex: Niacinamida 10% ou Vitamina C]
+1. 🧴 Limpeza: [Gel facial suave com ativo, ex: Ácido Salicílico ou Glicerina]
+2. 💧 Hidratação / Tratamento: [Sérum leve/aquoso, ex: Niacinamida 10% ou Vitamina C]
 3. ☀️ Protetor Solar: [FPS 50+ Toque Seco / Oil-Free — OBRIGATÓRIO todo santo dia, inclusive nublado ou home office!]
 
-🌙 **Rotina da Noite (Reparação & Controle)**
+🌙 **Rotina da Noite (Equilíbrio & Renovação)**
 1. 🧼 Limpeza: [Remoção profunda de resíduos de protetor solar e poluição]
-2. ✨ Tratamento Noturno: [Ativo renovador, ex: Ácido Azelaico, Retinol 0,3% ou Niacinamida]
+2. ✨ Tratamento Noturno: [Ativo cosmético suave renovador, ex: Ácido Azelaico, Retinol 0,3% ou Niacinamida]
 3. 💦 Hidratação: [Gel hidratante não comedogênico / aqua gel que não pesa no calor]
 
 💡 **Segredo de Ouro para o Clima BR**
-[1 dica de ouro super brasileira: ex: "Deixe lencinhos antioleosidade na bolsa", "Evite lavar o rosto com água quente do chuveiro para não dar efeito rebote", "Guarde seu sérum na geladeira no verão para acalmar a pele"]
+[1 dica cosmética prática para o calor/umidade]
+
+🩺 **Lembrete de Saúde da Pele**
+[Se houver acne ativa intensa, dor ou manchas persistentes, lembre que lesões inflamatórias exigem avaliação presencial com um médico dermatologista.]
 
 Regras obrigatórias:
-- Máximo 350 palavras
-- Seja super empática e encorajadora
-- Se oleosidade >= 7: enfatize "sem efeito rebote" e produtos "toque seco"
-- Se manchas >= 5 ou tom_de_pele morena/negra: dê ênfase máxima à prevenção do melasma com protetor de amplo espectro
+- Máximo 340 palavras
+- Seja super empática, acolhedora e cientificamente prudente
+- Se oleosidade >= 7: enfatize fórmulas "toque seco" e "sem efeito rebote"
+- Finalize com: "⚠️ *Guia cosmético para rotina diária. Não substitui consulta médica dermatológica.*"
 ''';
 
     final response = await _reportModel.generateContent([Content.text(prompt)]);

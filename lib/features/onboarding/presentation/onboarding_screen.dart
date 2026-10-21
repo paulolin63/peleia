@@ -43,7 +43,7 @@ const _pages = [
   _OnboardPage(
     emoji: '🌿',
     title: 'Sua pele merece\ncuidado inteligente',
-    subtitle: 'Diagnóstico de pele por IA em 30 segundos,\npersonalizado para o clima do Brasil 🇧🇷',
+    subtitle: 'Análise visual de rotina por IA em 30 segundos,\npersonalizada para o clima do Brasil 🇧🇷',
     accentColor: Color(0xFFC8714A),
     bullets: [
       '📸 Tire uma selfie — sem maquiagem',

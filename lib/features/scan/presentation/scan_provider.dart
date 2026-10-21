@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/services/comparison_service.dart';
 import '../../../core/services/gemini_skin_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/history_service.dart';
@@ -36,6 +37,7 @@ class ScanState {
   final String? errorMessage;
   final String statusMessage;
   final HistoryEntry? previousEntry; // Memória inteligente: análise anterior
+  final SkinComparisonResult? comparison; // Comparação determinística
 
   const ScanState({
     this.step = ScanStep.idle,
@@ -47,6 +49,7 @@ class ScanState {
     this.errorMessage,
     this.statusMessage = '',
     this.previousEntry,
+    this.comparison,
   });
 
   ScanState copyWith({
@@ -59,6 +62,7 @@ class ScanState {
     String? errorMessage,
     String? statusMessage,
     HistoryEntry? previousEntry,
+    SkinComparisonResult? comparison,
     bool clearPreviousEntry = false,
   }) {
     return ScanState(
@@ -71,6 +75,7 @@ class ScanState {
       errorMessage: errorMessage,
       statusMessage: statusMessage ?? this.statusMessage,
       previousEntry: clearPreviousEntry ? null : (previousEntry ?? this.previousEntry),
+      comparison: comparison ?? this.comparison,
     );
   }
 
@@ -127,9 +132,16 @@ class ScanNotifier extends StateNotifier<ScanState> {
       final previousEntry =
           previousEntries.isNotEmpty ? previousEntries.first : null;
 
+      // 📊 Separação: cálculo determinístico de deltas e margem de erro
+      final comparison = ComparisonService.compare(
+        current: analysis,
+        previous: previousEntry,
+      );
+
       final report = await _gemini.generateReport(
         analysis,
         previousEntry: previousEntry,
+        comparison: comparison,
       );
       final products = ProductCatalog.getRecommendations(analysis);
 
@@ -148,6 +160,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
         report: report,
         products: products,
         previousEntry: previousEntry,
+        comparison: comparison,
         statusMessage: '✅ Pronto!',
       );
     } catch (e) {
@@ -238,6 +251,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
     required List<AffiliateProduct> products,
     Uint8List? imageBytes,
     HistoryEntry? previousEntry,
+    SkinComparisonResult? comparison,
   }) {
     if (imageBytes != null && imageBytes.isNotEmpty) {
       HistoryService.saveAnalysis(
@@ -254,6 +268,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
       products: products,
       imageBytes: imageBytes,
       previousEntry: previousEntry,
+      comparison: comparison,
       statusMessage: '✅ Pronto!',
     );
   }

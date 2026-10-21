@@ -345,7 +345,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Comece seu Diagnóstico',
+                    'Comece sua Análise Visual',
                     style: TextStyle(
                       color: Color(0xFFF5F0EC),
                       fontSize: 15,
@@ -398,7 +398,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildMiniMetric(
-                label: 'Saúde Geral',
+                label: 'Indicador Geral',
                 value: '${_latestEntry!.scoreGeral}',
                 suffix: 'pts',
                 color: const Color(0xFF6AB187),
@@ -672,7 +672,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 Text(
-                  _quotaStatus?.statusText ?? 'Diagnóstico inteligente por IA',
+                  _quotaStatus?.statusText ?? 'Análise visual cosmética por IA',
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 11,

@@ -91,6 +91,17 @@ class HistoryService {
     }
   }
 
+  /// LGPD / Privacidade: Exclui permanentemente todo o histórico de fotos e dados do usuário
+  static Future<void> clearAllHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_storageKey);
+      debugPrint('🗑️ Todo o histórico foi apagado pelo usuário (LGPD compliance)');
+    } catch (e) {
+      debugPrint('⚠️ Erro ao limpar histórico: $e');
+    }
+  }
+
   /// Comprime a foto original para miniatura base64 de ~15KB
   static String? _generateThumbnailBase64(Uint8List originalBytes) {
     try {

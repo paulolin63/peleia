@@ -17,6 +17,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/services/comparison_service.dart';
 import '../../../core/services/gemini_skin_service.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
@@ -117,9 +118,15 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
       final previousEntry =
           previousEntries.isNotEmpty ? previousEntries.first : null;
 
+      final comparison = ComparisonService.compare(
+        current: analysis,
+        previous: previousEntry,
+      );
+
       final report = await gemini.generateReport(
         analysis,
         previousEntry: previousEntry,
+        comparison: comparison,
       );
       final products = ProductCatalog.getRecommendations(analysis);
 
@@ -133,6 +140,7 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
             products: products,
             imageBytes: bytes,
             previousEntry: previousEntry,
+            comparison: comparison,
           );
 
       if (mounted) context.push('/result');
@@ -371,7 +379,7 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '💡 3 Regras de Ouro para o Diagnóstico:',
+                        '💡 3 Regras de Ouro para Análise Confiável:',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,

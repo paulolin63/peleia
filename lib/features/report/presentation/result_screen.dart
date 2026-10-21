@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/services/comparison_service.dart';
 import '../../history/data/history_entry.dart';
 import '../../paywall/presentation/paywall_provider.dart';
 import '../../scan/data/skin_analysis_result.dart';
@@ -88,7 +89,11 @@ class ResultScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 // ── Memória Inteligente / Evolução ───────────
-                _buildEvolutionCard(analysis, state.previousEntry)
+                _buildEvolutionCard(
+                  analysis,
+                  state.previousEntry,
+                  state.comparison,
+                )
                     .animate()
                     .fadeIn(delay: 150.ms)
                     .slideY(begin: 0.2),
@@ -195,6 +200,13 @@ class ResultScreen extends ConsumerWidget {
                   ),
                 ).animate().fadeIn(delay: 500.ms),
 
+                const SizedBox(height: 24),
+
+                // ── Aviso Regulatório / ANVISA / CFM ──────────
+                _buildRegulatoryDisclaimer()
+                    .animate()
+                    .fadeIn(delay: 550.ms),
+
                 const SizedBox(height: 40),
               ]),
             ),
@@ -253,7 +265,7 @@ class ResultScreen extends ConsumerWidget {
                         ),
                       ),
                       child: Text(
-                        'Diagnóstico Concluído ✓',
+                        'Análise Concluída ✓',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -341,11 +353,20 @@ class ResultScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Score de Saúde da Pele',
+                  'Indicador Visual da Pele',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFFF5F0EC),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Referência cosmética • Não é diagnóstico clínico',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF8A7A6E),
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -387,7 +408,11 @@ class ResultScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEvolutionCard(SkinAnalysisRaw analysis, HistoryEntry? prev) {
+  Widget _buildEvolutionCard(
+    SkinAnalysisRaw analysis,
+    HistoryEntry? prev,
+    SkinComparisonResult? comp,
+  ) {
     if (prev != null) {
       final scoreDelta = analysis.scoreGeral - prev.scoreGeral;
       final daysDiff = DateTime.now().difference(prev.date).inDays;
@@ -397,20 +422,20 @@ class ResultScreen extends ConsumerWidget {
               ? 'Ontem'
               : 'Há $daysDiff dias (${prev.formattedDate})';
 
-      final isBetter = scoreDelta > 0;
-      final isSame = scoreDelta == 0;
+      final isWithinVariance = comp?.isWithinNormalVariance ?? (scoreDelta.abs() <= 2);
 
-      final deltaColor = isBetter
-          ? const Color(0xFF6AB187)
-          : isSame
-              ? const Color(0xFFE8A44A)
-              : const Color(0xFFE05353);
+      final isBetter = scoreDelta > 0 && !isWithinVariance;
+      final isWorse = scoreDelta < 0 && !isWithinVariance;
 
-      final deltaText = isBetter
-          ? '+$scoreDelta pts (Melhora!)'
-          : isSame
-              ? 'Estável (=)'
-              : '$scoreDelta pts (Oscilação)';
+      final deltaColor = isWithinVariance
+          ? const Color(0xFFE8A44A)
+          : (isBetter ? const Color(0xFF6AB187) : const Color(0xFFE05353));
+
+      final deltaText = isWithinVariance
+          ? 'Estável (± margem de luz)'
+          : (isBetter
+              ? '+$scoreDelta pts (Tendência de melhora)'
+              : '$scoreDelta pts (Oscilação visual)');
 
       return Container(
         padding: const EdgeInsets.all(18),
@@ -448,7 +473,7 @@ class ResultScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Memória Inteligente PeleIA',
+                        'Acompanhamento de Rotina PeleIA',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -496,7 +521,7 @@ class ResultScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildMetricDelta(
-                    label: 'Score',
+                    label: 'Indicador',
                     oldVal: '${prev.scoreGeral}',
                     newVal: '${analysis.scoreGeral}',
                     improved: analysis.scoreGeral >= prev.scoreGeral,
@@ -526,14 +551,16 @@ class ResultScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 10),
-            const Row(
+            Row(
               children: [
-                Icon(Icons.auto_awesome, size: 13, color: Color(0xFFC8714A)),
-                SizedBox(width: 6),
+                const Icon(Icons.info_outline, size: 13, color: Color(0xFFC8714A)),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'A IA comparou suas mudanças e adaptou as recomendações do relatório abaixo.',
-                    style: TextStyle(
+                    isWithinVariance
+                        ? 'Variações de até 3 pontos são compatíveis com diferenças de luz e ângulo da selfie.'
+                        : 'Tendência calculada matematicamente. As orientações cosméticas foram adaptadas abaixo.',
+                    style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFFD4C2B2),
                       fontStyle: FontStyle.italic,
@@ -582,7 +609,7 @@ class ResultScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Seu score inicial (${analysis.scoreGeral}/100) foi salvo na memória segura do seu celular. Na próxima selfie, a IA fará um comparativo automático da sua evolução!',
+                    'Seu indicador inicial (${analysis.scoreGeral}/100) foi salvo de forma privada no aparelho. Em selfies futuras sob condições similares, mostraremos sua evolução visual.',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF8A7A6E),
@@ -649,6 +676,51 @@ class ResultScreen extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildRegulatoryDisclaimer() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16120E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Text('🩺', style: TextStyle(fontSize: 16)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Aviso Regulatório & Médico (ANVISA / CFM)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFE8C9A0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'O PeleIA é um assistente de rotina de cuidados cosméticos e higiene pessoal. '
+            'As avaliações visuais por IA são estimativas orientativas de referência e NÃO '
+            'constituem diagnóstico médico, exame clínico ou prescrição dermatológica.\n\n'
+            'Em caso de dor, inflamação ativa, lesões irregulares que sangram ou mudam de cor, '
+            'consulte sempre presencialmente um médico dermatologista credenciado pela SBD.',
+            style: TextStyle(
+              fontSize: 11,
+              color: Color(0xFF8A7A6E),
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
