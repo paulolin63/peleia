@@ -6,12 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/history/presentation/history_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/paywall/presentation/paywall_screen.dart';
+import '../../features/report/presentation/result_screen.dart';
 import '../../features/scan/presentation/scan_screen.dart';
 import '../../features/scan/presentation/web_test_screen.dart';
-import '../../features/report/presentation/result_screen.dart';
-import '../../features/history/presentation/history_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -31,6 +32,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/',
+        builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/scan',
         builder: (context, state) =>
             kIsWeb ? const WebTestScreen() : const ScanScreen(),
       ),
