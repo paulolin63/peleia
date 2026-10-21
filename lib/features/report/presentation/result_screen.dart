@@ -432,7 +432,7 @@ class ResultScreen extends ConsumerWidget {
           : (isBetter ? const Color(0xFF6AB187) : const Color(0xFFE05353));
 
       final deltaText = isWithinVariance
-          ? 'Estável (± margem de luz)'
+          ? 'Variação pequena • Inconclusivo'
           : (isBetter
               ? '+$scoreDelta pts (Tendência de melhora)'
               : '$scoreDelta pts (Oscilação visual)');
@@ -558,7 +558,7 @@ class ResultScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     isWithinVariance
-                        ? 'Variações de até 3 pontos são compatíveis com diferenças de luz e ângulo da selfie.'
+                        ? 'Variação pequena que não permite concluir melhora ou piora. Acompanhe nas próximas semanas sob luz similar.'
                         : 'Tendência calculada matematicamente. As orientações cosméticas foram adaptadas abaixo.',
                     style: const TextStyle(
                       fontSize: 11,

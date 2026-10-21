@@ -9,7 +9,7 @@ import '../../features/scan/data/skin_analysis_result.dart';
 
 enum TrendDirection {
   improved,
-  stable,
+  inconclusive, // Variação pequena / Resultado inconclusivo (margem de incerteza)
   worsened,
 }
 
@@ -73,7 +73,7 @@ class ComparisonService {
           previousValue: current.scoreGeral,
           currentValue: current.scoreGeral,
           delta: 0,
-          trend: TrendDirection.stable,
+          trend: TrendDirection.inconclusive,
           explanation: 'Ponto de partida registrado (Marco Zero)',
         ),
         acne: MetricDelta(
@@ -81,7 +81,7 @@ class ComparisonService {
           previousValue: current.scores.acneCravos,
           currentValue: current.scores.acneCravos,
           delta: 0,
-          trend: TrendDirection.stable,
+          trend: TrendDirection.inconclusive,
           explanation: 'Nível inicial',
         ),
         oleosidade: MetricDelta(
@@ -89,7 +89,7 @@ class ComparisonService {
           previousValue: current.scores.oleosidade,
           currentValue: current.scores.oleosidade,
           delta: 0,
-          trend: TrendDirection.stable,
+          trend: TrendDirection.inconclusive,
           explanation: 'Nível inicial',
         ),
         manchas: MetricDelta(
@@ -97,7 +97,7 @@ class ComparisonService {
           previousValue: current.scores.manchasSolares,
           currentValue: current.scores.manchasSolares,
           delta: 0,
-          trend: TrendDirection.stable,
+          trend: TrendDirection.inconclusive,
           explanation: 'Nível inicial',
         ),
         hidratacao: MetricDelta(
@@ -105,7 +105,7 @@ class ComparisonService {
           previousValue: current.scores.hidratacao,
           currentValue: current.scores.hidratacao,
           delta: 0,
-          trend: TrendDirection.stable,
+          trend: TrendDirection.inconclusive,
           explanation: 'Nível inicial',
         ),
         isWithinNormalVariance: true,
@@ -119,36 +119,36 @@ class ComparisonService {
     // 1. Indicador geral (maior é melhor)
     final scoreDiff = current.scoreGeral - previous.scoreGeral;
     final scoreTrend = scoreDiff.abs() <= scoreVarianceThreshold
-        ? TrendDirection.stable
+        ? TrendDirection.inconclusive
         : (scoreDiff > 0 ? TrendDirection.improved : TrendDirection.worsened);
 
     // 2. Acne (menor é melhor)
     final acneDiff = current.scores.acneCravos - previous.acne;
     final acneTrend = acneDiff.abs() <= itemVarianceThreshold
-        ? TrendDirection.stable
+        ? TrendDirection.inconclusive
         : (acneDiff < 0 ? TrendDirection.improved : TrendDirection.worsened);
 
     // 3. Oleosidade (menor/equilibrado é melhor)
     final oilDiff = current.scores.oleosidade - previous.oleosidade;
     final oilTrend = oilDiff.abs() <= itemVarianceThreshold
-        ? TrendDirection.stable
+        ? TrendDirection.inconclusive
         : (oilDiff < 0 ? TrendDirection.improved : TrendDirection.worsened);
 
     // 4. Manchas (menor é melhor)
     final spotsDiff = current.scores.manchasSolares - previous.manchas;
     final spotsTrend = spotsDiff.abs() <= itemVarianceThreshold
-        ? TrendDirection.stable
+        ? TrendDirection.inconclusive
         : (spotsDiff < 0 ? TrendDirection.improved : TrendDirection.worsened);
 
     // 5. Hidratação (maior é melhor)
     final hydraDiff = current.scores.hidratacao - previous.hidratacao;
     final hydraTrend = hydraDiff.abs() <= itemVarianceThreshold
-        ? TrendDirection.stable
+        ? TrendDirection.inconclusive
         : (hydraDiff > 0 ? TrendDirection.improved : TrendDirection.worsened);
 
-    final isWithinNormal = scoreTrend == TrendDirection.stable &&
-        acneTrend == TrendDirection.stable &&
-        oilTrend == TrendDirection.stable;
+    final isWithinNormal = scoreTrend == TrendDirection.inconclusive &&
+        acneTrend == TrendDirection.inconclusive &&
+        oilTrend == TrendDirection.inconclusive;
 
     final summary = StringBuffer();
     summary.write('Intervalo: $days dias. ');
@@ -167,8 +167,8 @@ class ComparisonService {
         currentValue: current.scoreGeral,
         delta: scoreDiff,
         trend: scoreTrend,
-        explanation: scoreTrend == TrendDirection.stable
-            ? 'Estável (variação dentro da margem de iluminação da foto)'
+        explanation: scoreTrend == TrendDirection.inconclusive
+            ? 'Variação pequena • Resultado inconclusivo (margem de incerteza da foto)'
             : (scoreTrend == TrendDirection.improved
                 ? 'Tendência de melhora no aspecto visual geral'
                 : 'Pequena oscilação para baixo no aspecto geral'),
@@ -179,8 +179,8 @@ class ComparisonService {
         currentValue: current.scores.acneCravos,
         delta: acneDiff,
         trend: acneTrend,
-        explanation: acneTrend == TrendDirection.stable
-            ? 'Aparência de cravos/acne estável'
+        explanation: acneTrend == TrendDirection.inconclusive
+            ? 'Variação pequena • Aparência de acne estável'
             : (acneTrend == TrendDirection.improved
                 ? 'Menor visibilidade aparente de espinhas/cravos'
                 : 'Aparência de mais espinhas ou poros obstruídos'),
@@ -191,8 +191,8 @@ class ComparisonService {
         currentValue: current.scores.oleosidade,
         delta: oilDiff,
         trend: oilTrend,
-        explanation: oilTrend == TrendDirection.stable
-            ? 'Brilho e oleosidade na zona T estáveis'
+        explanation: oilTrend == TrendDirection.inconclusive
+            ? 'Variação pequena • Brilho na zona T inconclusivo'
             : (oilTrend == TrendDirection.improved
                 ? 'Aspecto visual mais matificado/seco'
                 : 'Aspecto visual com maior reflexo de brilho/oleosidade'),
@@ -203,8 +203,8 @@ class ComparisonService {
         currentValue: current.scores.manchasSolares,
         delta: spotsDiff,
         trend: spotsTrend,
-        explanation: spotsTrend == TrendDirection.stable
-            ? 'Tonalidade e manchas estáveis'
+        explanation: spotsTrend == TrendDirection.inconclusive
+            ? 'Variação pequena • Tonalidade visual inconclusiva'
             : (spotsTrend == TrendDirection.improved
                 ? 'Tom visualmente mais uniforme'
                 : 'Manchas visíveis com maior contraste'),
@@ -215,11 +215,11 @@ class ComparisonService {
         currentValue: current.scores.hidratacao,
         delta: hydraDiff,
         trend: hydraTrend,
-        explanation: hydraTrend == TrendDirection.stable
-            ? 'Textura aparente de hidratação estável'
+        explanation: hydraTrend == TrendDirection.inconclusive
+            ? 'Variação pequena • Textura de hidratação inconclusiva'
             : (hydraTrend == TrendDirection.improved
                 ? 'Pele com aspecto visual mais viçoso'
-                : 'Possível aparência de ressecamento'),
+                : 'Aparência de ressecamento ou aspereza'),
       ),
       isWithinNormalVariance: isWithinNormal,
       deterministicSummary: summary.toString(),
