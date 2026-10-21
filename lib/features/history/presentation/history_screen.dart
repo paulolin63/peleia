@@ -9,6 +9,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/services/history_service.dart';
+import '../../../core/services/privacy_service.dart';
 import '../data/history_entry.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -126,6 +127,11 @@ class _HistoryScreenState extends State<HistoryScreen>
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.shield_outlined, color: Color(0xFF8A7A6E)),
+            tooltip: 'Privacidade de Dados (LGPD)',
+            onPressed: () => PrivacyService.showPrivacyNoticeModal(context),
+          ),
           if (_entries.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Color(0xFF8A7A6E)),

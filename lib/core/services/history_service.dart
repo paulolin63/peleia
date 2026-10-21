@@ -14,6 +14,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/history/data/history_entry.dart';
 import '../../features/scan/data/skin_analysis_result.dart';
 
+import 'privacy_service.dart';
+
 class HistoryService {
   static const String _storageKey = 'peleia_skin_history_entries_v1';
   static const int _maxStoredEntries = 30; // Guarda até 30 análises
@@ -91,15 +93,9 @@ class HistoryService {
     }
   }
 
-  /// LGPD / Privacidade: Exclui permanentemente todo o histórico de fotos e dados do usuário
+  /// LGPD / Privacidade: Exclui permanentemente todo o histórico de fotos, arquivos e dados do usuário
   static Future<void> clearAllHistory() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_storageKey);
-      debugPrint('🗑️ Todo o histórico foi apagado pelo usuário (LGPD compliance)');
-    } catch (e) {
-      debugPrint('⚠️ Erro ao limpar histórico: $e');
-    }
+    await PrivacyService.purgeAllUserData();
   }
 
   /// Comprime a foto original para miniatura base64 de ~15KB
