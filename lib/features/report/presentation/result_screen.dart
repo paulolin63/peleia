@@ -11,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/services/comparison_service.dart';
+import '../../../core/services/comparison_service.dart';
 import '../../history/data/history_entry.dart';
 import '../../paywall/presentation/paywall_provider.dart';
 import '../../scan/data/skin_analysis_result.dart';
@@ -425,7 +425,6 @@ class ResultScreen extends ConsumerWidget {
       final isWithinVariance = comp?.isWithinNormalVariance ?? (scoreDelta.abs() <= 2);
 
       final isBetter = scoreDelta > 0 && !isWithinVariance;
-      final isWorse = scoreDelta < 0 && !isWithinVariance;
 
       final deltaColor = isWithinVariance
           ? const Color(0xFFE8A44A)

@@ -119,7 +119,15 @@ class ScanNotifier extends StateNotifier<ScanState> {
         statusMessage: '🔬 Analisando sua pele com IA...',
       );
 
-      final analysis = await _gemini.analyzeImageBytes(bytes);
+      final prefs = await SharedPreferences.getInstance();
+      final ageGroup = prefs.getString('user_age_group');
+      final outdoorExposure = prefs.getString('user_outdoor_exposure');
+
+      final analysis = await _gemini.analyzeImageBytes(
+        bytes,
+        ageGroup: ageGroup,
+        outdoorExposure: outdoorExposure,
+      );
 
       state = state.copyWith(
         analysis: analysis,
@@ -142,6 +150,8 @@ class ScanNotifier extends StateNotifier<ScanState> {
         analysis,
         previousEntry: previousEntry,
         comparison: comparison,
+        ageGroup: ageGroup,
+        outdoorExposure: outdoorExposure,
       );
       final products = ProductCatalog.getRecommendations(analysis);
 

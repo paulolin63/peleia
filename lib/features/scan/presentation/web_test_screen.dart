@@ -102,15 +102,24 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
       gemini.initialize();
 
       late SkinAnalysisRaw analysis;
+      final ageGroup = prefs.getString('user_age_group');
+      final outdoorExposure = prefs.getString('user_outdoor_exposure');
+      final bytes = await picked.readAsBytes();
 
       if (kIsWeb) {
         // Web: usa bytes diretamente
-        final bytes = await picked.readAsBytes();
-        analysis = await gemini.analyzeImageBytes(bytes);
+        analysis = await gemini.analyzeImageBytes(
+          bytes,
+          ageGroup: ageGroup,
+          outdoorExposure: outdoorExposure,
+        );
       } else {
         // Mobile/Desktop: usa bytes via XFile (sem dart:io File)
-        final bytes = await picked.readAsBytes();
-        analysis = await gemini.analyzeImageBytes(bytes);
+        analysis = await gemini.analyzeImageBytes(
+          bytes,
+          ageGroup: ageGroup,
+          outdoorExposure: outdoorExposure,
+        );
       }
 
       setState(() => _status = '📋 Consultando histórico e gerando relatório...');
@@ -127,6 +136,8 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
         analysis,
         previousEntry: previousEntry,
         comparison: comparison,
+        ageGroup: ageGroup,
+        outdoorExposure: outdoorExposure,
       );
       final products = ProductCatalog.getRecommendations(analysis);
 

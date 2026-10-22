@@ -7,7 +7,6 @@
 //  - Checklist diário de rotina (Manhã e Noite com checkboxes)
 //  - Atalhos para Nova Análise, Evolução Antes & Depois e Premium
 // ============================================================
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -29,6 +28,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   bool _isPro = false;
   QuotaStatus? _quotaStatus;
+  String? _ageGroup;
+  String? _outdoorExposure;
 
   // Checklist da rotina de hoje
   bool _isMorningTab = true;
@@ -55,6 +56,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Carrega status da cota
     _quotaStatus = await QuotaService.checkQuota(isPro: _isPro);
+
+    // Carrega perfil declarado
+    _ageGroup = prefs.getString('user_age_group') ?? '20_35';
+    _outdoorExposure = prefs.getString('user_outdoor_exposure') ?? 'outdoor_moderate';
 
     // Carrega checklist do dia atual
     final today = _getTodayKey();
@@ -136,7 +141,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // ── Header Superior ─────────────────────────
                     _buildTopHeader(),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
+
+                    // ── Perfil Declarado do Usuário ─────────────
+                    _buildUserProfileBadge(),
+
+                    const SizedBox(height: 16),
 
                     // ── Card de Alerta UV e Clima BR ────────────
                     _buildUvAlertCard(),
@@ -253,6 +263,323 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ],
     ).animate().fadeIn(duration: 400.ms);
+  }
+
+  // ── Perfil Declarado do Usuário ───────────────────────────
+  Widget _buildUserProfileBadge() {
+    String ageText;
+    switch (_ageGroup) {
+      case 'under_20':
+        ageText = '< 20 anos';
+        break;
+      case '36_50':
+        ageText = '36-50 anos';
+        break;
+      case '50_plus':
+        ageText = '50+ anos';
+        break;
+      case '20_35':
+      default:
+        ageText = '20-35 anos';
+        break;
+    }
+
+    String outdoorText;
+    switch (_outdoorExposure) {
+      case 'outdoor_high':
+        outdoorText = '☀️ Sol & Esporte Frequente';
+        break;
+      case 'outdoor_low':
+        outdoorText = '💻 Home Office / Pouco Sol';
+        break;
+      case 'outdoor_moderate':
+      default:
+        outdoorText = '🚴 Sol Moderado';
+        break;
+    }
+
+    return InkWell(
+      onTap: () => _showEditProfileModal(context),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1712),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFC8714A).withAlpha(45)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.tune, color: Color(0xFFE8C9A0), size: 16),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Perfil de Rotina: $ageText • $outdoorText',
+                style: const TextStyle(
+                  color: Color(0xFFE8C9A0),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Text(
+              'Ajustar',
+              style: TextStyle(
+                color: Color(0xFFC8714A),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 450.ms);
+  }
+
+  void _showEditProfileModal(BuildContext context) {
+    String tempAge = _ageGroup ?? '20_35';
+    String tempOutdoor = _outdoorExposure ?? 'outdoor_moderate';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF16120E),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3A3026),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Perfil e Hábitos de Sol',
+                    style: TextStyle(
+                      color: Color(0xFFF5F0EC),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Personaliza a análise do Gemini e a escolha do protetor solar ideal.',
+                    style: TextStyle(
+                      color: Color(0xFF8A7A6E),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Faixa Etária',
+                    style: TextStyle(
+                      color: Color(0xFFE8C9A0),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildChip(
+                        label: '< 20 anos',
+                        selected: tempAge == 'under_20',
+                        onTap: () => setModalState(() => tempAge = 'under_20'),
+                      ),
+                      _buildChip(
+                        label: '20 a 35 anos',
+                        selected: tempAge == '20_35',
+                        onTap: () => setModalState(() => tempAge = '20_35'),
+                      ),
+                      _buildChip(
+                        label: '36 a 50 anos',
+                        selected: tempAge == '36_50',
+                        onTap: () => setModalState(() => tempAge = '36_50'),
+                      ),
+                      _buildChip(
+                        label: 'Mais de 50 anos',
+                        selected: tempAge == '50_plus',
+                        onTap: () => setModalState(() => tempAge = '50_plus'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Exposição Solar & Esportes ao Ar Livre',
+                    style: TextStyle(
+                      color: Color(0xFFE8C9A0),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Column(
+                    children: [
+                      _buildRadioTile(
+                        icon: '☀️',
+                        title: 'Alta exposição solar',
+                        subtitle: 'Esportes ao ar livre, praia ou sol forte frequente',
+                        selected: tempOutdoor == 'outdoor_high',
+                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_high'),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildRadioTile(
+                        icon: '🚴',
+                        title: 'Exposição moderada',
+                        subtitle: 'Finais de semana, lazer e trajetos urbanos',
+                        selected: tempOutdoor == 'outdoor_moderate',
+                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_moderate'),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildRadioTile(
+                        icon: '💻',
+                        title: 'Baixa exposição solar',
+                        subtitle: 'Rotina em ambientes fechados / home office',
+                        selected: tempOutdoor == 'outdoor_low',
+                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_low'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('user_age_group', tempAge);
+                        await prefs.setString('user_outdoor_exposure', tempOutdoor);
+                        if (mounted && ctx.mounted) {
+                          Navigator.pop(ctx);
+                          _loadDashboardData();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC8714A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Salvar Preferências',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFC8714A) : const Color(0xFF221A14),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? const Color(0xFFE8A44A) : const Color(0xFF3A3026),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : const Color(0xFFD6C8BC),
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRadioTile({
+    required String icon,
+    required String title,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF261C14) : const Color(0xFF1C1712),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? const Color(0xFFC8714A) : const Color(0xFF2E241C),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: selected ? const Color(0xFFF5F0EC) : const Color(0xFFD6C8BC),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFF8A7A6E),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              selected ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: selected ? const Color(0xFFC8714A) : const Color(0xFF4A3C30),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── 2. Card de Alerta UV e Clima Tropical do Brasil ───────

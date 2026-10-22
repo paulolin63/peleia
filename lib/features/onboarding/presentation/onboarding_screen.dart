@@ -371,6 +371,25 @@ class _QuizScreenState extends State<_QuizScreen> {
         _QuizOption('Uso só quando vou à praia', 'spf_praia', '🏖️'),
       ],
     ),
+    _QuizQuestion(
+      question: 'Qual é a sua faixa etária?',
+      emoji: '🎂',
+      options: [
+        _QuizOption('Menos de 20 anos', 'under_20', '🎒'),
+        _QuizOption('20 a 35 anos', '20_35', '🌿'),
+        _QuizOption('36 a 50 anos', '36_50', '✨'),
+        _QuizOption('Mais de 50 anos', '50_plus', '🌸'),
+      ],
+    ),
+    _QuizQuestion(
+      question: 'Costuma praticar esportes ou se expor ao sol?',
+      emoji: '🏃',
+      options: [
+        _QuizOption('Quase todo dia (corrida, praia, sol intenso)', 'outdoor_high', '☀️'),
+        _QuizOption('Finais de semana / Ocasional', 'outdoor_moderate', '🚴'),
+        _QuizOption('Raramente (ambiente fechado / home office)', 'outdoor_low', '💻'),
+      ],
+    ),
   ];
 
   int _currentQuestion = 0;
@@ -394,8 +413,18 @@ class _QuizScreenState extends State<_QuizScreen> {
     } else {
       // Calcula tipo de pele baseado nas respostas
       _detectedSkinType = _calculateSkinType();
+      _saveUserProfile();
       setState(() => _quizStep = 1); // vai para permissão de câmera
     }
+  }
+
+  Future<void> _saveUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_skin_type_quiz', _detectedSkinType);
+    final age = _answers[3] ?? '20_35';
+    final outdoor = _answers[4] ?? 'outdoor_moderate';
+    await prefs.setString('user_age_group', age);
+    await prefs.setString('user_outdoor_exposure', outdoor);
   }
 
   String _calculateSkinType() {

@@ -108,16 +108,27 @@ class GeminiSkinService {
   //  Analisa imagem a partir de bytes (Web + Android + iOS)
   //  Chame sempre com bytes — o chamador lê o arquivo/XFile
   // ─────────────────────────────────────────────────────────
-  Future<SkinAnalysisRaw> analyzeImageBytes(Uint8List rawBytes) async {
+  Future<SkinAnalysisRaw> analyzeImageBytes(
+    Uint8List rawBytes, {
+    String? ageGroup,
+    String? outdoorExposure,
+  }) async {
     initialize();
 
     final bytes = await _compressBytes(rawBytes);
+    final ageDesc = _formatAgeDescription(ageGroup);
+    final outdoorDesc = _formatOutdoorDescription(outdoorExposure);
 
-    const prompt = '''
+    final prompt = '''
 You are a cosmetic skincare routine assistant specialized in Brazilian visual skin observations.
 
 Analyze this facial selfie and return a JSON object with cosmetic visual skin assessment optimized for
 Brazilian climate: high UV index, tropical heat and humidity.
+
+USER PROFILE CONTEXT (DECLARED BY USER):
+- Age Group: $ageDesc
+- Outdoor Sports & Sun Exposure: $outdoorDesc
+Use this context to inform expected oiliness and barrier needs (e.g. teenagers expect higher sebum; mature skin requires deeper barrier care; outdoor athletes require higher UV awareness).
 
 IMPORTANT LEGAL & MEDICAL NOTICE:
 This is strictly a cosmetic visual evaluation of a selfie photo for daily skincare routines.
@@ -146,7 +157,7 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanation, no code blocks.
 
 Rules:
 - oleosidade 7-10 = high visible oiliness / shine (common in Brazilian humid climate)
-- urgencia_protetor_solar = "alta" for morena/negra/oleosa types
+- urgencia_protetor_solar = "alta" for morena/negra/oleosa types or outdoor_high exposure
 - If photo is blurry, uncentered, or poor lighting: {"error":"Foto com baixa nitidez ou iluminação inadequada. Tire uma selfie frontal nítida com luz natural."}
 - If not a clear face photo: {"error":"Rosto não detectado com clareza. Centralize seu rosto com boa luz sem maquiagem pesada."}
 ''';
@@ -207,11 +218,16 @@ Rules:
     SkinAnalysisRaw analysis, {
     HistoryEntry? previousEntry,
     SkinComparisonResult? comparison,
+    String? ageGroup,
+    String? outdoorExposure,
   }) async {
     initialize();
 
     String memorySection = '';
     String memoryHeader = '';
+
+    final ageDesc = _formatAgeDescription(ageGroup);
+    final outdoorDesc = _formatOutdoorDescription(outdoorExposure);
 
     // Se temos o resultado determinístico do ComparisonService, usamos ele
     final comp = comparison ??
@@ -248,6 +264,15 @@ LIMITES REGULATÓRIOS E ÉTICOS (ANVISA / GOOGLE PLAY / APPLE HEALTH):
 - NUNCA use termos como "diagnóstico médico", "cura" ou se passe por médico dermatologista clínico.
 - NÃO afirme causalidade absoluta (não afirme razões definitivas para oscilações sem comprovação).
 
+PERFIL CONTEXTUAL DO USUÁRIO (DECLARADO):
+- Faixa Etária: $ageDesc
+- Exposição Solar / Atividade ao Ar Livre: $outdoorDesc
+
+DIRETRIZES DE PERSONALIZAÇÃO POR CONTEXTO:
+- Se exposição for alta (esportes/sol frequente): na Rotina da Manhã, o protetor solar DEVE ser explicitamente "FPS 50+ toque seco com alta resistência à água e ao suor", prevenindo ardência nos olhos e perda de proteção durante treinos.
+- Se faixa etária for >= 36 ou 50+: priorize ativos antioxidantes matinais (Vitamina C) e renovação noturna com suporte à barreira cutânea (Niacinamida, Ácido Hialurônico, Peptídeos ou Bakuchiol).
+- Se faixa etária for < 20: priorize controle de oleosidade jovem com gel suave (Ácido Salicílico 2% ou Niacinamida), evitando produtos agressivos que causem efeito rebote.
+
 ANÁLISE E INDICADORES VISUAIS DO USUÁRIO:
 ${jsonEncode(analysis.toJson())}
 
@@ -268,7 +293,7 @@ $memoryHeader
 🌅 **Rotina da Manhã (Toque Seco & Proteção)**
 1. 🧴 Limpeza: [Gel facial suave com ativo, ex: Ácido Salicílico ou Glicerina]
 2. 💧 Hidratação / Tratamento: [Sérum leve/aquoso, ex: Niacinamida 10% ou Vitamina C]
-3. ☀️ Protetor Solar: [FPS 50+ Toque Seco / Oil-Free — OBRIGATÓRIO todo santo dia, inclusive nublado ou home office!]
+3. ☀️ Protetor Solar: [FPS 50+ Toque Seco / Oil-Free — adequado para seu nível de exposição solar!]
 
 🌙 **Rotina da Noite (Equilíbrio & Renovação)**
 1. 🧼 Limpeza: [Remoção profunda de resíduos de protetor solar e poluição]
@@ -324,6 +349,34 @@ Regras obrigatórias:
       return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
     } catch (_) {
       return bytes; // fallback: envia original se compressão falhar
+    }
+  }
+
+  static String _formatAgeDescription(String? age) {
+    switch (age) {
+      case 'under_20':
+        return '< 20 anos (Jovem / Adolescente)';
+      case '20_35':
+        return '20 a 35 anos (Jovem adulto / Equilíbrio e prevenção)';
+      case '36_50':
+        return '36 a 50 anos (Maturidade inicial / Prevenção de manchas e firmeza)';
+      case '50_plus':
+        return 'Mais de 50 anos (Pele madura / Hidratação profunda e barreira)';
+      default:
+        return 'Não informada (faixa padrão 20-35 anos)';
+    }
+  }
+
+  static String _formatOutdoorDescription(String? outdoor) {
+    switch (outdoor) {
+      case 'outdoor_high':
+        return 'Alta exposição solar (pratica esportes ao ar livre, praia ou exposição diária frequente)';
+      case 'outdoor_moderate':
+        return 'Exposição solar moderada (finais de semana, trajetos e lazer)';
+      case 'outdoor_low':
+        return 'Baixa exposição solar (ambiente fechado, escritório / home office preponderante)';
+      default:
+        return 'Moderada (padrão rotina mista brasileira)';
     }
   }
 }
