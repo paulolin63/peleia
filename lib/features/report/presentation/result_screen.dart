@@ -11,9 +11,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/config/remote_config_service.dart';
 import '../../../core/services/comparison_service.dart';
 import '../../history/data/history_entry.dart';
-import '../../paywall/presentation/paywall_provider.dart';
 import '../../scan/data/skin_analysis_result.dart';
 import '../../scan/presentation/scan_provider.dart';
 
@@ -23,6 +24,7 @@ class ResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(scanProvider);
+    final texts = ref.watch(appConfigProvider).valueOrNull?.texts ?? AppTexts.fallback;
     final analysis = state.analysis;
 
     if (analysis == null) {
@@ -118,8 +120,8 @@ class ResultScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 // ── Produtos afiliados ───────────────────────
-                if (state.products.isNotEmpty)
-                  _buildProducts(state.products)
+                if (state.products.isNotEmpty || state.hiddenProducts > 0 || state.missingSunscreen)
+                  _buildProducts(state)
                       .animate()
                       .fadeIn(delay: 400.ms)
                       .slideY(begin: 0.2),
@@ -127,7 +129,7 @@ class ResultScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // ── Banner Premium ───────────────────────────
-                _buildPremiumBanner(context)
+                _buildPremiumBanner(context, texts)
                     .animate()
                     .fadeIn(delay: 450.ms)
                     .slideY(begin: 0.2),
@@ -827,7 +829,8 @@ class ResultScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProducts(List<AffiliateProduct> products) {
+  Widget _buildProducts(ScanState state) {
+    final products = state.products;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -872,6 +875,14 @@ class ResultScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 14),
+          if (state.hiddenProducts > 0 || state.missingSunscreen)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                _avoidanceNotice(state),
+                style: const TextStyle(fontSize: 12, color: Color(0xFFE8C9A0), height: 1.4),
+              ),
+            ),
           ...products.map((product) => _buildProductCard(product)),
           const SizedBox(height: 12),
           Container(
@@ -1009,7 +1020,7 @@ class ResultScreen extends ConsumerWidget {
 
   // ── Helpers ──────────────────────────────────────────────
 
-  Widget _buildPremiumBanner(BuildContext context) {
+  Widget _buildPremiumBanner(BuildContext context, AppTexts texts) {
     return GestureDetector(
       onTap: () => context.push('/premium'),
       child: Container(
@@ -1027,22 +1038,22 @@ class ResultScreen extends ConsumerWidget {
           children: [
             const Text('💎', style: TextStyle(fontSize: 32)),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Desbloqueie o Premium',
-                    style: TextStyle(
+                    texts.premiumBannerTitle,
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFFE8C9A0),
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
-                    'Análises ilimitadas + histórico + alertas UV.\n3 dias grátis para começar!',
-                    style: TextStyle(
+                    texts.premiumBannerSubtitle,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF8A7A6E),
                       height: 1.5,
@@ -1095,6 +1106,17 @@ class ResultScreen extends ConsumerWidget {
     if (score >= 70) return 'Pele em bom estado com alguns pontos de atenção.';
     if (score >= 55) return 'Sua pele precisa de cuidados específicos. Veja a rotina.';
     return 'Atenção! Sua pele precisa de cuidados urgentes.';
+  }
+
+  String _avoidanceNotice(ScanState state) {
+    final labels = state.avoidedLabels.join(', ');
+    final hidden = state.hiddenProducts > 0
+        ? 'Ocultamos ${state.hiddenProducts} produto(s)${labels.isEmpty ? '' : ' com $labels'}.'
+        : '';
+    final sun = state.missingSunscreen
+        ? ' Nenhum protetor do catálogo serve ao seu perfil. Procure um FPS 50+ sem esses ingredientes e confira o rótulo (INCI).'
+        : ' Confira o rótulo (INCI) antes de comprar.';
+    return '$hidden$sun'.trim();
   }
 
   double _calcTotal(List<AffiliateProduct> products) {

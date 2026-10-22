@@ -3,10 +3,15 @@ main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
 [vars]
-GEMINI_MODEL = "gemini-3.6-flash"
 ENVIRONMENT = "production"
+# ID do projeto Firebase (o mesmo do google-services.json do app).
+FIREBASE_PROJECT_ID = ""
+# Entitlement do RevenueCat que libera o Pro.
+PREMIUM_ENTITLEMENT_ID = "premium"
+# Origens web liberadas para POST (separadas por vírgula). O app Android não envia Origin.
+ALLOWED_ORIGINS = ""
 
-# Durable Object para controle atômico e transacional de cotas (anti-race condition)
+# Durable Object para controle atômico de cotas por usuário
 [durable_objects]
 bindings = [
   { name = "QUOTA_DO", class_name = "QuotaDurableObject" }
@@ -16,10 +21,13 @@ bindings = [
 tag = "v1"
 new_classes = ["QuotaDurableObject"]
 
-# Fallback KV namespace (opcional para leitura de cache)
+# Configuração remota (produtos, planos, cotas, textos, prompts).
+# Crie com: npx wrangler kv namespace create CONFIG_KV  e cole o id abaixo.
+# Publique com: python3 ../../scripts/publish_config.py
 [[kv_namespaces]]
-binding = "QUOTA_KV"
-id = "peleia_quota_kv"
+binding = "CONFIG_KV"
+id = "REPLACE_WITH_CONFIG_KV_ID"
 
-# Os segredos devem ser configurados via CLI:
-# wrangler secret put GEMINI_API_KEY
+# Segredos (via CLI):
+#   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put REVENUECAT_SECRET_KEY

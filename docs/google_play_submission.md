@@ -19,7 +19,7 @@ PeleIA: Skincare com IA
 ## Descrição Curta (máx. 80 caracteres)
 
 ```
-Diagnóstico de pele por IA. Rotina personalizada para o clima BR 🇧🇷
+Análise visual de pele por IA. Rotina cosmética para o clima BR 🇧🇷
 ```
 
 ## Descrição Completa (máx. 4000 caracteres)
@@ -28,7 +28,7 @@ Diagnóstico de pele por IA. Rotina personalizada para o clima BR 🇧🇷
 ✨ PeleIA — A primeira IA de skincare pensada para a pele e o clima brasileiro.
 
 🔬 COMO FUNCIONA
-Tire uma selfie e nossa IA analisa sua pele em 30 segundos. Você recebe um diagnóstico completo com scores de oleosidade, acne, manchas solares e hidratação — tudo em português do Brasil, sem termos médicos complicados.
+Tire uma selfie e a IA faz uma leitura visual da pele em cerca de 30 segundos. Você recebe scores de oleosidade, acne, manchas solares e hidratação e uma rotina cosmética em português do Brasil. Não é diagnóstico médico.
 
 ☀️ FEITO PARA O BRASIL
 O Brasil tem um dos índices UV mais altos do mundo. Nossa IA leva em conta o calor, a umidade e a exposição solar da sua região para criar uma rotina de skincare que realmente funciona no nosso clima.
@@ -53,14 +53,12 @@ Recomendamos marcas que as brasileiras amam e confiam:
 
 Com links diretos para Shopee Brasil, Mercado Livre e Amazon Brasil.
 
-💎 PREMIUM — 3 DIAS GRÁTIS
-• Análises ilimitadas (até 5 por dia)
-• Acompanhamento semanal da evolução da sua pele
-• Alertas UV em tempo real por cidade
-• Relatório PDF para levar ao dermatologista
-• Rotina adaptada às estações (verão e inverno brasileiros)
+💎 PELEIA PRO
+• Até 2 análises por dia
+• Acompanhamento da evolução da sua pele
+• Recomendações que respeitam alergias e ingredientes que você pediu para evitar
 
-Planos a partir de R$ 9,90/semana. Cancele quando quiser pelo Google Play.
+O preço é o exibido na Google Play. Cancele quando quiser pelo Google Play. Não há período de teste grátis.
 
 🔒 PRIVACIDADE
 Suas fotos são processadas pela IA e descartadas imediatamente. Nenhuma imagem é salva em nossos servidores. Consulte nossa Política de Privacidade.
@@ -75,7 +73,7 @@ Disponível para Android — otimizado para todos os tipos de pele brasileira.
 ```
 skincare brasil, cuidados com a pele, rotina de skincare, análise de pele, 
 pele oleosa, acne, manchas solares, protetor solar, niacinamida, ácido salicílico,
-inteligência artificial pele, diagnóstico de pele, rotina beauty, Principia, 
+inteligência artificial pele, análise de pele, rotina beauty, Principia, 
 Sallve, pele mista, pele seca, melasma, cravos
 ```
 

@@ -3,7 +3,6 @@
 //
 //  Transparência de Dados, LGPD e Política de Retenção de Imagens
 // ============================================================
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,9 +13,24 @@ class PrivacyService {
   static Future<void> purgeAllUserData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('peleia_skin_history_entries_v1');
-      await prefs.remove('peleia_scans_today_v1');
-      await prefs.remove('peleia_sos_credits_v1');
+      const exact = [
+        'peleia_skin_history_entries_v1',
+        'quota_free_analysis_used',
+        'quota_free_scans_used',
+        'quota_sos_credits',
+        'quota_pro_last_scan_date',
+        'quota_pro_scans_today_count',
+        'user_profile_v1',
+        'user_age_group',
+        'user_outdoor_exposure',
+        'user_skin_type_quiz',
+        'is_premium',
+      ];
+      for (final key in prefs.getKeys().toList()) {
+        if (exact.contains(key) || key.startsWith('routine_')) {
+          await prefs.remove(key);
+        }
+      }
 
       // Limpa arquivos temporários de fotos capturadas pela câmera
       if (!kIsWeb) {
@@ -100,16 +114,19 @@ class PrivacyService {
               _buildPrivacyPoint(
                 emoji: '📱',
                 title: 'Armazenamento Principal no Aparelho',
-                desc: 'Suas fotos e históricos são salvos exclusivamente no armazenamento '
-                    'local do seu próprio telefone. Não mantemos banco de dados externo com suas selfies.',
+                desc: 'Suas fotos, seu histórico e o que você declara (tipo de pele, alergias, '
+                    'gestação ou observação pessoal) ficam no armazenamento do seu telefone. '
+                    'Não mantemos banco de dados externo com suas selfies.',
               ),
               const SizedBox(height: 14),
 
               _buildPrivacyPoint(
                 emoji: '☁️',
                 title: 'Processamento Temporário pela IA',
-                desc: 'No momento do escaneamento, a foto é transmitida sob conexão criptografada (TLS) '
-                    'ao provedor Google Gemini para a extração dos indicadores visuais.',
+                desc: 'No momento do escaneamento, a foto e o perfil que você declarou '
+                    '(idade, sol, ingredientes a evitar e observação) são transmitidos sob conexão '
+                    'criptografada (TLS) ao provedor Google Gemini para montar a rotina. '
+                    'Alergia, gestação e condição de pele são dados sensíveis e só saem do aparelho nessa hora.',
               ),
               const SizedBox(height: 14),
 

@@ -11,6 +11,7 @@
 // ============================================================
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:peleia/core/profile/user_profile.dart';
 import 'package:peleia/core/services/comparison_service.dart';
 import 'package:peleia/core/services/history_service.dart';
 import 'package:peleia/core/services/quota_service.dart';
@@ -43,6 +44,13 @@ void main() {
       expect(parsed.scoreGeral, equals(68));
       expect(parsed.scores.oleosidade, equals(8));
       expect(parsed.scores.acneCravos, equals(3)); // fallback seguro mediano
+
+      final decimal = SkinAnalysisRaw.fromJson({
+        'score_geral': 70.6,
+        'scores': {'oleosidade': 7.2},
+      });
+      expect(decimal.scoreGeral, equals(71));
+      expect(decimal.scores.oleosidade, equals(7));
       expect(parsed.scores.manchasSolares, equals(3));
       expect(parsed.confianca, equals(0.8)); // fallback default
     });
@@ -141,11 +149,25 @@ void main() {
       expect(entries.length, equals(1));
       expect(entries.first.skinType, equals('seca'));
 
+      await QuotaService.consumeQuota(isPro: false);
+      await UserProfileStore.save(const UserProfile(
+        ageGroup: '20_35',
+        note: 'alergia a fragrancia',
+        avoidIngredients: ['fragrancia'],
+      ));
+
       // Realiza exclusão total (LGPD)
       await HistoryService.clearAllHistory();
 
       entries = await HistoryService.getEntries();
       expect(entries, isEmpty);
+
+      final afterPurge = await QuotaService.checkQuota(isPro: false);
+      expect(afterPurge.canScan, isTrue);
+      expect(afterPurge.freeRemaining, equals(1));
+      final profile = await UserProfileStore.load();
+      expect(profile.note, isEmpty);
+      expect(profile.avoidIngredients, isEmpty);
     });
 
     // ── 4. Proteção de Custos e Limite de Cotas ────────────

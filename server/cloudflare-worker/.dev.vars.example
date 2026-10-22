@@ -1,0 +1,5 @@
+# Copie para .dev.vars e rode `npx wrangler dev`.
+# Em development, requisições sem token usam o usuário "dev-local".
+ENVIRONMENT=development
+GEMINI_API_KEY=sua_chave_aqui
+DEV_IS_PRO=false

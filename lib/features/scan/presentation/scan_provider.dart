@@ -4,15 +4,19 @@
 //  Riverpod state management — Web + Android compatible
 //  Usa XFile/bytes em vez de dart:io File
 // ============================================================
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/config/remote_config_service.dart';
+import '../../../core/profile/user_profile.dart';
 import '../../../core/services/comparison_service.dart';
 import '../../../core/services/gemini_skin_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/history_service.dart';
+import '../../../core/services/recommendation.dart';
+import '../../../core/services/revenuecat_service.dart';
 import '../../history/data/history_entry.dart';
 import '../data/skin_analysis_result.dart';
 
@@ -33,6 +37,9 @@ class ScanState {
   final SkinAnalysisRaw? analysis;
   final String? report;
   final List<AffiliateProduct> products;
+  final int hiddenProducts;
+  final bool missingSunscreen;
+  final List<String> avoidedLabels;
   final QuotaBlockReason quotaReason;
   final String? errorMessage;
   final String statusMessage;
@@ -45,6 +52,9 @@ class ScanState {
     this.analysis,
     this.report,
     this.products = const [],
+    this.hiddenProducts = 0,
+    this.missingSunscreen = false,
+    this.avoidedLabels = const [],
     this.quotaReason = QuotaBlockReason.none,
     this.errorMessage,
     this.statusMessage = '',
@@ -58,6 +68,9 @@ class ScanState {
     SkinAnalysisRaw? analysis,
     String? report,
     List<AffiliateProduct>? products,
+    int? hiddenProducts,
+    bool? missingSunscreen,
+    List<String>? avoidedLabels,
     QuotaBlockReason? quotaReason,
     String? errorMessage,
     String? statusMessage,
@@ -71,6 +84,9 @@ class ScanState {
       analysis: analysis ?? this.analysis,
       report: report ?? this.report,
       products: products ?? this.products,
+      hiddenProducts: hiddenProducts ?? this.hiddenProducts,
+      missingSunscreen: missingSunscreen ?? this.missingSunscreen,
+      avoidedLabels: avoidedLabels ?? this.avoidedLabels,
       quotaReason: quotaReason ?? this.quotaReason,
       errorMessage: errorMessage,
       statusMessage: statusMessage ?? this.statusMessage,
@@ -92,6 +108,15 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
   Future<bool> _isUserPro() async {
     final prefs = await SharedPreferences.getInstance();
+    final remote = await RevenueCatService.isPremium();
+    if (remote) {
+      await prefs.setBool('is_premium', true);
+      return true;
+    }
+    if (kReleaseMode) {
+      await prefs.setBool('is_premium', false);
+      return false;
+    }
     return prefs.getBool('is_premium') ?? false;
   }
 
@@ -119,15 +144,10 @@ class ScanNotifier extends StateNotifier<ScanState> {
         statusMessage: '🔬 Analisando sua pele com IA...',
       );
 
-      final prefs = await SharedPreferences.getInstance();
-      final ageGroup = prefs.getString('user_age_group');
-      final outdoorExposure = prefs.getString('user_outdoor_exposure');
+      final config = await RemoteConfigService.load();
+      final profile = await UserProfileStore.load();
 
-      final analysis = await _gemini.analyzeImageBytes(
-        bytes,
-        ageGroup: ageGroup,
-        outdoorExposure: outdoorExposure,
-      );
+      final analysis = await _gemini.analyzeImageBytes(bytes, profile: profile);
 
       state = state.copyWith(
         analysis: analysis,
@@ -148,15 +168,18 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
       final report = await _gemini.generateReport(
         analysis,
-        previousEntry: previousEntry,
+        profile: profile,
         comparison: comparison,
-        ageGroup: ageGroup,
-        outdoorExposure: outdoorExposure,
       );
-      final products = ProductCatalog.getRecommendations(analysis);
+      final recommendation = recommendProducts(
+        config: config,
+        analysis: analysis,
+        profile: profile,
+      );
 
-      // Consome a cota após sucesso comprovado
-      await QuotaService.consumeQuota(isPro: isPro);
+      if (!_gemini.lastCallUsedProxy) {
+        await QuotaService.consumeQuota(isPro: isPro);
+      }
 
       // Salva no histórico de evolução da pele
       await HistoryService.saveAnalysis(
@@ -168,10 +191,25 @@ class ScanNotifier extends StateNotifier<ScanState> {
       state = state.copyWith(
         step: ScanStep.done,
         report: report,
-        products: products,
+        products: recommendation.products,
+        hiddenProducts: recommendation.hiddenCount,
+        missingSunscreen: recommendation.missingSunscreen,
+        avoidedLabels: recommendation.avoidedLabels,
         previousEntry: previousEntry,
         comparison: comparison,
         statusMessage: '✅ Pronto!',
+      );
+    } on AnalysisException catch (e) {
+      final blocked = switch (e.code) {
+        'FREE_QUOTA_EXCEEDED' => QuotaBlockReason.freeUsed,
+        'SOS_EMPTY' => QuotaBlockReason.sosEmpty,
+        'PRO_DAILY_LIMIT_REACHED' => QuotaBlockReason.proDailyExceeded,
+        _ => null,
+      };
+      state = state.copyWith(
+        step: blocked == null ? ScanStep.error : ScanStep.quotaBlocked,
+        quotaReason: blocked ?? QuotaBlockReason.none,
+        errorMessage: e.message,
       );
     } catch (e) {
       state = state.copyWith(
@@ -259,6 +297,9 @@ class ScanNotifier extends StateNotifier<ScanState> {
     required SkinAnalysisRaw analysis,
     required String report,
     required List<AffiliateProduct> products,
+    int hiddenProducts = 0,
+    bool missingSunscreen = false,
+    List<String> avoidedLabels = const [],
     Uint8List? imageBytes,
     HistoryEntry? previousEntry,
     SkinComparisonResult? comparison,
@@ -276,6 +317,9 @@ class ScanNotifier extends StateNotifier<ScanState> {
       analysis: analysis,
       report: report,
       products: products,
+      hiddenProducts: hiddenProducts,
+      missingSunscreen: missingSunscreen,
+      avoidedLabels: avoidedLabels,
       imageBytes: imageBytes,
       previousEntry: previousEntry,
       comparison: comparison,

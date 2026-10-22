@@ -39,8 +39,8 @@ class SkinAnalysisRaw {
       ),
       urgenciaProtetorSolar:
           json['urgencia_protetor_solar'] as String? ?? 'alta',
-      scoreGeral: json['score_geral'] as int? ?? 70,
-      confianca: (json['confianca'] as num?)?.toDouble() ?? 0.8,
+      scoreGeral: _asInt(json['score_geral'], 70).clamp(0, 100),
+      confianca: ((json['confianca'] as num?)?.toDouble() ?? 0.8).clamp(0.0, 1.0),
       observacaoClima: json['observacao_clima'] as String? ?? '',
     );
   }
@@ -107,12 +107,12 @@ class SkinScores {
 
   factory SkinScores.fromJson(Map<String, dynamic> json) {
     return SkinScores(
-      oleosidade: json['oleosidade'] as int? ?? 5,
-      acneCravos: json['acne_cravos'] as int? ?? 3,
-      manchasSolares: json['manchas_solares'] as int? ?? 3,
-      sensibilidade: json['sensibilidade'] as int? ?? 3,
-      hidratacao: json['hidratacao'] as int? ?? 7,
-      porosDilatados: json['poros_dilatados'] as int? ?? 4,
+      oleosidade: _asScore(json['oleosidade'], 5),
+      acneCravos: _asScore(json['acne_cravos'], 3),
+      manchasSolares: _asScore(json['manchas_solares'], 3),
+      sensibilidade: _asScore(json['sensibilidade'], 3),
+      hidratacao: _asScore(json['hidratacao'], 7),
+      porosDilatados: _asScore(json['poros_dilatados'], 4),
     );
   }
 
@@ -196,6 +196,14 @@ class ScoreItem {
   String get scoreLabel => '$score / 10';
 }
 
+int _asInt(dynamic value, int fallback) {
+  if (value is int) return value;
+  if (value is num) return value.round();
+  return fallback;
+}
+
+int _asScore(dynamic value, int fallback) => _asInt(value, fallback).clamp(0, 10);
+
 // ── Produto afiliado para recomendação ───────────────────
 class AffiliateProduct {
   final String id;
@@ -208,6 +216,10 @@ class AffiliateProduct {
   final String affiliateUrl;
   final String emoji;
   final List<String> forSkinTypes; // Tipos de pele alvo
+  final String category;
+  final List<String> ingredients;
+  final int priority;
+  final bool active;
 
   const AffiliateProduct({
     required this.id,
@@ -220,6 +232,10 @@ class AffiliateProduct {
     required this.affiliateUrl,
     required this.emoji,
     required this.forSkinTypes,
+    this.category = '',
+    this.ingredients = const [],
+    this.priority = 0,
+    this.active = true,
   });
 
   factory AffiliateProduct.fromJson(Map<String, dynamic> json) {
@@ -235,6 +251,10 @@ class AffiliateProduct {
       affiliateUrl: json['affiliate_url'] as String? ?? '',
       emoji: json['emoji'] as String? ?? '✨',
       forSkinTypes: List<String>.from(json['for_skin_types'] as List? ?? []),
+      category: json['category'] as String? ?? '',
+      ingredients: List<String>.from(json['ingredients'] as List? ?? []),
+      priority: _asInt(json['priority'], 0),
+      active: json['active'] is bool ? json['active'] as bool : true,
     );
   }
 
@@ -249,6 +269,10 @@ class AffiliateProduct {
     'affiliate_url': affiliateUrl,
     'emoji': emoji,
     'for_skin_types': forSkinTypes,
+    'category': category,
+    'ingredients': ingredients,
+    'priority': priority,
+    'active': active,
   };
 
   String get priceFormatted => priceDisplay;
@@ -308,10 +332,10 @@ class ProductCatalog {
       (p) => p.description.toLowerCase().contains('protetor'),
     );
     if (!hasSunscreen) {
-      relevant.add(all.firstWhere(
-        (p) => p.emoji == '☀️' || p.emoji == '🌞',
-        orElse: () => all.first,
-      ));
+      final sunscreens = all.where(
+        (p) => p.category == 'protetor' || p.emoji == '☀️' || p.emoji == '🌞',
+      );
+      if (sunscreens.isNotEmpty) relevant.add(sunscreens.first);
     }
 
     // Retorna no máximo 4 produtos mais assertivos

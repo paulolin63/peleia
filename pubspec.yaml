@@ -12,8 +12,11 @@ dependencies:
     sdk: flutter
 
   # ── AI / Networking ──────────────────────────────
-  google_generative_ai: ^0.4.3      # Gemini Vision API (oficial Google)
-  http: ^1.2.1
+  http: ^1.2.1                      # Backend proxy (Cloudflare Worker) → Gemini
+
+  # ── Auth ──────────────────────────────────────────
+  firebase_core: ^5.0.0
+  firebase_auth: ^7.0.0             # Login anônimo: identidade verificada no proxy
 
   # ── Camera / Image ────────────────────────────────
   camera: ^0.11.0                   # Câmera nativa Android/iOS
@@ -44,6 +47,7 @@ dependencies:
   url_launcher: ^6.2.6              # Links afiliados (Shopee, Mercado Livre)
   envied: ^0.5.4                    # Gerenciamento seguro de chaves API
   flutter_dotenv: ^5.1.0
+  package_info_plus: ^10.2.2        # Build do app (versão mínima exigida pela config)
 
 dev_dependencies:
   flutter_test:
@@ -59,4 +63,5 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
+    - assets/config/
     - .env

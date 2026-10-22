@@ -2,13 +2,15 @@
 //  lib/features/paywall/presentation/paywall_screen.dart
 //
 //  Tela de assinatura Premium — RevenueCat + Google Play Billing
-//  Estratégia: mensal pré-selecionado, 3 dias grátis, urgência
+//  Preço exibido é o da loja. Textos e limites vêm da config remota.
 // ============================================================
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/config/remote_config_service.dart';
 import '../data/subscription_plan.dart';
 import 'paywall_provider.dart';
 
@@ -20,6 +22,7 @@ class PaywallScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(paywallProvider);
+    final texts = ref.watch(appConfigProvider).valueOrNull?.texts ?? AppTexts.fallback;
 
     // Navega de volta após sucesso
     ref.listen<PaywallState>(paywallProvider, (_, next) {
@@ -40,7 +43,10 @@ class PaywallScreen extends ConsumerWidget {
     // Tela de sucesso
     if (state.step == PurchaseStep.success ||
         state.step == PurchaseStep.restored) {
-      return _SuccessOverlay(isRestored: state.step == PurchaseStep.restored);
+      return _SuccessOverlay(
+        isRestored: state.step == PurchaseStep.restored,
+        items: texts.paywallSuccessItems,
+      );
     }
 
     return Scaffold(
@@ -75,12 +81,12 @@ class PaywallScreen extends ConsumerWidget {
               delegate: SliverChildListDelegate([
 
                 // ── Hero ─────────────────────────────────────
-                _buildHero().animate().fadeIn(delay: 50.ms),
+                _buildHero(texts).animate().fadeIn(delay: 50.ms),
 
                 const SizedBox(height: 24),
 
                 // ── Feature list ──────────────────────────────
-                _buildFeatureList().animate().fadeIn(delay: 150.ms),
+                _buildFeatureList(texts).animate().fadeIn(delay: 150.ms),
 
                 const SizedBox(height: 28),
 
@@ -118,7 +124,7 @@ class PaywallScreen extends ConsumerWidget {
   }
 
   // ── HERO ─────────────────────────────────────────────────
-  Widget _buildHero() {
+  Widget _buildHero(AppTexts texts) {
     return Column(
       children: [
         // Badge
@@ -143,9 +149,9 @@ class PaywallScreen extends ConsumerWidget {
 
         const SizedBox(height: 16),
 
-        const Text(
-          'Sua pele merece\no melhor cuidado',
-          style: TextStyle(
+        Text(
+          texts.paywallTitle,
+          style: const TextStyle(
             fontSize: 30,
             fontWeight: FontWeight.w900,
             color: Color(0xFFF5F0EC),
@@ -156,9 +162,9 @@ class PaywallScreen extends ConsumerWidget {
 
         const SizedBox(height: 10),
 
-        const Text(
-          '3 dias grátis, depois cancele quando quiser.',
-          style: TextStyle(fontSize: 14, color: Color(0xFF8A7A6E)),
+        Text(
+          texts.paywallSubtitle,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF8A7A6E)),
           textAlign: TextAlign.center,
         ),
       ],
@@ -166,15 +172,8 @@ class PaywallScreen extends ConsumerWidget {
   }
 
   // ── FEATURE LIST ─────────────────────────────────────────
-  Widget _buildFeatureList() {
-    const features = [
-      ('📸', 'Análises ilimitadas', 'Até 5 selfies por dia analisadas pela IA'),
-      ('📈', 'Acompanhamento semanal', 'Veja a evolução da sua pele ao longo do tempo'),
-      ('🌤️', 'Alertas UV em tempo real', 'Notificações baseadas na UV da sua cidade'),
-      ('🛍️', 'Recomendações exclusivas', 'Produtos personalizados com melhores preços'),
-      ('📄', 'Relatório para dermatologista', 'PDF completo para levar à consulta'),
-      ('🔄', 'Rotina sazonal', 'A IA adapta sua rotina ao verão/inverno brasileiro'),
-    ];
+  Widget _buildFeatureList(AppTexts texts) {
+    final features = texts.paywallBenefits.map((b) => (b.emoji, b.title, b.desc)).toList();
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -240,13 +239,13 @@ class PaywallScreen extends ConsumerWidget {
   // ── PLAN CARDS ───────────────────────────────────────────
   Widget _buildPlanCards(PaywallState state, WidgetRef ref) {
     return Column(
-      children: kPlans.asMap().entries.map((entry) {
+      children: state.plans.asMap().entries.map((entry) {
         final plan = entry.value;
-        final isSelected = state.selectedPlan == plan.interval;
+        final isSelected = state.selectedProductId == plan.productId;
 
         return GestureDetector(
           onTap: () =>
-              ref.read(paywallProvider.notifier).selectPlan(plan.interval),
+              ref.read(paywallProvider.notifier).selectPlan(plan.productId),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             margin: EdgeInsets.only(
@@ -328,31 +327,10 @@ class PaywallScreen extends ConsumerWidget {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            if (plan.hasTrial)
+                            if (plan.priceFormatted.isEmpty)
                               const Text(
-                                '✅ 3 dias grátis incluídos',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6AB187),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            if (plan.savings != null)
-                              Text(
-                                plan.savings!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6AB187),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            if (plan.interval == PlanInterval.annual)
-                              Text(
-                                plan.monthlyEquivalent,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF8A7A6E),
-                                ),
+                                'Preço na Google Play',
+                                style: TextStyle(fontSize: 11, color: Color(0xFF8A7A6E)),
                               ),
                           ],
                         ),
@@ -422,15 +400,15 @@ class PaywallScreen extends ConsumerWidget {
 
   // ── CTA BUTTON ───────────────────────────────────────────
   Widget _buildCTAButton(PaywallState state, WidgetRef ref) {
-    final selectedPlan = kPlans.firstWhere(
-      (p) => p.interval == state.selectedPlan,
-    );
+    final selectedPlan = _selectedPlan(state);
 
     String buttonText;
-    if (state.isLoading) {
+    if (selectedPlan == null) {
+      buttonText = 'Planos indisponíveis';
+    } else if (state.isLoading) {
       buttonText = 'Processando...';
-    } else if (selectedPlan.hasTrial) {
-      buttonText = 'Começar 3 Dias Grátis ✨';
+    } else if (selectedPlan.priceFormatted.isEmpty) {
+      buttonText = 'Assinar ${selectedPlan.label}';
     } else {
       buttonText = 'Assinar ${selectedPlan.label} por ${selectedPlan.priceFormatted}';
     }
@@ -521,20 +499,19 @@ class PaywallScreen extends ConsumerWidget {
 
   // ── FINE PRINT ───────────────────────────────────────────
   Widget _buildFinePrint(PaywallState state) {
-    final selectedPlan = kPlans.firstWhere(
-      (p) => p.interval == state.selectedPlan,
-    );
-
-    String finePrintText;
-    if (selectedPlan.hasTrial) {
-      finePrintText =
-          '3 dias grátis, depois ${selectedPlan.priceFormatted}/${selectedPlan.periodLabel.replaceAll('/ ', '')}. '
-          'Cancele a qualquer momento nas configurações do Google Play.';
-    } else {
-      finePrintText =
-          '${selectedPlan.priceFormatted}/${selectedPlan.periodLabel.replaceAll('/ ', '')} cobrado via Google Play. '
-          'Cancele quando quiser.';
+    if (state.plans.isEmpty) {
+      return const Text(
+        'Os planos aparecem aqui com o preço da Google Play quando a loja está disponível.',
+        style: TextStyle(fontSize: 11, color: Color(0xFF8A7A6E), height: 1.5),
+        textAlign: TextAlign.center,
+      );
     }
+    final selectedPlan = _selectedPlan(state)!;
+    final price = selectedPlan.priceFormatted.isEmpty ? 'o valor exibido na Google Play' : selectedPlan.priceFormatted;
+    final period = selectedPlan.periodLabel.replaceAll('/ ', '');
+    final finePrintText = selectedPlan.isConsumable
+        ? '$price, pagamento único, via Google Play.'
+        : '$price${period.isEmpty ? '' : '/$period'} cobrado via Google Play. Cancele quando quiser.';
 
     return Column(
       children: [
@@ -670,9 +647,17 @@ class _Testimonial extends StatelessWidget {
 // ══════════════════════════════════════════════════════════
 //  TELA DE SUCESSO
 // ══════════════════════════════════════════════════════════
+SubscriptionPlan? _selectedPlan(PaywallState state) {
+  for (final plan in state.plans) {
+    if (plan.productId == state.selectedProductId) return plan;
+  }
+  return state.plans.isEmpty ? null : state.plans.first;
+}
+
 class _SuccessOverlay extends StatelessWidget {
   final bool isRestored;
-  const _SuccessOverlay({required this.isRestored});
+  final List<String> items;
+  const _SuccessOverlay({required this.isRestored, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -731,16 +716,12 @@ class _SuccessOverlay extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Text('📸 Análises ilimitadas desbloqueadas',
-                        style: TextStyle(color: Colors.white, fontSize: 14)),
-                    SizedBox(height: 8),
-                    Text('📈 Histórico e evolução ativados',
-                        style: TextStyle(color: Colors.white, fontSize: 14)),
-                    SizedBox(height: 8),
-                    Text('🌤️ Alertas UV em tempo real ligados',
-                        style: TextStyle(color: Colors.white, fontSize: 14)),
+                    for (var i = 0; i < items.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 8),
+                      Text(items[i], style: const TextStyle(color: Colors.white, fontSize: 14)),
+                    ],
                   ],
                 ),
               ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.2),

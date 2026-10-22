@@ -1,90 +1,70 @@
-// ============================================================
-//  lib/features/paywall/data/subscription_plan.dart
-//
-//  Modelos de planos + lógica de negócio
-// ============================================================
+import 'package:purchases_flutter/purchases_flutter.dart';
 
-enum PlanInterval { monthly, annual, sosPack }
+import '../../../core/config/app_config.dart';
 
 class SubscriptionPlan {
-  final PlanInterval interval;
-  final String productId;       // ID no Google Play Console
-  final String label;           // "Mensal", "Anual", "Pacote SOS"
-  final double price;           // Em R$
-  final String? savings;        // "Economize R$ 149/ano"
-  final String badge;           // "" ou "MAIS POPULAR"
-  final bool hasTrial;          // Tem 3 dias grátis?
-  final String quotaSubtitle;   // Limite de uso claro
-  final bool isConsumable;      // Produto avulso (não recorrente)
+  final String productId;
+  final String label;
+  final String badge;
+  final String quotaSubtitle;
+  final String priceLabel;
+  final String periodLabel;
+  final bool isConsumable;
+  final bool isHighlighted;
+  final bool isBestValue;
 
   const SubscriptionPlan({
-    required this.interval,
     required this.productId,
     required this.label,
-    required this.price,
+    required this.badge,
     required this.quotaSubtitle,
-    this.savings,
-    this.badge = '',
-    this.hasTrial = false,
-    this.isConsumable = false,
+    required this.priceLabel,
+    required this.periodLabel,
+    required this.isConsumable,
+    required this.isHighlighted,
+    required this.isBestValue,
   });
 
-  // Preço formatado: "R$ 9,90"
-  String get priceFormatted =>
-      'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}';
+  bool get hasTrial => false;
+  String get priceFormatted => priceLabel;
+  String? get savings => null;
+  String get monthlyEquivalent => '';
 
-  String get periodLabel {
-    switch (interval) {
-      case PlanInterval.monthly:
-        return '/ mês';
-      case PlanInterval.annual:
-        return '/ ano';
-      case PlanInterval.sosPack:
-        return 'único';
+  static List<SubscriptionPlan> fromStore({
+    required AppConfig config,
+    required List<Package> packages,
+    required bool allowWithoutStore,
+  }) {
+    final plans = <SubscriptionPlan>[];
+    for (final plan in config.plans) {
+      Package? package;
+      for (final item in packages) {
+        if (item.storeProduct.identifier == plan.productId) {
+          package = item;
+          break;
+        }
+      }
+      if (package == null && !allowWithoutStore) continue;
+      final product = package?.storeProduct;
+      plans.add(SubscriptionPlan(
+        productId: plan.productId,
+        label: plan.label,
+        badge: plan.badge,
+        quotaSubtitle: plan.subtitle,
+        priceLabel: product?.priceString ?? '',
+        periodLabel: plan.consumable ? 'único' : _period(product),
+        isConsumable: plan.consumable,
+        isHighlighted: plan.highlight,
+        isBestValue: !plan.consumable && !plan.highlight && plan.productId.contains('annual'),
+      ));
     }
+    return plans;
   }
 
-  String get monthlyEquivalent {
-    if (interval != PlanInterval.annual) return '';
-    final monthly = price / 12;
-    return 'R\$ ${monthly.toStringAsFixed(2).replaceAll('.', ',')} / mês';
+  static String _period(StoreProduct? product) {
+    final id = product?.identifier ?? '';
+    if (id.contains('annual')) return '/ ano';
+    if (id.contains('month')) return '/ mês';
+    return '';
   }
-
-  bool get isHighlighted => interval == PlanInterval.monthly;
-  bool get isBestValue => interval == PlanInterval.annual;
 }
-
-// Catálogo de planos — Google Play Console
-const kPlans = [
-  SubscriptionPlan(
-    interval: PlanInterval.monthly,
-    productId: 'peleia_monthly_1990',
-    label: 'Pro Mensal',
-    price: 19.90,
-    badge: '⭐ MAIS POPULAR',
-    quotaSubtitle: 'Até 2 análises por dia (60/mês)',
-    hasTrial: true,   // 3 dias grátis no mensal
-    isConsumable: false,
-  ),
-  SubscriptionPlan(
-    interval: PlanInterval.annual,
-    productId: 'peleia_annual_8990',
-    label: 'Pro Anual',
-    price: 89.90,
-    savings: 'Economize R\$ 149 💚',
-    quotaSubtitle: 'Até 2 análises por dia (730/ano)',
-    badge: 'MELHOR VALOR',
-    hasTrial: false,
-    isConsumable: false,
-  ),
-  SubscriptionPlan(
-    interval: PlanInterval.sosPack,
-    productId: 'peleia_sos_690',
-    label: 'Pacote SOS (3 Análises)',
-    price: 6.90,
-    quotaSubtitle: '3 análises avulsas • sem assinatura',
-    badge: 'PAGAMENTO ÚNICO',
-    hasTrial: false,
-    isConsumable: true,
-  ),
-];

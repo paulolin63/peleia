@@ -11,6 +11,11 @@ import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/config/remote_config_service.dart';
+import '../../../core/profile/user_profile.dart';
+import '../../profile/avoidance_fields.dart';
+
 // ── Provider: controla se onboarding já foi visto ────────
 final onboardingDoneProvider = FutureProvider<bool>((ref) async {
   final prefs = await SharedPreferences.getInstance();
@@ -65,12 +70,12 @@ const _pages = [
   _OnboardPage(
     emoji: '💰',
     title: 'Produtos acessíveis\npara você',
-    subtitle: 'Recomendamos marcas brasileiras e importadas\na partir de R\$ 35 nas melhores plataformas.',
+    subtitle: 'Recomendamos marcas brasileiras e importadas\nnas principais lojas online.',
     accentColor: Color(0xFF6AB187),
     bullets: [
       '🛍️ Shopee, Mercado Livre e Amazon Brasil',
       '💚 Principia, Sallve, CeraVe, La Roche-Posay',
-      '✅ Rotina completa a partir de R\$ 120',
+      '✅ Sem os ingredientes que você evitar',
     ],
   ),
 ];
@@ -89,6 +94,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
   bool _showingQuiz = false;
+  AppConfig? _config;
+
+  @override
+  void initState() {
+    super.initState();
+    RemoteConfigService.load().then((config) {
+      if (mounted) setState(() => _config = config);
+    });
+  }
+
+  _OnboardPage _page(int index) {
+    final page = _pages[index];
+    final texts = _config?.texts;
+    if (index != 2 || texts == null) return page;
+    return _OnboardPage(
+      emoji: page.emoji,
+      title: page.title,
+      subtitle: texts.onboardingProductsSubtitle,
+      accentColor: page.accentColor,
+      bullets: texts.onboardingProductsBullets,
+    );
+  }
 
   @override
   void dispose() {
@@ -150,7 +177,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 controller: _pageController,
                 onPageChanged: (i) => setState(() => _currentPage = i),
                 itemCount: _pages.length,
-                itemBuilder: (_, i) => _OnboardPageView(page: _pages[i]),
+                itemBuilder: (_, i) => _OnboardPageView(page: _page(i)),
               ),
             ),
 
@@ -171,7 +198,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           color: isActive
-                              ? _pages[_currentPage].accentColor
+                              ? _page(_currentPage).accentColor
                               : const Color(0xFF4A3E35),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -190,14 +217,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            _pages[_currentPage].accentColor,
-                            _pages[_currentPage].accentColor.withAlpha(200),
+                            _page(_currentPage).accentColor,
+                            _page(_currentPage).accentColor.withAlpha(200),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
-                            color: _pages[_currentPage].accentColor.withAlpha(75),
+                            color: _page(_currentPage).accentColor.withAlpha(75),
                             blurRadius: 20,
                             offset: const Offset(0, 6),
                           ),
@@ -335,9 +362,27 @@ class _QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<_QuizScreen> {
-  int _quizStep = 0;   // 0 = pergunta, 1 = permissão câmera, 2 = concluído
+  int _quizStep = 0;   // 0 = pergunta, 1 = permissão câmera, 2 = o que evitar
   String? _selectedAnswer;
   String _detectedSkinType = 'mista';
+  AppConfig? _config;
+  final _avoid = <String>{};
+  final _conditions = <String>{};
+  final _note = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    RemoteConfigService.load().then((config) {
+      if (mounted) setState(() => _config = config);
+    });
+  }
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
 
   // Perguntas do quiz
   final _questions = [
@@ -413,18 +458,21 @@ class _QuizScreenState extends State<_QuizScreen> {
     } else {
       // Calcula tipo de pele baseado nas respostas
       _detectedSkinType = _calculateSkinType();
-      _saveUserProfile();
-      setState(() => _quizStep = 1); // vai para permissão de câmera
+      setState(() => _quizStep = 2);
     }
   }
 
   Future<void> _saveUserProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_skin_type_quiz', _detectedSkinType);
-    final age = _answers[3] ?? '20_35';
-    final outdoor = _answers[4] ?? 'outdoor_moderate';
-    await prefs.setString('user_age_group', age);
-    await prefs.setString('user_outdoor_exposure', outdoor);
+    await UserProfileStore.save(UserProfile(
+      ageGroup: _answers[3] ?? '20_35',
+      outdoorExposure: _answers[4] ?? 'outdoor_moderate',
+      declaredSkinType: _detectedSkinType,
+      acne: _answers[1],
+      spfHabit: _answers[2],
+      avoidIngredients: _avoid.toList(),
+      conditions: _conditions.toList(),
+      note: _note.text.trim(),
+    ));
   }
 
   String _calculateSkinType() {
@@ -441,6 +489,65 @@ class _QuizScreenState extends State<_QuizScreen> {
       return _CameraPermissionStep(
         skinType: _detectedSkinType,
         onContinue: () => widget.onComplete(_detectedSkinType),
+      );
+    }
+
+    if (_quizStep == 2) {
+      final config = _config;
+      return Scaffold(
+        backgroundColor: const Color(0xFF0F0F0F),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const Text(
+                'Algo que devemos evitar?',
+                style: TextStyle(color: Color(0xFFF5F0EC), fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Opcional. Produtos com esses ingredientes saem da recomendação.',
+                style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 20),
+              if (config != null)
+                AvoidanceFields(
+                  config: config,
+                  avoid: _avoid,
+                  conditions: _conditions,
+                  note: _note,
+                  onChanged: (fn) => setState(fn),
+                ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      _avoid.clear();
+                      _conditions.clear();
+                      _note.clear();
+                      _saveUserProfile();
+                      setState(() => _quizStep = 1);
+                    },
+                    child: const Text('Pular', style: TextStyle(color: Color(0xFF8A7A6E))),
+                  ),
+                  const Spacer(),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFC8714A),
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      _saveUserProfile();
+                      setState(() => _quizStep = 1);
+                    },
+                    child: const Text('Continuar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       );
     }
 

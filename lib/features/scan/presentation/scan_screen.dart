@@ -69,7 +69,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             ),
             const SizedBox(height: 12),
             const Text(
-              'A pele precisa de tempo para absorver os ativos dos produtos. Volte amanhã para um novo diagnóstico!',
+              'A pele precisa de tempo para responder à rotina. Volte amanhã para uma nova análise.',
               style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.5),
             ),
           ],
@@ -719,7 +719,7 @@ class _FeatureTag extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              'A pele precisa de tempo para absorver os ativos dos produtos. Volte amanhã para um novo diagnóstico!',
+              'A pele precisa de tempo para responder à rotina. Volte amanhã para uma nova análise.',
               style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.5),
             ),
           ],

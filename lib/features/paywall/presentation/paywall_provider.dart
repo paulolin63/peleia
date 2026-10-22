@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/config/remote_config_service.dart';
 import '../../../core/services/revenuecat_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../data/subscription_plan.dart';
@@ -17,35 +18,39 @@ enum PurchaseStep { idle, loading, success, error, restored }
 
 class PaywallState {
   final PurchaseStep step;
-  final PlanInterval selectedPlan;
+  final String selectedProductId;
   final bool isPremium;
   final bool isLoadingPackages;
-  final List<Package> packages;      // Pacotes reais do RevenueCat
+  final List<Package> packages;
+  final List<SubscriptionPlan> plans;
   final String? errorMessage;
 
   const PaywallState({
     this.step = PurchaseStep.idle,
-    this.selectedPlan = PlanInterval.monthly, // Mensal pré-selecionado
+    this.selectedProductId = '',
     this.isPremium = false,
     this.isLoadingPackages = false,
     this.packages = const [],
+    this.plans = const [],
     this.errorMessage,
   });
 
   PaywallState copyWith({
     PurchaseStep? step,
-    PlanInterval? selectedPlan,
+    String? selectedProductId,
     bool? isPremium,
     bool? isLoadingPackages,
     List<Package>? packages,
+    List<SubscriptionPlan>? plans,
     String? errorMessage,
   }) =>
       PaywallState(
         step: step ?? this.step,
-        selectedPlan: selectedPlan ?? this.selectedPlan,
+        selectedProductId: selectedProductId ?? this.selectedProductId,
         isPremium: isPremium ?? this.isPremium,
         isLoadingPackages: isLoadingPackages ?? this.isLoadingPackages,
         packages: packages ?? this.packages,
+        plans: plans ?? this.plans,
         errorMessage: errorMessage,
       );
 
@@ -59,46 +64,84 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
   }
 
   Future<void> _init() async {
-    // Verifica se já é premium
+    final config = await RemoteConfigService.load();
     final premium = await RevenueCatService.isPremium();
+    final prefs = await SharedPreferences.getInstance();
     if (premium) {
-      state = state.copyWith(isPremium: true);
+      await prefs.setBool('is_premium', true);
+    } else if (kReleaseMode) {
+      await prefs.setBool('is_premium', false);
+    }
+
+    if (kIsWeb) {
+      state = state.copyWith(
+        isPremium: premium,
+        plans: SubscriptionPlan.fromStore(
+          config: config,
+          packages: const [],
+          allowWithoutStore: !kReleaseMode,
+        ),
+      );
+      _selectDefault();
       return;
     }
 
-    // Carrega pacotes do RevenueCat (no web retorna vazio — simulado)
-    if (!kIsWeb) {
-      state = state.copyWith(isLoadingPackages: true);
-      final pkgs = await RevenueCatService.getPackages();
-      state = state.copyWith(
+    state = state.copyWith(isLoadingPackages: true, isPremium: premium);
+    final pkgs = await RevenueCatService.getPackages();
+    state = state.copyWith(
+      packages: pkgs,
+      isLoadingPackages: false,
+      plans: SubscriptionPlan.fromStore(
+        config: config,
         packages: pkgs,
-        isLoadingPackages: false,
-      );
-    }
+        allowWithoutStore: !kReleaseMode && pkgs.isEmpty,
+      ),
+    );
+    _selectDefault();
   }
 
-  void selectPlan(PlanInterval plan) {
-    state = state.copyWith(selectedPlan: plan);
+  void _selectDefault() {
+    if (state.plans.isEmpty) return;
+    final highlighted = state.plans.where((p) => p.isHighlighted);
+    state = state.copyWith(
+      selectedProductId: (highlighted.isEmpty ? state.plans.first : highlighted.first).productId,
+    );
+  }
+
+  void selectPlan(String productId) {
+    state = state.copyWith(selectedProductId: productId);
+  }
+
+  SubscriptionPlan? get _selected {
+    for (final plan in state.plans) {
+      if (plan.productId == state.selectedProductId) return plan;
+    }
+    return state.plans.isEmpty ? null : state.plans.first;
   }
 
   // ── Compra o plano selecionado ──────────────────────────
   Future<void> purchase() async {
     state = state.copyWith(step: PurchaseStep.loading, errorMessage: null);
 
-    final selectedPlanData = kPlans.firstWhere(
-      (p) => p.interval == state.selectedPlan,
-    );
+    final selectedPlanData = _selected;
+    if (selectedPlanData == null) {
+      state = state.copyWith(
+        step: PurchaseStep.error,
+        errorMessage: 'Nenhum plano disponível na loja agora.',
+      );
+      return;
+    }
 
-    // Web / Modo Simulação
     if (kIsWeb) {
-      await Future.delayed(const Duration(seconds: 1));
-      if (selectedPlanData.isConsumable) {
-        await QuotaService.addSosCredits(3);
-        state = state.copyWith(step: PurchaseStep.success);
-      } else {
-        await _savePremiumLocally();
-        state = state.copyWith(step: PurchaseStep.success, isPremium: true);
+      if (kReleaseMode) {
+        state = state.copyWith(
+          step: PurchaseStep.error,
+          errorMessage: 'Assinatura disponível no aplicativo Android.',
+        );
+        return;
       }
+      await Future.delayed(const Duration(seconds: 1));
+      await _grantDebug(selectedPlanData);
       return;
     }
 
@@ -106,22 +149,22 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
       final Package? package = _findPackage(selectedPlanData.productId);
 
       if (package == null) {
-        // Fallback: dev mode
-        await Future.delayed(const Duration(seconds: 1));
-        if (selectedPlanData.isConsumable) {
-          await QuotaService.addSosCredits(3);
-          state = state.copyWith(step: PurchaseStep.success);
-        } else {
-          await _savePremiumLocally();
-          state = state.copyWith(step: PurchaseStep.success, isPremium: true);
+        if (kReleaseMode) {
+          state = state.copyWith(
+            step: PurchaseStep.error,
+            errorMessage: 'Este plano não está disponível na Google Play.',
+          );
+          return;
         }
+        await Future.delayed(const Duration(seconds: 1));
+        await _grantDebug(selectedPlanData);
         return;
       }
 
       final success = await RevenueCatService.purchasePackage(package);
       if (success) {
         if (selectedPlanData.isConsumable) {
-          await QuotaService.addSosCredits(3);
+          await QuotaService.addSosCredits(QuotaService.sosPackSize);
           state = state.copyWith(step: PurchaseStep.success);
         } else {
           await _savePremiumLocally();
@@ -157,6 +200,7 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
     }
 
     final success = await RevenueCatService.restorePurchases();
+    final prefs = await SharedPreferences.getInstance();
     if (success) {
       await _savePremiumLocally();
       state = state.copyWith(
@@ -164,10 +208,22 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
         isPremium: true,
       );
     } else {
+      if (kReleaseMode) await prefs.setBool('is_premium', false);
       state = state.copyWith(
         step: PurchaseStep.error,
+        isPremium: false,
         errorMessage: 'Nenhuma compra anterior encontrada.',
       );
+    }
+  }
+
+  Future<void> _grantDebug(SubscriptionPlan plan) async {
+    if (plan.isConsumable) {
+      await QuotaService.addSosCredits(QuotaService.sosPackSize);
+      state = state.copyWith(step: PurchaseStep.success);
+    } else {
+      await _savePremiumLocally();
+      state = state.copyWith(step: PurchaseStep.success, isPremium: true);
     }
   }
 
@@ -200,9 +256,14 @@ final paywallProvider =
 // ── Provider de status premium (usado em toda a app) ─────
 final isPremiumProvider = FutureProvider<bool>((ref) async {
   final prefs = await SharedPreferences.getInstance();
-  // Verifica local primeiro (offline-first)
-  final local = prefs.getBool('is_premium') ?? false;
-  if (local) return true;
-  // Depois verifica RevenueCat
-  return RevenueCatService.isPremium();
+  final remote = await RevenueCatService.isPremium();
+  if (remote) {
+    await prefs.setBool('is_premium', true);
+    return true;
+  }
+  if (kReleaseMode) {
+    await prefs.setBool('is_premium', false);
+    return false;
+  }
+  return prefs.getBool('is_premium') ?? false;
 });

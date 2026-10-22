@@ -9,6 +9,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/app_config.dart';
+
 enum QuotaBlockReason {
   none,                // Pode analisar normalmente
   freeUsed,            // Usou a análise gratuita → mostrar Paywall
@@ -36,17 +38,43 @@ class QuotaStatus {
 
 class QuotaService {
   static const String _freeUsedKey = 'quota_free_analysis_used';
+  static const String _freeCountKey = 'quota_free_scans_used';
   static const String _sosCreditsKey = 'quota_sos_credits';
   static const String _proScanDateKey = 'quota_pro_last_scan_date';
   static const String _proScanCountKey = 'quota_pro_scans_today_count';
 
-  static const int maxProDailyScans = 2; // Limite diário do Pro (manhã e noite)
+  static int freeLifetime = 1;
+  static int maxProDailyScans = 2;
+  static int sosPackSize = 3;
+
+  static void applyLimits(QuotaLimits limits) {
+    freeLifetime = limits.freeLifetime;
+    maxProDailyScans = limits.proDaily;
+    sosPackSize = limits.sosCredits;
+  }
+
+  /// Espelha o que o Worker já debitou, para a interface não contar de novo.
+  static Future<void> mirrorFromServer(Map<String, dynamic> quota) async {
+    final prefs = await SharedPreferences.getInstance();
+    final freeRemaining = _asInt(quota['free_remaining']);
+    final proRemaining = _asInt(quota['pro_remaining_today']);
+    final sosRemaining = _asInt(quota['sos_remaining']);
+    if (freeRemaining != null) {
+      await prefs.setInt(_freeCountKey, (freeLifetime - freeRemaining).clamp(0, freeLifetime));
+      await prefs.setBool(_freeUsedKey, freeRemaining <= 0);
+    }
+    if (sosRemaining != null) await prefs.setInt(_sosCreditsKey, sosRemaining);
+    if (proRemaining != null && quota['is_pro'] == true) {
+      await prefs.setString(_proScanDateKey, _getTodayString());
+      await prefs.setInt(_proScanCountKey, (maxProDailyScans - proRemaining).clamp(0, maxProDailyScans));
+    }
+  }
 
   /// Verifica se o usuário atual tem cota para fazer nova análise
   static Future<QuotaStatus> checkQuota({required bool isPro}) async {
     final prefs = await SharedPreferences.getInstance();
 
-    final freeUsed = prefs.getBool(_freeUsedKey) ?? false;
+    final freeUsedCount = await _freeUsedCount(prefs);
     final sosCredits = prefs.getInt(_sosCreditsKey) ?? 0;
 
     // ── 1. Assinante Pro: limite de 2 análises por dia ─────────
@@ -95,14 +123,17 @@ class QuotaService {
     }
 
     // ── 3. Usuário Gratuito: 1 análise de teste ─────────────────
-    if (!freeUsed) {
-      return const QuotaStatus(
+    final freeRemaining = freeLifetime - freeUsedCount;
+    if (freeRemaining > 0) {
+      return QuotaStatus(
         canScan: true,
         blockReason: QuotaBlockReason.none,
-        freeRemaining: 1,
+        freeRemaining: freeRemaining,
         proRemainingToday: 0,
-        sosCredits: 0,
-        statusText: '1 análise gratuita de boas-vindas.',
+        sosCredits: sosCredits,
+        statusText: freeRemaining == 1
+            ? '1 análise gratuita de boas-vindas.'
+            : '$freeRemaining análises gratuitas.',
       );
     }
 
@@ -143,9 +174,22 @@ class QuotaService {
       return;
     }
 
-    // Consome a análise gratuita inicial
-    await prefs.setBool(_freeUsedKey, true);
-    debugPrint('🎁 Análise cortesia consumida');
+    final used = await _freeUsedCount(prefs);
+    final next = used + 1;
+    await prefs.setInt(_freeCountKey, next);
+    await prefs.setBool(_freeUsedKey, next >= freeLifetime);
+    debugPrint('🎁 Análise cortesia consumida ($next/$freeLifetime)');
+  }
+
+  static Future<int> _freeUsedCount(SharedPreferences prefs) async {
+    if (prefs.containsKey(_freeCountKey)) return prefs.getInt(_freeCountKey) ?? 0;
+    return (prefs.getBool(_freeUsedKey) ?? false) ? 1 : 0;
+  }
+
+  static int? _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.round();
+    return null;
   }
 
   /// Adiciona créditos após compra de Pacote SOS

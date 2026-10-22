@@ -7,14 +7,20 @@
 //  - Checklist diário de rotina (Manhã e Noite com checkboxes)
 //  - Atalhos para Nova Análise, Evolução Antes & Depois e Premium
 // ============================================================
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/config/remote_config_service.dart';
+import '../../../core/profile/user_profile.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
+import '../../../core/services/revenuecat_service.dart';
 import '../../history/data/history_entry.dart';
+import '../../profile/avoidance_fields.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -30,6 +36,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   QuotaStatus? _quotaStatus;
   String? _ageGroup;
   String? _outdoorExposure;
+  UserProfile _profile = const UserProfile();
+  AppConfig? _config;
 
   // Checklist da rotina de hoje
   bool _isMorningTab = true;
@@ -46,7 +54,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _isLoading = true);
 
     final prefs = await SharedPreferences.getInstance();
-    _isPro = prefs.getBool('is_premium') ?? false;
+    final remotePro = await RevenueCatService.isPremium();
+    if (remotePro) {
+      _isPro = true;
+      await prefs.setBool('is_premium', true);
+    } else if (kReleaseMode) {
+      _isPro = false;
+      await prefs.setBool('is_premium', false);
+    } else {
+      _isPro = prefs.getBool('is_premium') ?? false;
+    }
+    _config = await RemoteConfigService.load();
+    _profile = await UserProfileStore.load();
 
     // Carrega última análise do histórico
     final entries = await HistoryService.getEntries();
@@ -58,8 +77,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _quotaStatus = await QuotaService.checkQuota(isPro: _isPro);
 
     // Carrega perfil declarado
-    _ageGroup = prefs.getString('user_age_group') ?? '20_35';
-    _outdoorExposure = prefs.getString('user_outdoor_exposure') ?? 'outdoor_moderate';
+    _ageGroup = _profile.ageGroup ?? '20_35';
+    _outdoorExposure = _profile.outdoorExposure ?? 'outdoor_moderate';
 
     // Carrega checklist do dia atual
     final today = _getTodayKey();
@@ -314,7 +333,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Perfil de Rotina: $ageText • $outdoorText',
+                'Perfil: $ageText • $outdoorText${_profile.note.isEmpty && _profile.avoidIngredients.isEmpty && _profile.conditions.isEmpty ? '' : ' • com restrições'}',
                 style: const TextStyle(
                   color: Color(0xFFE8C9A0),
                   fontSize: 12,
@@ -340,8 +359,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _showEditProfileModal(BuildContext context) {
     String tempAge = _ageGroup ?? '20_35';
     String tempOutdoor = _outdoorExposure ?? 'outdoor_moderate';
+    final tempAvoid = _profile.avoidIngredients.toSet();
+    final tempConditions = _profile.conditions.toSet();
+    final noteCtrl = TextEditingController(text: _profile.note);
 
     showModalBottomSheet(
+      isDismissible: true,
       context: context,
       backgroundColor: const Color(0xFF16120E),
       isScrollControlled: true,
@@ -463,14 +486,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
+                  if (_config != null)
+                    AvoidanceFields(
+                      config: _config!,
+                      avoid: tempAvoid,
+                      conditions: tempConditions,
+                      note: noteCtrl,
+                      onChanged: (fn) => setModalState(fn),
+                    ),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
                       onPressed: () async {
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.setString('user_age_group', tempAge);
-                        await prefs.setString('user_outdoor_exposure', tempOutdoor);
+                        await UserProfileStore.save(_profile.copyWith(
+                          ageGroup: tempAge,
+                          outdoorExposure: tempOutdoor,
+                          avoidIngredients: tempAvoid.toList(),
+                          conditions: tempConditions.toList(),
+                          note: noteCtrl.text.trim(),
+                        ));
                         if (mounted && ctx.mounted) {
                           Navigator.pop(ctx);
                           _loadDashboardData();
@@ -495,7 +531,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         );
       },
-    );
+    ).whenComplete(noteCtrl.dispose);
   }
 
   Widget _buildChip({
@@ -613,9 +649,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'Índice UV: 9.0 (Muito Alto)',
-                      style: TextStyle(
+                    Text(
+                      _config?.texts.dashboardSunTitle ?? AppTexts.fallback.dashboardSunTitle,
+                      style: const TextStyle(
                         color: Color(0xFFE8A44A),
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
@@ -636,9 +672,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Radiação intensa hoje. Aplique protetor FPS 50+ toque seco pela manhã e reaplique a cada 2h se exposta ao sol ou suor.',
-                  style: TextStyle(
+                Text(
+                  _config?.texts.dashboardSunBody ?? AppTexts.fallback.dashboardSunBody,
+                  style: const TextStyle(
                     color: Color(0xFF8A7A6E),
                     fontSize: 12,
                     height: 1.45,
@@ -793,22 +829,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ── 4. Checklist da Rotina de Hoje (Manhã / Noite) ────────
   Widget _buildDailyRoutineSection() {
     final currentChecked = _isMorningTab ? _morningChecked : _nightChecked;
-    const totalSteps = 3;
     final completedCount = currentChecked.length;
 
-    final morningSteps = [
-      ('🧴', 'Limpeza Facial', 'Gel com Ácido Salicílico ou Espuma suave'),
-      ('💧', 'Sérum de Tratamento', 'Niacinamida 10% (anti-brilho e poros)'),
-      ('☀️', 'Protetor Solar FPS 50+', 'Toque seco oil-free — Não pule este passo!'),
-    ];
-
-    final nightSteps = [
-      ('🧼', 'Double Cleansing', 'Remoção completa do protetor solar e poluição'),
-      ('✨', 'Tratamento Noturno', 'Ácido Azelaico ou Renovador celular'),
-      ('💦', 'Hidratação Leve', 'Gel facial sem óleo mineral (textura aqua)'),
-    ];
+    final avoided = _config == null ? _profile.avoidIngredients.toSet() : _profile.avoidedIds(_config!);
+    final morningSource = _config?.morning ?? const <RoutineStepConfig>[];
+    final nightSource = _config?.night ?? const <RoutineStepConfig>[];
+    final morningSteps = morningSource.isEmpty
+        ? [
+            ('🧴', 'Limpeza Facial', 'Gel de limpeza suave'),
+            ('💧', 'Sérum de Tratamento', 'Sérum leve compatível com o seu perfil'),
+            ('☀️', 'Protetor Solar FPS 50+', 'Toque seco. Não pule este passo!'),
+          ]
+        : [
+            for (final step in morningSource) (step.emoji, step.title, step.textFor(avoided)),
+          ];
+    final nightSteps = nightSource.isEmpty
+        ? [
+            ('🧼', 'Limpeza', 'Remoção do protetor solar e da poluição'),
+            ('✨', 'Tratamento Noturno', 'Ativo suave compatível com o seu perfil'),
+            ('💦', 'Hidratação Leve', 'Gel facial que não pesa no calor'),
+          ]
+        : [
+            for (final step in nightSource) (step.emoji, step.title, step.textFor(avoided)),
+          ];
 
     final activeSteps = _isMorningTab ? morningSteps : nightSteps;
+    final totalSteps = activeSteps.length;
 
     return Container(
       padding: const EdgeInsets.all(18),

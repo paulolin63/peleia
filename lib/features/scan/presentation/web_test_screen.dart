@@ -4,25 +4,22 @@
 //  Tela de teste para Web/macOS — bypassa câmera
 //  Permite testar a IA com URLs de imagens de rosto
 // ============================================================
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/config/remote_config_service.dart';
+import '../../../core/profile/user_profile.dart';
 import '../../../core/services/comparison_service.dart';
 import '../../../core/services/gemini_skin_service.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
-import '../../history/data/history_entry.dart';
-import '../data/skin_analysis_result.dart';
+import '../../../core/services/recommendation.dart';
+import '../../../core/services/revenuecat_service.dart';
 import 'scan_provider.dart';
 
 class WebTestScreen extends ConsumerStatefulWidget {
@@ -59,7 +56,8 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final isPro = prefs.getBool('is_premium') ?? false;
+      final remotePro = await RevenueCatService.isPremium();
+      final isPro = remotePro || (!kReleaseMode && (prefs.getBool('is_premium') ?? false));
       final quota = await QuotaService.checkQuota(isPro: isPro);
 
       if (!quota.canScan) {
@@ -101,26 +99,9 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
       final gemini = GeminiSkinService.instance;
       gemini.initialize();
 
-      late SkinAnalysisRaw analysis;
-      final ageGroup = prefs.getString('user_age_group');
-      final outdoorExposure = prefs.getString('user_outdoor_exposure');
+      final profile = await UserProfileStore.load();
       final bytes = await picked.readAsBytes();
-
-      if (kIsWeb) {
-        // Web: usa bytes diretamente
-        analysis = await gemini.analyzeImageBytes(
-          bytes,
-          ageGroup: ageGroup,
-          outdoorExposure: outdoorExposure,
-        );
-      } else {
-        // Mobile/Desktop: usa bytes via XFile (sem dart:io File)
-        analysis = await gemini.analyzeImageBytes(
-          bytes,
-          ageGroup: ageGroup,
-          outdoorExposure: outdoorExposure,
-        );
-      }
+      final analysis = await gemini.analyzeImageBytes(bytes, profile: profile);
 
       setState(() => _status = '📋 Consultando histórico e gerando relatório...');
       final previousEntries = await HistoryService.getEntries();
@@ -134,21 +115,28 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
 
       final report = await gemini.generateReport(
         analysis,
-        previousEntry: previousEntry,
+        profile: profile,
         comparison: comparison,
-        ageGroup: ageGroup,
-        outdoorExposure: outdoorExposure,
       );
-      final products = ProductCatalog.getRecommendations(analysis);
+      final config = await RemoteConfigService.load();
+      final recommendation = recommendProducts(
+        config: config,
+        analysis: analysis,
+        profile: profile,
+      );
 
-      // Consome cota
-      await QuotaService.consumeQuota(isPro: isPro);
+      if (!gemini.lastCallUsedProxy) {
+        await QuotaService.consumeQuota(isPro: isPro);
+      }
 
       // Salva no provider com bytes para miniatura de histórico
       ref.read(scanProvider.notifier).setResultDirectly(
             analysis: analysis,
             report: report,
-            products: products,
+            products: recommendation.products,
+            hiddenProducts: recommendation.hiddenCount,
+            missingSunscreen: recommendation.missingSunscreen,
+            avoidedLabels: recommendation.avoidedLabels,
             imageBytes: bytes,
             previousEntry: previousEntry,
             comparison: comparison,
