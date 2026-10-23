@@ -221,7 +221,7 @@ def publish_to_kv(config):
     try:
         subprocess.run(
             ["npx", "wrangler", "kv", "key", "put", KV_KEY,
-             "--path", tmp_path, "--binding", "CONFIG_KV", "--remote"],
+             "--path", tmp_path, "--binding", "CONFIG_KV"],
             cwd=WORKER_DIR,
             check=True,
         )
