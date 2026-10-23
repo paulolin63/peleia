@@ -26,7 +26,7 @@ new_classes = ["QuotaDurableObject"]
 # Publique com: python3 ../../scripts/publish_config.py
 [[kv_namespaces]]
 binding = "CONFIG_KV"
-id = "REPLACE_WITH_CONFIG_KV_ID"
+id = "c6c94e668f604e18adc74bbfb88b7413"
 
 # Segredos (via CLI):
 #   npx wrangler secret put GEMINI_API_KEY
