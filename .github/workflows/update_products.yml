@@ -25,14 +25,14 @@ jobs:
       - name: Set up Node.js for Wrangler
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: server/cloudflare-worker/package-lock.json
 
       - name: Install Cloudflare Worker Dependencies
         run: |
           cd server/cloudflare-worker
-          npm ci
+          npm ci --legacy-peer-deps
 
       - name: Validate & Publish Config to Cloudflare KV
         env:
