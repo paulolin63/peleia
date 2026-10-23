@@ -19,7 +19,7 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["QuotaDurableObject"]
+new_sqlite_classes = ["QuotaDurableObject"]
 
 # Configuração remota (produtos, planos, cotas, textos, prompts).
 # Crie com: npx wrangler kv namespace create CONFIG_KV  e cole o id abaixo.
