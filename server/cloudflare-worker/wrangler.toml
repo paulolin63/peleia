@@ -6,7 +6,7 @@ account_id = "ab48f7a2be15e4a97cc32e5d303f185a"
 [vars]
 ENVIRONMENT = "production"
 # ID do projeto Firebase (o mesmo do google-services.json do app).
-FIREBASE_PROJECT_ID = ""
+FIREBASE_PROJECT_ID = "peleia-e0b3a"
 # Entitlement do RevenueCat que libera o Pro.
 PREMIUM_ENTITLEMENT_ID = "premium"
 # Origens web liberadas para POST (separadas por vírgula). O app Android não envia Origin.
