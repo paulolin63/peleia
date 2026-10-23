@@ -1,14 +1,14 @@
-name: Auto Update Skincare Products & Prices
+name: Auto Update & Publish Skincare Config
 
 on:
   schedule:
-    # Roda a cada 10 dias às 03:00 UTC (meia-noite de Brasília)
-    - cron: '0 3 */10 * *'
+    # Roda semanalmente aos domingos às 03:00 UTC (meia-noite de Brasília)
+    - cron: '0 3 * * 0'
   # Permite disparar manualmente pelo botão "Run workflow" no GitHub
   workflow_dispatch:
 
 jobs:
-  update-catalog:
+  publish-config:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,16 +22,29 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run Update Script
+      - name: Set up Node.js for Wrangler
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: server/cloudflare-worker/package-lock.json
+
+      - name: Install Cloudflare Worker Dependencies
+        run: |
+          cd server/cloudflare-worker
+          npm ci
+
+      - name: Validate & Publish Config to Cloudflare KV
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           SHOPEE_AFFILIATE_TAG: ${{ secrets.SHOPEE_AFFILIATE_TAG }}
           AMAZON_AFFILIATE_TAG: ${{ secrets.AMAZON_AFFILIATE_TAG }}
         run: |
-          python scripts/update_products_cron.py
+          python3 scripts/publish_config.py
 
-      - name: Commit & Push if Changed
+      - name: Commit & Push Updated Bundled Config
         run: |
           git config --global user.name "PeleIA Bot"
           git config --global user.email "bot@peleia.app"
-          git add assets/data/products.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(catalog): auto-update products & affiliate prices [skip ci]" && git push)
+          git add assets/config/peleia_config.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(config): auto-publish updated peleia_config [skip ci]" && git push)
