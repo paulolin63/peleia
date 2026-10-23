@@ -1,6 +1,7 @@
 name = "peleia-gemini-proxy"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
+account_id = "ab48f7a2be15e4a97cc32e5d303f185a"
 
 [vars]
 ENVIRONMENT = "production"

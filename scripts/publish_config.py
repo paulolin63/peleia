@@ -219,12 +219,14 @@ def publish_to_kv(config):
         json.dump(config, tmp, ensure_ascii=False)
         tmp_path = tmp.name
     try:
-        subprocess.run(
-            ["npx", "wrangler", "kv", "key", "put", KV_KEY,
-             "--path", tmp_path, "--binding", "CONFIG_KV"],
-            cwd=WORKER_DIR,
-            check=True,
-        )
+        cmd = [
+            "npx", "wrangler", "kv", "key", "put", KV_KEY,
+            "--path", tmp_path, "--namespace-id", "c6c94e668f604e18adc74bbfb88b7413"
+        ]
+        res = subprocess.run(cmd, cwd=WORKER_DIR, capture_output=True, text=True)
+        if res.returncode != 0:
+            print(f"❌ Erro do Wrangler ao publicar no KV:\n{res.stdout}\n{res.stderr}")
+            sys.exit(res.returncode)
     finally:
         os.unlink(tmp_path)
 

@@ -37,6 +37,7 @@ jobs:
       - name: Validate & Publish Config to Cloudflare KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ab48f7a2be15e4a97cc32e5d303f185a
           SHOPEE_AFFILIATE_TAG: ${{ secrets.SHOPEE_AFFILIATE_TAG }}
           AMAZON_AFFILIATE_TAG: ${{ secrets.AMAZON_AFFILIATE_TAG }}
         run: |
