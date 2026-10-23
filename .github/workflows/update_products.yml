@@ -26,13 +26,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-          cache-dependency-path: server/cloudflare-worker/package-lock.json
 
       - name: Install Cloudflare Worker Dependencies
         run: |
           cd server/cloudflare-worker
-          npm ci --legacy-peer-deps
+          npm install --legacy-peer-deps
 
       - name: Validate & Publish Config to Cloudflare KV
         env:
