@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/config/remote_config_service.dart';
 import '../../../core/services/comparison_service.dart';
+import '../../../core/services/report_export_service.dart';
 import '../../history/data/history_entry.dart';
 import '../../scan/data/skin_analysis_result.dart';
 import '../../scan/presentation/scan_provider.dart';
@@ -167,6 +168,96 @@ class ResultScreen extends ConsumerWidget {
                     ),
                   ),
                 ).animate().fadeIn(delay: 480.ms),
+
+                const SizedBox(height: 12),
+
+                // ── Ações: Baixar PDF & Compartilhar ──────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          final now = DateTime.now();
+                          final dateStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+                          ReportExportService.exportAndDownloadPdf(
+                            context: context,
+                            score: analysis.scoreGeral,
+                            skinType: analysis.skinType,
+                            oleosidade: analysis.scores.oleosidade,
+                            acne: analysis.scores.acneCravos,
+                            manchas: analysis.scores.manchasSolares,
+                            hidratacao: analysis.scores.hidratacao,
+                            fullReport: state.report ?? '',
+                            products: state.products,
+                            dateFormatted: dateStr,
+                          );
+                        },
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2C1A10),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFFC8714A).withAlpha(120),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.picture_as_pdf, color: Color(0xFFE8C9A0), size: 18),
+                              SizedBox(width: 8),
+                              Text(
+                                'Baixar PDF',
+                                style: TextStyle(
+                                  color: Color(0xFFE8C9A0),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          ReportExportService.shareToSocial(
+                            score: analysis.scoreGeral,
+                            skinType: analysis.skinType,
+                            oleosidade: analysis.scores.oleosidade,
+                            acne: analysis.scores.acneCravos,
+                            hidratacao: analysis.scores.hidratacao,
+                            products: state.products,
+                          );
+                        },
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFC8714A),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.share, color: Colors.white, size: 18),
+                              SizedBox(width: 8),
+                              Text(
+                                'Compartilhar',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 490.ms),
 
                 const SizedBox(height: 12),
 

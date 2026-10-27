@@ -6,6 +6,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../../scan/data/skin_analysis_result.dart';
+
 class HistoryEntry {
   final String id;
   final DateTime date;
@@ -17,6 +19,8 @@ class HistoryEntry {
   final int hidratacao;
   final String? imageBase64; // Miniatura comprimida em Base64
   final String reportSnippet;
+  final String fullReport;
+  final List<AffiliateProduct> products;
 
   const HistoryEntry({
     required this.id,
@@ -29,6 +33,8 @@ class HistoryEntry {
     required this.hidratacao,
     this.imageBase64,
     required this.reportSnippet,
+    this.fullReport = '',
+    this.products = const [],
   });
 
   Uint8List? get imageBytes {
@@ -59,6 +65,11 @@ class HistoryEntry {
       hidratacao: json['hidratacao'] as int? ?? 6,
       imageBase64: json['image_base64'] as String?,
       reportSnippet: json['report_snippet'] as String? ?? '',
+      fullReport: json['full_report'] as String? ?? (json['report_snippet'] as String? ?? ''),
+      products: (json['products'] as List?)
+              ?.map((item) => AffiliateProduct.fromJson(item as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
   }
 
@@ -73,5 +84,7 @@ class HistoryEntry {
     'hidratacao': hidratacao,
     'image_base64': imageBase64,
     'report_snippet': reportSnippet,
+    'full_report': fullReport,
+    'products': products.map((p) => p.toJson()).toList(),
   };
 }

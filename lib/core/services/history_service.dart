@@ -5,7 +5,6 @@
 //  Salva no SharedPreferences local (offline-first)
 // ============================================================
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
@@ -24,6 +23,7 @@ class HistoryService {
   static Future<void> saveAnalysis({
     required SkinAnalysisRaw analysis,
     required String report,
+    List<AffiliateProduct> products = const [],
     Uint8List? rawImageBytes,
   }) async {
     try {
@@ -47,6 +47,8 @@ class HistoryService {
         hidratacao: analysis.scores.hidratacao,
         imageBase64: base64Thumb,
         reportSnippet: report.length > 200 ? report.substring(0, 200) : report,
+        fullReport: report,
+        products: products,
       );
 
       // Insere no início (mais recente primeiro)

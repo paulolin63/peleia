@@ -181,10 +181,11 @@ class ScanNotifier extends StateNotifier<ScanState> {
         await QuotaService.consumeQuota(isPro: isPro);
       }
 
-      // Salva no histórico de evolução da pele
+      // Salva no histórico de evolução da pele (com produtos recomendados e relatório)
       await HistoryService.saveAnalysis(
         analysis: analysis,
         report: report,
+        products: recommendation.products,
         rawImageBytes: bytes,
       );
 

@@ -34,19 +34,6 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
   String _status = '';
   String? _errorMsg;
 
-  // Imagens de teste públicas (rostos)
-  final List<Map<String, String>> _testImages = [
-    {
-      'label': '👩🏽 Pele Morena',
-      'url':
-          'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Gatto_europeo4.jpg/220px-Gatto_europeo4.jpg',
-    },
-    {
-      'label': 'Usar galeria local',
-      'url': 'local',
-    },
-  ];
-
   Future<void> _runAnalysisFromPicker() async {
     setState(() {
       _isLoading = true;

@@ -7,9 +7,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/services/history_service.dart';
 import '../../../core/services/privacy_service.dart';
+import '../../../core/services/report_export_service.dart';
 import '../data/history_entry.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -579,105 +581,414 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  Widget _buildTimelineCard(HistoryEntry entry, {required bool isLatest}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isLatest
-              ? const Color(0xFFC8714A)
-              : const Color(0xFF2C1A10),
-          width: isLatest ? 1.5 : 1,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Foto miniatura ou ícone
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 60,
-              height: 75,
-              color: const Color(0xFF2C1A10),
-              child: entry.imageBytes != null
-                  ? Image.memory(entry.imageBytes!, fit: BoxFit.cover)
-                  : const Center(
-                      child: Text('👤', style: TextStyle(fontSize: 24)),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 14),
+  Future<void> _openProductLink(String url) async {
+    if (url.trim().isEmpty) return;
+    try {
+      final uri = Uri.parse(url.trim());
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) await launchUrl(uri, mode: LaunchMode.platformDefault);
+    } catch (_) {}
+  }
 
-          // Informações da análise
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      entry.formattedDate,
-                      style: const TextStyle(
-                        color: Color(0xFF8A7A6E),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (isLatest) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFC8714A).withAlpha(40),
-                          borderRadius: BorderRadius.circular(6),
+  void _showEntryDetail(HistoryEntry entry) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF14100D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (_, scrollController) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: ListView(
+            controller: scrollController,
+            children: [
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8A7A6E).withAlpha(100),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Cabeçalho da Análise
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Análise de ${entry.formattedDate}',
+                        style: const TextStyle(
+                          color: Color(0xFF8A7A6E),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
-                        child: const Text(
-                          'Mais Recente',
-                          style: TextStyle(
-                            color: Color(0xFFC8714A),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      ),
+                      Text(
+                        'Pele ${_capitalize(entry.skinType)}',
+                        style: const TextStyle(
+                          color: Color(0xFFF5F0EC),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC8714A),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${entry.scoreGeral} PTS',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Métricas
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C1712),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildMetricDetailItem('🛢️ Óleo', '${entry.oleosidade}/10'),
+                    _buildMetricDetailItem('😤 Acne', '${entry.acne}/10'),
+                    _buildMetricDetailItem('☀️ Manchas', '${entry.manchas}/10'),
+                    _buildMetricDetailItem('💧 Hidratação', '${entry.hidratacao}/10'),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Pele ${_capitalize(entry.skinType)}',
-                  style: const TextStyle(
-                    color: Color(0xFFF5F0EC),
+              ),
+              const SizedBox(height: 20),
+
+              // Ações rápidas: PDF e Compartilhar
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2C1A10),
+                        foregroundColor: const Color(0xFFE8C9A0),
+                        side: BorderSide(color: const Color(0xFFC8714A).withAlpha(100)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.picture_as_pdf, size: 16),
+                      label: const Text('Baixar PDF', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      onPressed: () {
+                        ReportExportService.exportAndDownloadPdf(
+                          context: context,
+                          score: entry.scoreGeral,
+                          skinType: entry.skinType,
+                          oleosidade: entry.oleosidade,
+                          acne: entry.acne,
+                          manchas: entry.manchas,
+                          hidratacao: entry.hidratacao,
+                          fullReport: entry.fullReport,
+                          products: entry.products,
+                          dateFormatted: entry.formattedDate,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC8714A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.share, size: 16),
+                      label: const Text('Compartilhar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      onPressed: () {
+                        ReportExportService.shareToSocial(
+                          score: entry.scoreGeral,
+                          skinType: entry.skinType,
+                          oleosidade: entry.oleosidade,
+                          acne: entry.acne,
+                          hidratacao: entry.hidratacao,
+                          products: entry.products,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Produtos recomendados
+              if (entry.products.isNotEmpty) ...[
+                const Text(
+                  '🌿 Produtos Recomendados',
+                  style: TextStyle(
+                    color: Color(0xFFE8C9A0),
                     fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...entry.products.map((p) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1712),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
+                  ),
+                  child: InkWell(
+                    onTap: () => _openProductLink(p.affiliateUrl),
+                    child: Row(
+                      children: [
+                        Text(p.emoji, style: const TextStyle(fontSize: 22)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                p.name,
+                                style: const TextStyle(
+                                  color: Color(0xFFF5F0EC),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '${p.brand} • ${p.storeLabel}',
+                                style: const TextStyle(
+                                  color: Color(0xFF8A7A6E),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFC8714A).withAlpha(30),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            p.priceFormatted,
+                            style: const TextStyle(
+                              color: Color(0xFFE8C9A0),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFFC8714A)),
+                      ],
+                    ),
+                  ),
+                )),
+                const SizedBox(height: 16),
+              ],
+
+              // Relatório da IA completo
+              if (entry.fullReport.isNotEmpty) ...[
+                const Text(
+                  '📋 Relatório e Rotina da IA',
+                  style: TextStyle(
+                    color: Color(0xFFE8C9A0),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1712),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF2C1A10)),
+                  ),
+                  child: Text(
+                    entry.fullReport,
+                    style: const TextStyle(
+                      color: Color(0xFFD4C2B2),
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                // Tags de métricas
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    _buildMetricTag('🌟 ${entry.scoreGeral} pts'),
-                    _buildMetricTag('🛢️ Óleo: ${entry.oleosidade}/10'),
-                    _buildMetricTag('😤 Acne: ${entry.acne}/10'),
-                  ],
+  Widget _buildMetricDetailItem(String title, String val) {
+    return Column(
+      children: [
+        Text(title, style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11)),
+        const SizedBox(height: 2),
+        Text(val, style: const TextStyle(color: Color(0xFFF5F0EC), fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
+
+  Widget _buildTimelineCard(HistoryEntry entry, {required bool isLatest}) {
+    return InkWell(
+      onTap: () => _showEntryDetail(entry),
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1712),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isLatest
+                ? const Color(0xFFC8714A)
+                : const Color(0xFF2C1A10),
+            width: isLatest ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Foto miniatura ou ícone
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 60,
+                    height: 75,
+                    color: const Color(0xFF2C1A10),
+                    child: entry.imageBytes != null
+                        ? Image.memory(entry.imageBytes!, fit: BoxFit.cover)
+                        : const Center(
+                            child: Text('👤', style: TextStyle(fontSize: 24)),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Informações da análise
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            entry.formattedDate,
+                            style: const TextStyle(
+                              color: Color(0xFF8A7A6E),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (isLatest) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFC8714A).withAlpha(40),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Mais Recente',
+                                style: TextStyle(
+                                  color: Color(0xFFC8714A),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pele ${_capitalize(entry.skinType)}',
+                        style: const TextStyle(
+                          color: Color(0xFFF5F0EC),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Tags de métricas
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          _buildMetricTag('🌟 ${entry.scoreGeral} pts'),
+                          _buildMetricTag('🛢️ Óleo: ${entry.oleosidade}/10'),
+                          _buildMetricTag('😤 Acne: ${entry.acne}/10'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Botão deletar
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Color(0xFF8A7A6E), size: 18),
+                  onPressed: () => _confirmDelete(entry.id),
                 ),
               ],
             ),
-          ),
 
-          // Botão deletar
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Color(0xFF8A7A6E), size: 18),
-            onPressed: () => _confirmDelete(entry.id),
-          ),
-        ],
+            // Prévia dos produtos recomendados
+            if (entry.products.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Divider(color: Color(0xFF2C1A10), height: 1),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text('🌿 Produtos: ', style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 11, fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text(
+                      entry.products.map((p) => '${p.emoji} ${p.name}').join(' • '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 11),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFFC8714A)),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

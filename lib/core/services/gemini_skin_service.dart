@@ -173,7 +173,7 @@ class GeminiSkinService {
       model = dotenv.env['GEMINI_MODEL'] ?? '';
     } catch (_) {}
     if (model.isEmpty) {
-      model = const String.fromEnvironment('GEMINI_MODEL', defaultValue: 'gemini-3.6-flash');
+      model = const String.fromEnvironment('GEMINI_MODEL', defaultValue: 'gemini-3.8-flash');
     }
 
     http.Response res;

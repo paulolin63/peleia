@@ -5,9 +5,9 @@
   "notice": null,
 
   "quota": {
-    "free_lifetime": 1,
-    "pro_daily": 2,
-    "sos_credits": 3
+    "free_lifetime": 50,
+    "pro_daily": 10,
+    "sos_credits": 10
   },
 
   "recommendation": {
