@@ -42,7 +42,7 @@ class ReportExportService {
       }
 
       buffer.writeln('Discover your customized smart skincare routine on PeleIA!');
-      buffer.writeln('📲 https://peleia.com.br');
+      buffer.writeln('📲 Download on Google Play: https://play.google.com/store/apps/details?id=com.peleia.app');
     } else {
       buffer.writeln('✨ Fiz minha análise de pele com IA no PeleIA!');
       buffer.writeln('');
@@ -60,7 +60,7 @@ class ReportExportService {
       }
 
       buffer.writeln('Descubra a rotina de skincare ideal para o seu rosto no PeleIA!');
-      buffer.writeln('📲 https://peleia.com.br');
+      buffer.writeln('📲 Baixe grátis na Google Play: https://play.google.com/store/apps/details?id=com.peleia.app');
     }
 
     await SharePlus.instance.share(
