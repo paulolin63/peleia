@@ -162,8 +162,8 @@ async function callGemini(
 ): Promise<string | null> {
   const modelsToTry = [
     model,
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
+    'gemini-3.8-flash',
+    'gemini-3.6-flash',
   ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
 
   for (const m of modelsToTry) {
