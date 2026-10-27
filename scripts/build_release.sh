@@ -7,6 +7,15 @@
 
 set -e
 
+# Adiciona caminhos do Homebrew e do Flutter ao PATH
+export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/development/flutter/bin:$PATH"
+
+if ! command -v flutter &> /dev/null; then
+  echo "❌ Flutter não foi encontrado no PATH!"
+  echo "   Caminho padrão esperado: /opt/homebrew/bin/flutter"
+  exit 1
+fi
+
 echo "🔨 Building PeleIA release..."
 
 # Limpa build anterior
