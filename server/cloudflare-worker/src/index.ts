@@ -140,11 +140,8 @@ async function entitlementsFor(uid: string, env: Env, config: PeleiaConfig): Pro
   try {
     return await fetchEntitlements(uid, env.REVENUECAT_SECRET_KEY, env.PREMIUM_ENTITLEMENT_ID || 'premium', config);
   } catch (err) {
-    if (err instanceof EntitlementLookupError) {
-      console.error(`[Proxy] ${err.message}`);
-      throw new HttpError(503, { error: 'Não foi possível verificar sua assinatura agora. Tente novamente.' });
-    }
-    throw err;
+    console.error(`[Proxy] Falha na verificação de assinatura: ${err}`);
+    return { isPro: false, sosPurchased: 0 };
   }
 }
 

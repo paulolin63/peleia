@@ -16,11 +16,26 @@ export async function fetchEntitlements(
 ): Promise<Entitlements> {
   if (!secretKey) return { isPro: false, sosPurchased: 0 };
 
-  const res = await fetch(
-    `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}`,
-    { headers: { Authorization: `Bearer ${secretKey}` } },
-  );
-  if (!res.ok) throw new EntitlementLookupError(`RevenueCat ${res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}`,
+      { headers: { Authorization: `Bearer ${secretKey}` } },
+    );
+  } catch (err) {
+    console.error(`[RevenueCat] Erro de rede ao consultar assinaturas: ${err}`);
+    return { isPro: false, sosPurchased: 0 };
+  }
+
+  // 404 significa que o usuário é novo e ainda não existe no RevenueCat (não comprou nada) -> Free
+  if (res.status === 404) {
+    return { isPro: false, sosPurchased: 0 };
+  }
+
+  if (!res.ok) {
+    console.error(`[RevenueCat] Resposta de erro da API: ${res.status}`);
+    return { isPro: false, sosPurchased: 0 };
+  }
 
   const data = (await res.json()) as any;
   const subscriber = data?.subscriber ?? {};
