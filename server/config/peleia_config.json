@@ -5,7 +5,7 @@
   "notice": null,
 
   "quota": {
-    "free_lifetime": 50,
+    "free_lifetime": 20,
     "pro_daily": 10,
     "sos_credits": 10
   },

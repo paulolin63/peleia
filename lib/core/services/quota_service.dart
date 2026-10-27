@@ -43,9 +43,9 @@ class QuotaService {
   static const String _proScanDateKey = 'quota_pro_last_scan_date';
   static const String _proScanCountKey = 'quota_pro_scans_today_count';
 
-  static int freeLifetime = 1;
-  static int maxProDailyScans = 2;
-  static int sosPackSize = 3;
+  static int freeLifetime = 20;
+  static int maxProDailyScans = 10;
+  static int sosPackSize = 10;
 
   static void applyLimits(QuotaLimits limits) {
     freeLifetime = limits.freeLifetime;
@@ -76,6 +76,11 @@ class QuotaService {
 
     final freeUsedCount = await _freeUsedCount(prefs);
     final sosCredits = prefs.getInt(_sosCreditsKey) ?? 0;
+
+    // Se o usuário tinha o flag antigo de bloqueio mas ainda tem créditos nos 20 testes:
+    if (freeUsedCount < freeLifetime) {
+      await prefs.setBool(_freeUsedKey, false);
+    }
 
     // ── 1. Assinante Pro: limite de 2 análises por dia ─────────
     if (isPro) {

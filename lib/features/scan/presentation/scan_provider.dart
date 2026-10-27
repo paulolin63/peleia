@@ -113,10 +113,6 @@ class ScanNotifier extends StateNotifier<ScanState> {
       await prefs.setBool('is_premium', true);
       return true;
     }
-    if (kReleaseMode) {
-      await prefs.setBool('is_premium', false);
-      return false;
-    }
     return prefs.getBool('is_premium') ?? false;
   }
 

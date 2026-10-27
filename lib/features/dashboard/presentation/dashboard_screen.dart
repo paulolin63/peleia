@@ -58,9 +58,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (remotePro) {
       _isPro = true;
       await prefs.setBool('is_premium', true);
-    } else if (kReleaseMode) {
-      _isPro = false;
-      await prefs.setBool('is_premium', false);
     } else {
       _isPro = prefs.getBool('is_premium') ?? false;
     }

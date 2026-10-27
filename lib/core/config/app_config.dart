@@ -100,7 +100,7 @@ class QuotaLimits {
   final int sosCredits;
   const QuotaLimits({required this.freeLifetime, required this.proDaily, required this.sosCredits});
 
-  static const fallback = QuotaLimits(freeLifetime: 1, proDaily: 2, sosCredits: 3);
+  static const fallback = QuotaLimits(freeLifetime: 20, proDaily: 10, sosCredits: 10);
 }
 
 class AppTexts {

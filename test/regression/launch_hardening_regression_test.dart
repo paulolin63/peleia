@@ -164,7 +164,7 @@ void main() {
 
       final afterPurge = await QuotaService.checkQuota(isPro: false);
       expect(afterPurge.canScan, isTrue);
-      expect(afterPurge.freeRemaining, equals(1));
+      expect(afterPurge.freeRemaining, equals(QuotaService.freeLifetime));
       final profile = await UserProfileStore.load();
       expect(profile.note, isEmpty);
       expect(profile.avoidIngredients, isEmpty);
@@ -172,13 +172,15 @@ void main() {
 
     // ── 4. Proteção de Custos e Limite de Cotas ────────────
     test('4. Controle de Abuso: Limites de cota Free vs Pro', () async {
-      // Usuário gratuito: 1 análise cortesia de boas-vindas
+      // Usuário gratuito: análises de teste liberadas
       var status = await QuotaService.checkQuota(isPro: false);
       expect(status.canScan, isTrue);
-      expect(status.freeRemaining, equals(1));
+      expect(status.freeRemaining, equals(QuotaService.freeLifetime));
 
-      // Consome a análise gratuita
-      await QuotaService.consumeQuota(isPro: false);
+      // Consome todas as análises de teste
+      for (var i = 0; i < QuotaService.freeLifetime; i++) {
+        await QuotaService.consumeQuota(isPro: false);
+      }
 
       // Nova verificação gratuita: deve bloquear
       status = await QuotaService.checkQuota(isPro: false);

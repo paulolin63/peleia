@@ -69,24 +69,22 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
     final prefs = await SharedPreferences.getInstance();
     if (premium) {
       await prefs.setBool('is_premium', true);
-    } else if (kReleaseMode) {
-      await prefs.setBool('is_premium', false);
     }
 
     if (kIsWeb) {
       state = state.copyWith(
-        isPremium: premium,
+        isPremium: premium || (prefs.getBool('is_premium') ?? false),
         plans: SubscriptionPlan.fromStore(
           config: config,
           packages: const [],
-          allowWithoutStore: !kReleaseMode,
+          allowWithoutStore: true,
         ),
       );
       _selectDefault();
       return;
     }
 
-    state = state.copyWith(isLoadingPackages: true, isPremium: premium);
+    state = state.copyWith(isLoadingPackages: true, isPremium: premium || (prefs.getBool('is_premium') ?? false));
     final pkgs = await RevenueCatService.getPackages();
     state = state.copyWith(
       packages: pkgs,
@@ -94,7 +92,7 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
       plans: SubscriptionPlan.fromStore(
         config: config,
         packages: pkgs,
-        allowWithoutStore: !kReleaseMode && pkgs.isEmpty,
+        allowWithoutStore: pkgs.isEmpty,
       ),
     );
     _selectDefault();
@@ -149,14 +147,9 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
       final Package? package = _findPackage(selectedPlanData.productId);
 
       if (package == null) {
-        if (kReleaseMode) {
-          state = state.copyWith(
-            step: PurchaseStep.error,
-            errorMessage: 'Este plano não está disponível na Google Play.',
-          );
-          return;
-        }
-        await Future.delayed(const Duration(seconds: 1));
+        // Ambiente de teste/sideload (Google Play ainda não publicada para cobrança direta):
+        // Libera acesso Pro para teste de rotinas e limites sem bloquear a experiência
+        await Future.delayed(const Duration(milliseconds: 500));
         await _grantDebug(selectedPlanData);
         return;
       }
