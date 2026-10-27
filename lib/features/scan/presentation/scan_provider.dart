@@ -162,10 +162,14 @@ class ScanNotifier extends StateNotifier<ScanState> {
         previous: previousEntry,
       );
 
+      final prefs = await SharedPreferences.getInstance();
+      final langCode = prefs.getString('app_language_code') ?? 'pt';
+
       final report = await _gemini.generateReport(
         analysis,
         profile: profile,
         comparison: comparison,
+        lang: langCode,
       );
       final recommendation = recommendProducts(
         config: config,

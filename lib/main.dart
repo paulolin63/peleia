@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/config/remote_config_service.dart';
+import 'core/localization/app_translations.dart';
 import 'core/services/auth_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
@@ -62,13 +63,15 @@ class PeleIAApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final lang = ref.watch(appLanguageProvider);
+    final locale = lang == AppLanguage.en ? const Locale('en', 'US') : const Locale('pt', 'BR');
 
     return MaterialApp.router(
       title: 'PeleIA',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: router,
-      locale: const Locale('pt', 'BR'),
+      locale: locale,
     );
   }
 }

@@ -8,6 +8,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/localization/app_translations.dart';
+import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/quota_service.dart';
 import 'scan_provider.dart';
 
@@ -165,6 +167,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           ),
         ),
         const Spacer(),
+        const LanguageToggleButton(compact: true),
+        const SizedBox(width: 8),
         GestureDetector(
           onTap: () => context.push('/history'),
           child: Container(
@@ -174,13 +178,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFC8714A).withAlpha(75)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Text('📈', style: TextStyle(fontSize: 14)),
-                SizedBox(width: 6),
+                const Text('📈', style: TextStyle(fontSize: 14)),
+                const SizedBox(width: 6),
                 Text(
-                  'Evolução',
-                  style: TextStyle(
+                  ref.watch(trProvider).isEn ? 'History' : 'Evolução',
+                  style: const TextStyle(
                     color: Color(0xFFE8C9A0),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -266,7 +270,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         const SizedBox(height: 32),
 
         Text(
-          'Análise de Pele com IA',
+          ref.watch(trProvider).scanTitle,
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w900,
@@ -278,7 +282,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         const SizedBox(height: 12),
 
         Text(
-          'Posicione seu rosto dentro do frame e\ntire uma selfie com boa iluminação natural ☀️',
+          ref.watch(trProvider).scanSubtitle,
           style: const TextStyle(
             fontSize: 14,
             color: Color(0xFF8A7A6E),
@@ -294,11 +298,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           alignment: WrapAlignment.center,
           spacing: 8,
           runSpacing: 8,
-          children: const [
-            _FeatureTag(emoji: '🛢️', label: 'Oleosidade'),
-            _FeatureTag(emoji: '😤', label: 'Acne'),
-            _FeatureTag(emoji: '☀️', label: 'Manchas UV'),
-            _FeatureTag(emoji: '💧', label: 'Hidratação'),
+          children: [
+            _FeatureTag(emoji: '🛢️', label: ref.watch(trProvider).indicatorOiliness),
+            _FeatureTag(emoji: '😤', label: ref.watch(trProvider).indicatorAcne),
+            _FeatureTag(emoji: '☀️', label: ref.watch(trProvider).indicatorSpots),
+            _FeatureTag(emoji: '💧', label: ref.watch(trProvider).indicatorHydration),
           ],
         ).animate().fadeIn(delay: 600.ms),
 
@@ -314,13 +318,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           ),
           child: Column(
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('💡 ', style: TextStyle(fontSize: 14)),
+                  const Text('💡 ', style: TextStyle(fontSize: 14)),
                   Text(
-                    'Para a IA acertar com 100% de precisão:',
-                    style: TextStyle(
+                    ref.watch(trProvider).scanAccuracyTitle,
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFFE8C9A0),
@@ -331,10 +335,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: const [
-                  _CaptureMiniTip(emoji: '☀️', label: 'Luz Natural'),
-                  _CaptureMiniTip(emoji: '✨', label: 'Sem Filtro/Beleza'),
-                  _CaptureMiniTip(emoji: '🧼', label: 'Pele sem Make'),
+                children: [
+                  _CaptureMiniTip(emoji: '☀️', label: ref.watch(trProvider).scanTipLight),
+                  _CaptureMiniTip(emoji: '✨', label: ref.watch(trProvider).scanTipFilter),
+                  _CaptureMiniTip(emoji: '🧼', label: ref.watch(trProvider).scanTipMake),
                 ],
               ),
             ],
@@ -345,12 +349,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   }
 
   Widget _buildScanAnimation(ScanState state) {
+    final tr = ref.watch(trProvider);
     final steps = [
-      '🔬 Detectando tipo de pele...',
-      '💧 Analisando oleosidade e poros...',
-      '😤 Mapeando acne e cravos...',
-      '☀️ Calculando risco UV...',
-      '📋 Criando sua rotina personalizada...',
+      tr.stepSkinType,
+      tr.stepOiliness,
+      tr.stepAcne,
+      tr.stepUv,
+      tr.stepRoutine,
     ];
 
     final currentStepIndex = state.step == ScanStep.generatingReport ? 4 : 2;
@@ -564,14 +569,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('📸', style: TextStyle(fontSize: 20)),
-                SizedBox(width: 10),
+                const Text('📸', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 10),
                 Text(
-                  'Analisar Minha Pele',
-                  style: TextStyle(
+                  ref.watch(trProvider).scanMainBtn,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -595,14 +600,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
               ),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('🖼️', style: TextStyle(fontSize: 16)),
-                SizedBox(width: 8),
+                const Text('🖼️', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
                 Text(
-                  'Usar foto da galeria',
-                  style: TextStyle(
+                  ref.watch(trProvider).scanGalleryBtn,
+                  style: const TextStyle(
                     color: Color(0xFFC8714A),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

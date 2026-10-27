@@ -41,6 +41,7 @@ SERVER_KEYS = [
 AFFILIATE_PARAMS = {
     "shopee.com.br": ("SHOPEE_AFFILIATE_TAG", "af"),
     "amazon.com.br": ("AMAZON_AFFILIATE_TAG", "tag"),
+    "mercadolivre.com.br": ("ML_AFFILIATE_TAG", "matt_tool"),
 }
 
 
@@ -191,13 +192,15 @@ def _add_query_param(url, key, value):
 
 
 def inject_affiliate_tags(config, environ=None):
-    """Adiciona as tags de afiliado configuradas no ambiente aos links dos produtos."""
+    """Adiciona as tags de afiliado configuradas no ambiente ou no config aos links dos produtos."""
     environ = os.environ if environ is None else environ
     result = copy.deepcopy(config)
+    cfg_tags = result.get("affiliate_tags", {})
     for product in result.get("products", []):
         host = urlsplit(product.get("affiliate_url", "")).netloc
         for domain, (env_name, param) in AFFILIATE_PARAMS.items():
-            tag = environ.get(env_name, "")
+            store_key = domain.split(".")[0]
+            tag = environ.get(env_name, "") or cfg_tags.get(store_key, "") or cfg_tags.get(env_name, "")
             if tag and host.endswith(domain):
                 product["affiliate_url"] = _add_query_param(product["affiliate_url"], param, tag)
     return result

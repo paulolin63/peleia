@@ -2,7 +2,7 @@
 //  lib/core/services/report_export_service.dart
 //
 //  Serviço para exportar relatório da pele em PDF e compartilhar
-//  nas redes sociais (WhatsApp, Instagram, etc.)
+//  nas redes sociais (WhatsApp, Instagram, etc.) com suporte bilíngue (PT/EN)
 // ============================================================
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
@@ -22,30 +22,53 @@ class ReportExportService {
     required int hidratacao,
     required List<AffiliateProduct> products,
     String? reportSnippet,
+    bool isEn = false,
   }) async {
     final buffer = StringBuffer();
-    buffer.writeln('✨ Fiz minha análise de pele com IA no PeleIA!');
-    buffer.writeln('');
-    buffer.writeln('📊 Score Geral: $score/100');
-    buffer.writeln('💆 Tipo de Pele: ${skinType.toUpperCase()}');
-    buffer.writeln('🛢️ Oleosidade: $oleosidade/10 | 😤 Acne: $acne/10 | 💧 Hidratação: $hidratacao/10');
-    buffer.writeln('');
-
-    if (products.isNotEmpty) {
-      buffer.writeln('🌿 Produtos recomendados para meu perfil:');
-      for (final p in products.take(3)) {
-        buffer.writeln('• ${p.emoji} ${p.name} (${p.brand}) — ${p.priceFormatted}');
-      }
+    if (isEn) {
+      buffer.writeln('✨ I analyzed my skin with AI on PeleIA!');
       buffer.writeln('');
-    }
+      buffer.writeln('📊 Overall Score: $score/100');
+      buffer.writeln('💆 Skin Type: $skinType');
+      buffer.writeln('🛢️ Oiliness: $oleosidade/10 | 😤 Acne: $acne/10 | 💧 Hydration: $hidratacao/10');
+      buffer.writeln('');
 
-    buffer.writeln('Descubra a rotina de skincare ideal para o seu rosto no PeleIA!');
-    buffer.writeln('📲 https://peleia.com.br');
+      if (products.isNotEmpty) {
+        buffer.writeln('🌿 Recommended products for my profile:');
+        for (final p in products.take(3)) {
+          buffer.writeln('• ${p.emoji} ${p.name} (${p.brand}) — ${p.priceFormatted}');
+        }
+        buffer.writeln('');
+      }
+
+      buffer.writeln('Discover your customized smart skincare routine on PeleIA!');
+      buffer.writeln('📲 https://peleia.com.br');
+    } else {
+      buffer.writeln('✨ Fiz minha análise de pele com IA no PeleIA!');
+      buffer.writeln('');
+      buffer.writeln('📊 Score Geral: $score/100');
+      buffer.writeln('💆 Tipo de Pele: ${skinType.toUpperCase()}');
+      buffer.writeln('🛢️ Oleosidade: $oleosidade/10 | 😤 Acne: $acne/10 | 💧 Hidratação: $hidratacao/10');
+      buffer.writeln('');
+
+      if (products.isNotEmpty) {
+        buffer.writeln('🌿 Produtos recomendados para meu perfil:');
+        for (final p in products.take(3)) {
+          buffer.writeln('• ${p.emoji} ${p.name} (${p.brand}) — ${p.priceFormatted}');
+        }
+        buffer.writeln('');
+      }
+
+      buffer.writeln('Descubra a rotina de skincare ideal para o seu rosto no PeleIA!');
+      buffer.writeln('📲 https://peleia.com.br');
+    }
 
     await SharePlus.instance.share(
       ShareParams(
         text: buffer.toString(),
-        subject: 'Meu Relatório de Skincare PeleIA ($score pts)',
+        subject: isEn
+            ? 'My PeleIA Skincare Report ($score pts)'
+            : 'Meu Relatório de Skincare PeleIA ($score pts)',
       ),
     );
   }
@@ -62,6 +85,7 @@ class ReportExportService {
     required String fullReport,
     required List<AffiliateProduct> products,
     required String dateFormatted,
+    bool isEn = false,
   }) async {
     try {
       final doc = pw.Document();
@@ -94,7 +118,9 @@ class ReportExportService {
                         ),
                       ),
                       pw.Text(
-                        'Relatório de Análise da Pele & Rotina Inteligente',
+                        isEn
+                            ? 'AI Skin Analysis & Personalized Routine Report'
+                            : 'Relatório de Análise da Pele & Rotina Inteligente',
                         style: pw.TextStyle(color: textMuted, fontSize: 11),
                       ),
                     ],
@@ -103,7 +129,7 @@ class ReportExportService {
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
                       pw.Text(
-                        'Data: $dateFormatted',
+                        '${isEn ? "Date" : "Data"}: $dateFormatted',
                         style: pw.TextStyle(fontSize: 10, color: textMuted),
                       ),
                       pw.Container(
@@ -133,7 +159,7 @@ class ReportExportService {
 
               // Resumo dos Indicadores
               pw.Text(
-                'Mapeamento dos Indicadores Cutâneos',
+                isEn ? 'Clinical Skin Indicator Mapping' : 'Mapeamento dos Indicadores Cutâneos',
                 style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
               ),
               pw.SizedBox(height: 8),
@@ -147,11 +173,11 @@ class ReportExportService {
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                   children: [
-                    _buildPdfIndicator('Tipo de Pele', skinType.toUpperCase()),
-                    _buildPdfIndicator('Oleosidade', '$oleosidade / 10'),
-                    _buildPdfIndicator('Acne/Cravos', '$acne / 10'),
-                    _buildPdfIndicator('Manchas', '$manchas / 10'),
-                    _buildPdfIndicator('Hidratação', '$hidratacao / 10'),
+                    _buildPdfIndicator(isEn ? 'Skin Type' : 'Tipo de Pele', skinType.toUpperCase()),
+                    _buildPdfIndicator(isEn ? 'Oiliness' : 'Oleosidade', '$oleosidade / 10'),
+                    _buildPdfIndicator(isEn ? 'Acne/Blemishes' : 'Acne/Cravos', '$acne / 10'),
+                    _buildPdfIndicator(isEn ? 'UV Spots' : 'Manchas', '$manchas / 10'),
+                    _buildPdfIndicator(isEn ? 'Hydration' : 'Hidratação', '$hidratacao / 10'),
                   ],
                 ),
               ),
@@ -161,7 +187,7 @@ class ReportExportService {
               // Relatório da IA
               if (fullReport.isNotEmpty) ...[
                 pw.Text(
-                  'Orientação da Rotina Diária (IA)',
+                  isEn ? 'Daily Intelligent Routine (AI Prescription)' : 'Orientação da Rotina Diária (IA)',
                   style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
                 ),
                 pw.SizedBox(height: 8),
@@ -182,7 +208,7 @@ class ReportExportService {
               // Produtos Recomendados
               if (products.isNotEmpty) ...[
                 pw.Text(
-                  'Produtos Recomendados para sua Rotina',
+                  isEn ? 'Recommended Products for Your Profile' : 'Produtos Recomendados para sua Rotina',
                   style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
                 ),
                 pw.SizedBox(height: 8),
@@ -204,7 +230,7 @@ class ReportExportService {
                             style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
                           ),
                           pw.Text(
-                            '${p.brand} • Loja: ${p.storeLabel}',
+                            '${p.brand} • ${isEn ? "Store" : "Loja"}: ${p.storeLabel}',
                             style: pw.TextStyle(fontSize: 9, color: textMuted),
                           ),
                         ],
@@ -212,25 +238,25 @@ class ReportExportService {
                       pw.Text(
                         p.priceFormatted,
                         style: pw.TextStyle(
-                          color: primaryColor,
                           fontSize: 11,
                           fontWeight: pw.FontWeight.bold,
+                          color: primaryColor,
                         ),
                       ),
                     ],
                   ),
                 )),
-                pw.SizedBox(height: 16),
+                pw.SizedBox(height: 20),
               ],
 
-              // Aviso Regulatório (ANVISA)
+              // Rodapé de Isenção
               pw.Divider(color: PdfColors.grey300),
               pw.SizedBox(height: 6),
               pw.Text(
-                'Aviso Legal & Regulatório: Este documento é um guia cosmético gerado por inteligência artificial '
-                'com base em selfie fotográfica e histórico pessoal. Não constitui diagnóstico médico, '
-                'prescrição clínica ou tratamento dermatológico.',
-                style: pw.TextStyle(fontSize: 8, color: textMuted),
+                isEn
+                    ? 'Note: This report is an AI-powered cosmetic skincare guide. It does not replace medical advice from a dermatologist.'
+                    : 'Nota: Este relatório é um guia cosmético inteligente gerado por inteligência artificial. Não substitui consulta médica dermatológica.',
+                style: pw.TextStyle(fontSize: 8, color: textMuted, fontStyle: pw.FontStyle.italic),
                 textAlign: pw.TextAlign.center,
               ),
             ];
@@ -239,7 +265,7 @@ class ReportExportService {
       );
 
       final pdfBytes = await doc.save();
-      final filename = 'peleia_relatorio_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final filename = 'peleia_${isEn ? "report" : "relatorio"}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
       // Abre menu nativo para salvar no aparelho (Downloads) ou compartilhar direto
       await Printing.sharePdf(bytes: pdfBytes, filename: filename);

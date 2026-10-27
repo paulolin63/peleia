@@ -7,14 +7,15 @@
 //  - Checklist diário de rotina (Manhã e Noite com checkboxes)
 //  - Atalhos para Nova Análise, Evolução Antes & Depois e Premium
 // ============================================================
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/config/remote_config_service.dart';
+import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
@@ -22,14 +23,14 @@ import '../../../core/services/revenuecat_service.dart';
 import '../../history/data/history_entry.dart';
 import '../../profile/avoidance_fields.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   HistoryEntry? _latestEntry;
   bool _isLoading = true;
   bool _isPro = false;
@@ -239,6 +240,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         const Spacer(),
+
+        // Alternador de Idioma (PT / EN)
+        const LanguageToggleButton(compact: true),
+        const SizedBox(width: 4),
 
         // Botão Histórico
         IconButton(

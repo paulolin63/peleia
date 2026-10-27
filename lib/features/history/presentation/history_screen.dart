@@ -9,19 +9,23 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_translations.dart';
+import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/privacy_service.dart';
 import '../../../core/services/report_export_service.dart';
 import '../data/history_entry.dart';
 
-class HistoryScreen extends StatefulWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen>
+class _HistoryScreenState extends ConsumerState<HistoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<HistoryEntry> _entries = [];
@@ -120,15 +124,17 @@ class _HistoryScreenState extends State<HistoryScreen>
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFC8714A)),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          'Evolução da Pele',
-          style: TextStyle(
+        title: Text(
+          ref.watch(trProvider).historyTitle,
+          style: const TextStyle(
             color: Color(0xFFF5F0EC),
             fontWeight: FontWeight.w800,
             fontSize: 18,
           ),
         ),
         actions: [
+          const LanguageToggleButton(compact: true),
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.shield_outlined, color: Color(0xFF8A7A6E)),
             tooltip: 'Privacidade de Dados (LGPD)',
@@ -698,12 +704,12 @@ class _HistoryScreenState extends State<HistoryScreen>
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       icon: const Icon(Icons.picture_as_pdf, size: 16),
-                      label: const Text('Baixar PDF', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      label: Text(ref.watch(trProvider).downloadPdf, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       onPressed: () {
                         ReportExportService.exportAndDownloadPdf(
                           context: context,
                           score: entry.scoreGeral,
-                          skinType: entry.skinType,
+                          skinType: ref.read(trProvider).translateSkinType(entry.skinType),
                           oleosidade: entry.oleosidade,
                           acne: entry.acne,
                           manchas: entry.manchas,
@@ -711,6 +717,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                           fullReport: entry.fullReport,
                           products: entry.products,
                           dateFormatted: entry.formattedDate,
+                          isEn: ref.read(trProvider).isEn,
                         );
                       },
                     ),
@@ -725,15 +732,16 @@ class _HistoryScreenState extends State<HistoryScreen>
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       icon: const Icon(Icons.share, size: 16),
-                      label: const Text('Compartilhar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      label: Text(ref.watch(trProvider).share, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       onPressed: () {
                         ReportExportService.shareToSocial(
                           score: entry.scoreGeral,
-                          skinType: entry.skinType,
+                          skinType: ref.read(trProvider).translateSkinType(entry.skinType),
                           oleosidade: entry.oleosidade,
                           acne: entry.acne,
                           hidratacao: entry.hidratacao,
                           products: entry.products,
+                          isEn: ref.read(trProvider).isEn,
                         );
                       },
                     ),

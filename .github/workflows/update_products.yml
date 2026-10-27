@@ -2,8 +2,8 @@ name: Auto Update & Publish Skincare Config
 
 on:
   schedule:
-    # Roda semanalmente aos domingos às 03:00 UTC (meia-noite de Brasília)
-    - cron: '0 3 * * 0'
+    # Executa a cada 10 dias às 03:00 UTC (meia-noite de Brasília)
+    - cron: '0 3 */10 * *'
   # Permite disparar manualmente pelo botão "Run workflow" no GitHub
   workflow_dispatch:
 

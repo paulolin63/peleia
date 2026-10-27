@@ -84,6 +84,7 @@ class GeminiSkinService {
     SkinAnalysisRaw analysis, {
     required UserProfile profile,
     SkinComparisonResult? comparison,
+    String lang = 'pt',
   }) async {
     initialize();
     final summary = (comparison != null && comparison.hasPrevious) ? comparison.deterministicSummary : '';
@@ -97,6 +98,7 @@ class GeminiSkinService {
         'analysis_id': _lastAnalysisId,
         'profile': profile.toJson(),
         'comparison_summary': summary,
+        'lang': lang,
       }, const Duration(seconds: 55));
       final output = body['output'];
       if (output is! String || output.isEmpty) {

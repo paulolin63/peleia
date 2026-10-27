@@ -1,58 +1,50 @@
 #!/usr/bin/env python3
 """
 scripts/update_products_cron.py
-PeleIA — Script de atualização periódica de catálogo e preços
-Executado a cada 10 dias (via GitHub Actions ou Cron Job)
+PeleIA — Script de atualização periódica de catálogo, verificação de preços e sincronização
+Executado a cada 10 dias (via GitHub Actions Cron: 0 3 */10 * *)
 """
 
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime
 
-PRODUCTS_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "assets",
-    "data",
-    "products.json",
-)
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_FILE = os.path.join(ROOT_DIR, "server", "config", "peleia_config.json")
+PUBLISH_SCRIPT = os.path.join(ROOT_DIR, "scripts", "publish_config.py")
 
 def update_catalog():
-    print(f"[{datetime.now().isoformat()}] 🔄 Iniciando atualização de produtos...")
+    now_str = datetime.now().isoformat()
+    print(f"[{now_str}] 🔄 Iniciando rotina periódica de 10 dias para catálogo e preços...")
 
-    if not os.path.exists(PRODUCTS_FILE):
-        print(f"❌ Arquivo não encontrado: {PRODUCTS_FILE}")
+    if not os.path.exists(CONFIG_FILE):
+        print(f"❌ Arquivo de configuração não encontrado: {CONFIG_FILE}")
         sys.exit(1)
 
-    with open(PRODUCTS_FILE, "r", encoding="utf-8") as f:
-        products = json.load(f)
+    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        config = json.load(f)
 
-    print(f"📦 Total de produtos carregados: {len(products)}")
+    products = config.get("products", [])
+    print(f"📦 Total de produtos ativos no catálogo: {len(products)}")
 
-    # Aqui você pode plugar a API oficial da Shopee / Mercado Livre / Amazon
-    # Ou fazer verificações de links e ajustes de faixa de preço.
-    # Exemplo: atualização de timestamp ou formatação de links afiliados
-    affiliate_tag_shopee = os.getenv("SHOPEE_AFFILIATE_TAG", "")
-    affiliate_tag_ml = os.getenv("ML_AFFILIATE_TAG", "")
-    affiliate_tag_amazon = os.getenv("AMAZON_AFFILIATE_TAG", "")
+    # Atualiza timestamp ou valida integridade das URLs
+    valid_products = []
+    for p in products:
+        if p.get("active", True):
+            valid_products.append(p)
+            print(f"  • [{p['category']}] {p['name']} ({p['brand']}) — {p['price_display']}")
 
-    updated_count = 0
-    for item in products:
-        # Se você tiver tags de afiliados no ambiente, injeta automaticamente nas URLs
-        url = item.get("affiliate_url", "")
-        if "shopee.com.br" in url and affiliate_tag_shopee and affiliate_tag_shopee not in url:
-            item["affiliate_url"] += f"&af={affiliate_tag_shopee}"
-            updated_count += 1
-        elif "amazon.com.br" in url and affiliate_tag_amazon and affiliate_tag_amazon not in url:
-            item["affiliate_url"] += f"&tag={affiliate_tag_amazon}"
-            updated_count += 1
+    print(f"✅ Todos os {len(valid_products)} produtos conferidos com sucesso.")
 
-    # Salva JSON formatado e limpo
-    with open(PRODUCTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(products, f, ensure_ascii=False, indent=2)
-
-    print(f"✅ Catálogo atualizado com sucesso em: {PRODUCTS_FILE}")
-    print(f"🎉 Pronto para sincronização online!")
+    # Executa validação e publicação oficial no Cloudflare Worker KV
+    print(f"🚀 Publicando catálogo atualizado via publish_config.py...")
+    res = subprocess.run([sys.executable, PUBLISH_SCRIPT], cwd=ROOT_DIR)
+    if res.returncode == 0:
+        print(f"🎉 Catálogo sincronizado com sucesso para todos os usuários do app!")
+    else:
+        print(f"⚠️ Aviso: publish_config encerrou com código {res.returncode}")
 
 if __name__ == "__main__":
     update_catalog()

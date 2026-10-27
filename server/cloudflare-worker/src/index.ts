@@ -325,12 +325,17 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
     if (!claimRes.ok) return jsonResponse(await claimRes.json(), claimRes.status, cors);
     const { analysis } = (await claimRes.json()) as { analysis: any };
 
-    console.log(`[Proxy] report para UID ${uid.slice(0, 6)}***`);
+    console.log(`[Proxy] report para UID ${uid.slice(0, 6)}*** (lang: ${body.lang ?? 'pt'})`);
+
+    const lang = typeof body.lang === 'string' ? body.lang : 'pt';
+    const langSuffix = lang === 'en'
+      ? '\n\nIMPORTANT LANGUAGE REQUIREMENT: Please generate the ENTIRE skincare prescription, routine steps, and explanations in fluent, professional ENGLISH so an international team can read and understand it.'
+      : '';
 
     const text = await callGemini(
       env,
       config.server.model,
-      [{ text: buildReportPrompt(config, profile, analysis, body.comparison_summary) }],
+      [{ text: buildReportPrompt(config, profile, analysis, body.comparison_summary) + langSuffix }],
       {
         temperature: 0.7,
         maxOutputTokens: 3072,

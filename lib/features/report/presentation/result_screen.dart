@@ -13,6 +13,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/config/remote_config_service.dart';
+import '../../../core/localization/app_translations.dart';
+import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/comparison_service.dart';
 import '../../../core/services/report_export_service.dart';
 import '../../history/data/history_entry.dart';
@@ -70,6 +72,10 @@ class ResultScreen extends ConsumerWidget {
                 context.go('/');
               },
             ),
+            actions: const [
+              LanguageToggleButton(compact: true),
+              SizedBox(width: 12),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: _buildHeroHeader(analysis, state.imageBytes != null
                   ? Image.memory(state.imageBytes!, fit: BoxFit.cover)
@@ -182,7 +188,7 @@ class ResultScreen extends ConsumerWidget {
                           ReportExportService.exportAndDownloadPdf(
                             context: context,
                             score: analysis.scoreGeral,
-                            skinType: analysis.skinType,
+                            skinType: ref.read(trProvider).translateSkinType(analysis.skinType),
                             oleosidade: analysis.scores.oleosidade,
                             acne: analysis.scores.acneCravos,
                             manchas: analysis.scores.manchasSolares,
@@ -190,6 +196,7 @@ class ResultScreen extends ConsumerWidget {
                             fullReport: state.report ?? '',
                             products: state.products,
                             dateFormatted: dateStr,
+                            isEn: ref.read(trProvider).isEn,
                           );
                         },
                         child: Container(
@@ -201,14 +208,14 @@ class ResultScreen extends ConsumerWidget {
                               color: const Color(0xFFC8714A).withAlpha(120),
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.picture_as_pdf, color: Color(0xFFE8C9A0), size: 18),
-                              SizedBox(width: 8),
+                              const Icon(Icons.picture_as_pdf, color: Color(0xFFE8C9A0), size: 18),
+                              const SizedBox(width: 8),
                               Text(
-                                'Baixar PDF',
-                                style: TextStyle(
+                                ref.watch(trProvider).downloadPdf,
+                                style: const TextStyle(
                                   color: Color(0xFFE8C9A0),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -225,11 +232,12 @@ class ResultScreen extends ConsumerWidget {
                         onTap: () {
                           ReportExportService.shareToSocial(
                             score: analysis.scoreGeral,
-                            skinType: analysis.skinType,
+                            skinType: ref.read(trProvider).translateSkinType(analysis.skinType),
                             oleosidade: analysis.scores.oleosidade,
                             acne: analysis.scores.acneCravos,
                             hidratacao: analysis.scores.hidratacao,
                             products: state.products,
+                            isEn: ref.read(trProvider).isEn,
                           );
                         },
                         child: Container(
@@ -238,14 +246,14 @@ class ResultScreen extends ConsumerWidget {
                             color: const Color(0xFFC8714A),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.share, color: Colors.white, size: 18),
-                              SizedBox(width: 8),
+                              const Icon(Icons.share, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
                               Text(
-                                'Compartilhar',
-                                style: TextStyle(
+                                ref.watch(trProvider).share,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
