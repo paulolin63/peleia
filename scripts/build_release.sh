@@ -9,6 +9,7 @@ set -e
 
 # Adiciona caminhos do Homebrew e do Flutter ao PATH
 export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/development/flutter/bin:$PATH"
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home"
 
 if ! command -v flutter &> /dev/null; then
   echo "❌ Flutter não foi encontrado no PATH!"
