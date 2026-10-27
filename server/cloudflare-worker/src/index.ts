@@ -160,29 +160,36 @@ async function callGemini(
   generationConfig: Record<string, unknown>,
   timeoutMs: number,
 ): Promise<string | null> {
-  let res: Response;
-  try {
-    res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-        body: JSON.stringify({ contents: [{ parts }], generationConfig }),
-        signal: AbortSignal.timeout(timeoutMs),
-      },
-    );
-  } catch (err: any) {
-    console.error(`[Proxy Error] Gemini sem resposta: ${err?.name ?? 'erro'}`);
-    return null;
-  }
+  const modelsToTry = [
+    model,
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+  ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error(`[Proxy Error] Gemini retornou ${res.status}: ${errorText.slice(0, 120)}`);
-    return null;
+  for (const m of modelsToTry) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+          body: JSON.stringify({ contents: [{ parts }], generationConfig }),
+          signal: AbortSignal.timeout(timeoutMs),
+        },
+      );
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+      } else {
+        const errorText = await res.text();
+        console.error(`[Proxy Error] Gemini (${m}) retornou ${res.status}: ${errorText.slice(0, 200)}`);
+      }
+    } catch (err: any) {
+      console.error(`[Proxy Error] Gemini (${m}) falhou: ${err?.name ?? err}`);
+    }
   }
-  const data = (await res.json()) as any;
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+  return null;
 }
 
 async function handleConfig(request: Request, env: Env): Promise<Response> {
