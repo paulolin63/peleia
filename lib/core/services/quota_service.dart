@@ -37,8 +37,8 @@ class QuotaStatus {
 }
 
 class QuotaService {
-  static const String _freeUsedKey = 'quota_free_analysis_used';
-  static const String _freeCountKey = 'quota_free_scans_used';
+  static const String _freeUsedKey = 'quota_free_analysis_used_v2';
+  static const String _freeCountKey = 'quota_free_scans_used_v2';
   static const String _sosCreditsKey = 'quota_sos_credits';
   static const String _proScanDateKey = 'quota_pro_last_scan_date';
   static const String _proScanCountKey = 'quota_pro_scans_today_count';

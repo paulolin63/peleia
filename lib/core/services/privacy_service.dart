@@ -17,6 +17,8 @@ class PrivacyService {
         'peleia_skin_history_entries_v1',
         'quota_free_analysis_used',
         'quota_free_scans_used',
+        'quota_free_analysis_used_v2',
+        'quota_free_scans_used_v2',
         'quota_sos_credits',
         'quota_pro_last_scan_date',
         'quota_pro_scans_today_count',

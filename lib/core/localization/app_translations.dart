@@ -39,6 +39,8 @@ final appLanguageProvider =
   return AppLanguageNotifier();
 });
 
+typedef AppTranslations = Tr;
+
 class Tr {
   final AppLanguage lang;
   const Tr(this.lang);
@@ -70,14 +72,47 @@ class Tr {
   String get navPro => isEn ? 'Pro' : 'Pro';
 
   // ── Dashboard ───────────────────────────────────────────────
-  String get dashGreeting => isEn ? 'Hello! Ready for today\'s skincare?' : 'Olá! Pronta para cuidar da pele hoje?';
-  String get dashTodayRoutine => isEn ? 'Today\'s Routine' : 'Rotina de Hoje';
-  String get dashMorning => isEn ? 'Morning' : 'Manhã';
-  String get dashNight => isEn ? 'Night' : 'Noite';
+  String get dashGreetingMorning => isEn ? 'Good morning' : 'Bom dia';
+  String get dashGreetingAfternoon => isEn ? 'Good afternoon' : 'Boa tarde';
+  String get dashGreetingEvening => isEn ? 'Good evening' : 'Boa noite';
+  String get dashGreetingSuffix => isEn ? ', gorgeous! 👋' : ', maravilhosa! 👋';
+  String get dashDailyHeader => isEn ? 'PeleIA Daily' : 'PeleIA Diário';
+  String get dashAdjustProfile => isEn ? 'Adjust' : 'Ajustar';
+  String get dashProfilePrefix => isEn ? 'Profile:' : 'Perfil:';
+  String get dashWithRestrictions => isEn ? 'with restrictions' : 'com restrições';
+  String get dashNewUserTitle => isEn ? 'Start Your Visual Analysis' : 'Comece sua Análise Visual';
+  String get dashNewUserDesc => isEn
+      ? 'Take a selfie for AI to map your oiliness, acne, and spots in 30 seconds.'
+      : 'Tire uma selfie para a IA mapear sua oleosidade, acne e manchas em 30 segundos.';
+  String get dashCurrentSkinPrefix => isEn ? 'Current Skin: ' : 'Sua Pele Atual: Pele ';
+  String get dashIndicatorGeneral => isEn ? 'Overall Score' : 'Indicador Geral';
+  String get dashOiliness => isEn ? 'Oiliness' : 'Oleosidade';
+  String get dashAcne => isEn ? 'Acne/Pores' : 'Acne/Cravos';
+  String get dashSpots => isEn ? 'UV Spots' : 'Manchas UV';
+  String get dashTodayRoutine => isEn ? 'Your Daily Routine' : 'Sua Rotina Diária';
+  String get dashMorning => isEn ? '🌅 Morning' : '🌅 Manhã';
+  String get dashNight => isEn ? '🌙 Night' : '🌙 Noite';
+  String dashStepsCompleted(int done, int total) =>
+      isEn ? '$done of $total steps completed' : '$done de $total passos concluídos';
+  String get dashAllDone => isEn ? '🎉 All done!' : '🎉 Tudo pronto!';
+  String get dashScanCTA => isEn ? 'Take New Facial Analysis' : 'Fazer Nova Análise Facial';
+  String get dashScanCTAHint => isEn ? 'AI Cosmetic Visual Analysis' : 'Análise visual cosmética por IA';
+  String get dashEvolutionTitle => isEn ? 'Before & After' : 'Antes & Depois';
+  String get dashEvolutionDesc => isEn ? 'See skin evolution' : 'Ver evolução da pele';
+  String get dashProTitle => isEn ? 'PeleIA Pro' : 'PeleIA Pro';
+  String get dashProDesc => isEn ? 'Manage subscription' : 'Gerenciar assinatura';
+  String get dashSubscribeBtn => isEn ? '⚡ SUBSCRIBE' : '⚡ ASSINAR';
+  String get dashProBadge => isEn ? '💎 PRO' : '💎 PRO';
   String get dashSunTitle => isEn ? 'Daily Sun Protection' : 'Proteção Solar Diária';
   String get dashSunDesc => isEn
       ? 'UV radiation in Brazil is intense year-round. Use SPF 50+ every morning and reapply every 2 hours outdoors.'
       : 'O índice UV no Brasil é intenso o ano todo. Aplique protetor FPS 50+ pela manhã e reaplique a cada 2h se estiver ao sol.';
+  String get dashQuotaDialogTitle => isEn ? 'Test Scans Limit' : 'Limite de Análises de Teste';
+  String get dashQuotaDialogContent => isEn
+      ? 'You have used all 20 free test scans! To continue testing, you can unlock PeleIA Pro.'
+      : 'Você utilizou as 20 análises de teste gratuitas! Para continuar, você pode desbloquear o PeleIA Pro.';
+  String get dashQuotaDialogProBtn => isEn ? 'View Plans' : 'Conhecer Planos';
+  String get cancel => isEn ? 'Cancel' : 'Cancelar';
   String get dashLastScore => isEn ? 'Latest Skin Score' : 'Última Pontuação';
   String get dashHistoryPrompt => isEn ? 'Track your evolution' : 'Acompanhe sua evolução';
   String get dashQuickScan => isEn ? 'Scan Skin with AI' : 'Analisar com IA';
@@ -88,8 +123,8 @@ class Tr {
   String get scanSubtitle => isEn
       ? 'Position your face inside the oval frame in natural light'
       : 'Posicione seu rosto dentro da moldura oval com luz natural';
-  String get scanMainBtn => isEn ? '📸 Analyze My Skin' : '📸 Analisar Minha Pele';
-  String get scanGalleryBtn => isEn ? '🖼️ Choose from Gallery' : '🖼️ Escolher da Galeria';
+  String get scanMainBtn => isEn ? 'Analyze My Skin' : 'Analisar Minha Pele';
+  String get scanGalleryBtn => isEn ? 'Choose from Gallery' : 'Escolher da Galeria';
   String get scanAccuracyTitle => isEn ? 'For 100% accurate AI diagnosis:' : 'Para a IA acertar com 100% de precisão:';
   String get scanTipLight => isEn ? 'Natural Light' : 'Luz Natural';
   String get scanTipFilter => isEn ? 'No Beauty Filters' : 'Sem Filtro';

@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/config/remote_config_service.dart';
+import '../../../core/localization/app_translations.dart';
 import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/services/history_service.dart';
@@ -123,15 +124,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
   }
 
-  String _getGreeting() {
+  String _getGreeting(AppTranslations tr) {
     final hour = DateTime.now().hour;
-    if (hour >= 5 && hour < 12) return 'Bom dia';
-    if (hour >= 12 && hour < 18) return 'Boa tarde';
-    return 'Boa noite';
+    if (hour >= 5 && hour < 12) return tr.dashGreetingMorning;
+    if (hour >= 12 && hour < 18) return tr.dashGreetingAfternoon;
+    return tr.dashGreetingEvening;
   }
 
   @override
   Widget build(BuildContext context) {
+    final tr = ref.watch(trProvider);
+
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFF0F0F0F),
@@ -156,37 +159,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     // ── Header Superior ─────────────────────────
-                    _buildTopHeader(),
+                    _buildTopHeader(tr),
 
                     const SizedBox(height: 12),
 
                     // ── Perfil Declarado do Usuário ─────────────
-                    _buildUserProfileBadge(),
+                    _buildUserProfileBadge(tr),
 
                     const SizedBox(height: 16),
 
                     // ── Card de Alerta UV e Clima BR ────────────
-                    _buildUvAlertCard(),
+                    _buildUvAlertCard(tr),
 
                     const SizedBox(height: 18),
 
                     // ── Card de Status da Pele / Última Análise ─
-                    _buildSkinStatusCard(),
+                    _buildSkinStatusCard(tr),
 
                     const SizedBox(height: 22),
 
                     // ── Checklist da Rotina de Hoje ─────────────
-                    _buildDailyRoutineSection(),
+                    _buildDailyRoutineSection(tr),
 
                     const SizedBox(height: 24),
 
                     // ── Botão Principal: Nova Análise com IA ────
-                    _buildScanCTA(),
+                    _buildScanCTA(tr),
 
                     const SizedBox(height: 16),
 
                     // ── Atalhos Rápidos (Evolução & Premium) ─────
-                    _buildQuickActionCards(),
+                    _buildQuickActionCards(tr),
 
                     const SizedBox(height: 32),
                   ]),
@@ -200,7 +203,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   // ── 1. Header Superior com Saudação e Badges ──────────────
-  Widget _buildTopHeader() {
+  Widget _buildTopHeader(AppTranslations tr) {
     return Row(
       children: [
         // Avatar ou Logo
@@ -222,16 +225,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${_getGreeting()}, maravilhosa! 👋',
+              '${_getGreeting(tr)}${tr.dashGreetingSuffix}',
               style: const TextStyle(
                 color: Color(0xFF8A7A6E),
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const Text(
-              'PeleIA Diário',
-              style: TextStyle(
+            Text(
+              tr.dashDailyHeader,
+              style: const TextStyle(
                 color: Color(0xFFF5F0EC),
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -272,7 +275,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             child: Row(
               children: [
-                Text(_isPro ? '💎 PRO' : '⚡ ASSINAR',
+                Text(_isPro ? tr.dashProBadge : tr.dashSubscribeBtn,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -287,35 +290,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   // ── Perfil Declarado do Usuário ───────────────────────────
-  Widget _buildUserProfileBadge() {
+  Widget _buildUserProfileBadge(AppTranslations tr) {
     String ageText;
     switch (_ageGroup) {
       case 'under_20':
-        ageText = '< 20 anos';
+        ageText = tr.isEn ? '< 20 yrs' : '< 20 anos';
         break;
       case '36_50':
-        ageText = '36-50 anos';
+        ageText = tr.isEn ? '36-50 yrs' : '36-50 anos';
         break;
       case '50_plus':
-        ageText = '50+ anos';
+        ageText = tr.isEn ? '50+ yrs' : '50+ anos';
         break;
       case '20_35':
       default:
-        ageText = '20-35 anos';
+        ageText = tr.isEn ? '20-35 yrs' : '20-35 anos';
         break;
     }
 
     String outdoorText;
     switch (_outdoorExposure) {
       case 'outdoor_high':
-        outdoorText = '☀️ Sol & Esporte Frequente';
+        outdoorText = tr.isEn ? '☀️ Frequent Sun & Sports' : '☀️ Sol & Esporte Frequente';
         break;
       case 'outdoor_low':
-        outdoorText = '💻 Home Office / Pouco Sol';
+        outdoorText = tr.isEn ? '💻 Home Office / Low Sun' : '💻 Home Office / Pouco Sol';
         break;
       case 'outdoor_moderate':
       default:
-        outdoorText = '🚴 Sol Moderado';
+        outdoorText = tr.isEn ? '🚴 Moderate Sun' : '🚴 Sol Moderado';
         break;
     }
 
@@ -335,7 +338,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Perfil: $ageText • $outdoorText${_profile.note.isEmpty && _profile.avoidIngredients.isEmpty && _profile.conditions.isEmpty ? '' : ' • com restrições'}',
+                '${tr.dashProfilePrefix} $ageText • $outdoorText${_profile.note.isEmpty && _profile.avoidIngredients.isEmpty && _profile.conditions.isEmpty ? '' : ' • ${tr.dashWithRestrictions}'}',
                 style: const TextStyle(
                   color: Color(0xFFE8C9A0),
                   fontSize: 12,
@@ -344,9 +347,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Text(
-              'Ajustar',
-              style: TextStyle(
+            Text(
+              tr.dashAdjustProfile,
+              style: const TextStyle(
                 color: Color(0xFFC8714A),
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -621,7 +624,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   // ── 2. Card de Alerta UV e Clima Tropical do Brasil ───────
-  Widget _buildUvAlertCard() {
+  Widget _buildUvAlertCard(AppTranslations tr) {
+    final title = tr.isEn ? tr.dashSunTitle : (_config?.texts.dashboardSunTitle ?? AppTexts.fallback.dashboardSunTitle);
+    final body = tr.isEn ? tr.dashSunDesc : (_config?.texts.dashboardSunBody ?? AppTexts.fallback.dashboardSunBody);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -652,7 +658,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Row(
                   children: [
                     Text(
-                      _config?.texts.dashboardSunTitle ?? AppTexts.fallback.dashboardSunTitle,
+                      title,
                       style: const TextStyle(
                         color: Color(0xFFE8A44A),
                         fontSize: 13,
@@ -675,7 +681,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _config?.texts.dashboardSunBody ?? AppTexts.fallback.dashboardSunBody,
+                  body,
                   style: const TextStyle(
                     color: Color(0xFF8A7A6E),
                     fontSize: 12,
@@ -691,7 +697,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   // ── 3. Card de Status da Pele / Última Análise ────────────
-  Widget _buildSkinStatusCard() {
+  Widget _buildSkinStatusCard(AppTranslations tr) {
     if (_latestEntry == null) {
       // Usuário novo — convite para primeira análise
       return Container(
@@ -705,22 +711,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           children: [
             const Text('🌱', style: TextStyle(fontSize: 36)),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Comece sua Análise Visual',
-                    style: TextStyle(
+                    tr.dashNewUserTitle,
+                    style: const TextStyle(
                       color: Color(0xFFF5F0EC),
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
-                    'Tire uma selfie para a IA mapear sua oleosidade, acne e manchas em 30 segundos.',
-                    style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.4),
+                    tr.dashNewUserDesc,
+                    style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.4),
                   ),
                 ],
               ),
@@ -744,7 +750,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Row(
             children: [
               Text(
-                'Sua Pele Atual: Pele ${_capitalize(_latestEntry!.skinType)}',
+                '${tr.dashCurrentSkinPrefix}${tr.translateSkinType(_latestEntry!.skinType)}',
                 style: const TextStyle(
                   color: Color(0xFFF5F0EC),
                   fontSize: 15,
@@ -753,7 +759,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const Spacer(),
               Text(
-                '${_latestEntry!.formattedDate}',
+                _latestEntry!.formattedDate,
                 style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 12),
               ),
             ],
@@ -763,25 +769,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildMiniMetric(
-                label: 'Indicador Geral',
+                label: tr.dashIndicatorGeneral,
                 value: '${_latestEntry!.scoreGeral}',
                 suffix: 'pts',
                 color: const Color(0xFF6AB187),
               ),
               _buildMiniMetric(
-                label: 'Oleosidade',
+                label: tr.dashOiliness,
                 value: '${_latestEntry!.oleosidade}',
                 suffix: '/10',
                 color: const Color(0xFFE8A44A),
               ),
               _buildMiniMetric(
-                label: 'Acne/Cravos',
+                label: tr.dashAcne,
                 value: '${_latestEntry!.acne}',
                 suffix: '/10',
                 color: const Color(0xFFD96B6B),
               ),
               _buildMiniMetric(
-                label: 'Manchas UV',
+                label: tr.dashSpots,
                 value: '${_latestEntry!.manchas}',
                 suffix: '/10',
                 color: const Color(0xFFE8A44A),
@@ -829,7 +835,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   // ── 4. Checklist da Rotina de Hoje (Manhã / Noite) ────────
-  Widget _buildDailyRoutineSection() {
+  Widget _buildDailyRoutineSection(AppTranslations tr) {
     final currentChecked = _isMorningTab ? _morningChecked : _nightChecked;
     final completedCount = currentChecked.length;
 
@@ -838,18 +844,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final nightSource = _config?.night ?? const <RoutineStepConfig>[];
     final morningSteps = morningSource.isEmpty
         ? [
-            ('🧴', 'Limpeza Facial', 'Gel de limpeza suave'),
-            ('💧', 'Sérum de Tratamento', 'Sérum leve compatível com o seu perfil'),
-            ('☀️', 'Protetor Solar FPS 50+', 'Toque seco. Não pule este passo!'),
+            ('🧴', tr.isEn ? 'Facial Cleansing' : 'Limpeza Facial', tr.isEn ? 'Gentle cleansing gel' : 'Gel de limpeza suave'),
+            ('💧', tr.isEn ? 'Treatment Serum' : 'Sérum de Tratamento', tr.isEn ? 'Lightweight serum compatible with your skin' : 'Sérum leve compatível com o seu perfil'),
+            ('☀️', tr.isEn ? 'SPF 50+ Sunscreen' : 'Protetor Solar FPS 50+', tr.isEn ? 'Dry touch. Do not skip this step!' : 'Toque seco. Não pule este passo!'),
           ]
         : [
             for (final step in morningSource) (step.emoji, step.title, step.textFor(avoided)),
           ];
     final nightSteps = nightSource.isEmpty
         ? [
-            ('🧼', 'Limpeza', 'Remoção do protetor solar e da poluição'),
-            ('✨', 'Tratamento Noturno', 'Ativo suave compatível com o seu perfil'),
-            ('💦', 'Hidratação Leve', 'Gel facial que não pesa no calor'),
+            ('🧼', tr.isEn ? 'Cleansing' : 'Limpeza', tr.isEn ? 'Removal of sunscreen & impurities' : 'Remoção do protetor solar e da poluição'),
+            ('✨', tr.isEn ? 'Night Treatment' : 'Tratamento Noturno', tr.isEn ? 'Gentle active suited to your skin' : 'Ativo suave compatível com o seu perfil'),
+            ('💦', tr.isEn ? 'Light Moisturizer' : 'Hidratação Leve', tr.isEn ? 'Facial gel that feels weightless in the heat' : 'Gel facial que não pesa no calor'),
           ]
         : [
             for (final step in nightSource) (step.emoji, step.title, step.textFor(avoided)),
@@ -870,9 +876,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           Row(
             children: [
-              const Text(
-                'Sua Rotina Diária',
-                style: TextStyle(
+              Text(
+                tr.dashTodayRoutine,
+                style: const TextStyle(
                   color: Color(0xFFF5F0EC),
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -888,10 +894,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 padding: const EdgeInsets.all(3),
                 child: Row(
                   children: [
-                    _buildRoutineToggle('🌅 Manhã', _isMorningTab, () {
+                    _buildRoutineToggle(tr.dashMorning, _isMorningTab, () {
                       setState(() => _isMorningTab = true);
                     }),
-                    _buildRoutineToggle('🌙 Noite', !_isMorningTab, () {
+                    _buildRoutineToggle(tr.dashNight, !_isMorningTab, () {
                       setState(() => _isMorningTab = false);
                     }),
                   ],
@@ -906,19 +912,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Row(
             children: [
               Text(
-                '$completedCount de $totalSteps passos concluídos',
+                tr.dashStepsCompleted(completedCount, totalSteps),
                 style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 12, fontWeight: FontWeight.w600),
               ),
               const Spacer(),
               if (completedCount == totalSteps)
-                const Text('🎉 Tudo pronto!', style: TextStyle(color: Color(0xFF6AB187), fontSize: 11, fontWeight: FontWeight.w700)),
+                Text(tr.dashAllDone, style: const TextStyle(color: Color(0xFF6AB187), fontSize: 11, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: completedCount / totalSteps,
+              value: totalSteps > 0 ? completedCount / totalSteps : 0,
               backgroundColor: Colors.white.withAlpha(10),
               valueColor: const AlwaysStoppedAnimation(Color(0xFFC8714A)),
               minHeight: 6,
@@ -1011,7 +1017,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   // ── 5. Botão de Destaque: Nova Análise com IA ─────────────
-  Widget _buildScanCTA() {
+  Widget _buildScanCTA(AppTranslations tr) {
     return GestureDetector(
       onTap: () => context.push('/scan').then((_) => _loadDashboardData()),
       child: Container(
@@ -1038,16 +1044,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Fazer Nova Análise Facial',
-                  style: TextStyle(
+                Text(
+                  tr.dashScanCTA,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
-                  _quotaStatus?.statusText ?? 'Análise visual cosmética por IA',
+                  _quotaStatus?.statusText ?? tr.dashScanCTAHint,
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 11,
@@ -1063,7 +1069,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   // ── 6. Atalhos Secundários (Antes & Depois + Premium) ─────
-  Widget _buildQuickActionCards() {
+  Widget _buildQuickActionCards(AppTranslations tr) {
     return Row(
       children: [
         // Antes & Depois
@@ -1077,23 +1083,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('📈', style: TextStyle(fontSize: 22)),
-                  SizedBox(height: 8),
+                  const Text('📈', style: TextStyle(fontSize: 22)),
+                  const SizedBox(height: 8),
                   Text(
-                    'Antes & Depois',
-                    style: TextStyle(
+                    tr.dashEvolutionTitle,
+                    style: const TextStyle(
                       color: Color(0xFFF5F0EC),
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Ver evolução da pele',
-                    style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
+                    tr.dashEvolutionDesc,
+                    style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
                   ),
                 ],
               ),
@@ -1114,23 +1120,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFF6AB187).withAlpha(50)),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('💎', style: TextStyle(fontSize: 22)),
-                  SizedBox(height: 8),
+                  const Text('💎', style: TextStyle(fontSize: 22)),
+                  const SizedBox(height: 8),
                   Text(
-                    'PeleIA Pro',
-                    style: TextStyle(
+                    tr.dashProTitle,
+                    style: const TextStyle(
                       color: Color(0xFFF5F0EC),
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Gerenciar assinatura',
-                    style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
+                    tr.dashProDesc,
+                    style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
                   ),
                 ],
               ),
@@ -1139,10 +1145,5 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
       ],
     ).animate().fadeIn(delay: 550.ms);
-  }
-
-  String _capitalize(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
   }
 }

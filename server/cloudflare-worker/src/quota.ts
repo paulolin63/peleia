@@ -16,7 +16,7 @@ interface Reservation {
 
 type Reservations = Record<string, Reservation>;
 
-const FREE_KEY = 'lifetime_scans';
+const FREE_KEY = 'lifetime_scans_v2';
 const SOS_KEY = 'sos_used';
 const RESERVATIONS_KEY = 'reservations';
 const proKey = (day: string) => `scans_${day}`;
