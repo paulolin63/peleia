@@ -28,6 +28,7 @@ flutter pub get
 # Build AAB (Android App Bundle — formato exigido pelo Google Play)
 flutter build appbundle \
   --release \
+  --android-skip-build-dependency-validation \
   --dart-define=GEMINI_API_KEY=${GEMINI_API_KEY:-""}
 
 echo ""

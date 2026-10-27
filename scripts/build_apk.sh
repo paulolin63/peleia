@@ -12,7 +12,7 @@ export JAVA_HOME="/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
 
 echo "📱 Building PeleIA APK para teste no celular..."
 
-flutter build apk --release
+flutter build apk --release --android-skip-build-dependency-validation
 
 echo ""
 echo "✅ APK gerado com sucesso em:"

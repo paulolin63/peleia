@@ -48,8 +48,8 @@ class RevenueCatService {
   static Future<bool> purchasePackage(Package package) async {
     if (kIsWeb || !_isMobile) return false;
     try {
-      final customerInfo = await Purchases.purchasePackage(package);
-      return customerInfo.entitlements.active.containsKey('premium');
+      final result = await Purchases.purchase(PurchaseParams.package(package));
+      return result.customerInfo.entitlements.active.containsKey('premium');
     } catch (e) {
       return false;
     }
