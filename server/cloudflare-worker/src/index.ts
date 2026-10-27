@@ -162,31 +162,42 @@ async function callGemini(
 ): Promise<string | null> {
   const modelsToTry = [
     model,
-    'gemini-3.8-flash',
     'gemini-3.6-flash',
+    'gemini-3.8-flash',
   ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
 
   for (const m of modelsToTry) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-          body: JSON.stringify({ contents: [{ parts }], generationConfig }),
-          signal: AbortSignal.timeout(timeoutMs),
-        },
-      );
-      if (res.ok) {
-        const data = (await res.json()) as any;
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text;
-      } else {
-        const errorText = await res.text();
-        console.error(`[Proxy Error] Gemini (${m}) retornou ${res.status}: ${errorText.slice(0, 200)}`);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+            body: JSON.stringify({ contents: [{ parts }], generationConfig }),
+            signal: AbortSignal.timeout(timeoutMs),
+          },
+        );
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) return text;
+        } else {
+          const errorText = await res.text();
+          console.error(`[Proxy Error] Gemini (${m}, attempt ${attempt + 1}) retornou ${res.status}: ${errorText.slice(0, 160)}`);
+          if (res.status === 503 || res.status === 429) {
+            await new Promise((r) => setTimeout(r, 1200));
+            continue;
+          }
+        }
+      } catch (err: any) {
+        console.error(`[Proxy Error] Gemini (${m}, attempt ${attempt + 1}) falhou: ${err?.name ?? err}`);
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 800));
+          continue;
+        }
       }
-    } catch (err: any) {
-      console.error(`[Proxy Error] Gemini (${m}) falhou: ${err?.name ?? err}`);
+      break;
     }
   }
   return null;
@@ -270,7 +281,12 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
         { text: buildVisionPrompt(config, profile) },
         { inline_data: { mime_type: 'image/jpeg', data: body.image_base64 } },
       ],
-      { temperature: 0.2, maxOutputTokens: 1024, responseMimeType: 'application/json' },
+      {
+        temperature: 0.2,
+        maxOutputTokens: 2048,
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
+      },
       VISION_TIMEOUT_MS,
     );
     if (!text) {
@@ -315,7 +331,11 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
       env,
       config.server.model,
       [{ text: buildReportPrompt(config, profile, analysis, body.comparison_summary) }],
-      { temperature: 0.7, maxOutputTokens: 2048 },
+      {
+        temperature: 0.7,
+        maxOutputTokens: 3072,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
       REPORT_TIMEOUT_MS,
     );
     if (!text) {

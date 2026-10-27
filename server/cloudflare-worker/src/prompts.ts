@@ -163,8 +163,17 @@ export function normalizeAnalysis(raw: any): NormalizedAnalysis {
   };
 }
 
-/** Extrai o JSON da resposta do modelo, tolerando cercas de markdown. */
+/** Extrai o JSON da resposta do modelo, tolerando cercas de markdown e texto extra. */
 export function parseModelJson(text: string): any {
-  const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-  return JSON.parse(cleaned);
+  const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+    }
+    throw new Error('Formato JSON inválido retornado pelo modelo');
+  }
 }
