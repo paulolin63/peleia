@@ -373,7 +373,7 @@ export default {
         if (request.method !== 'GET') return jsonResponse({ error: 'Método não permitido' }, 405, cors);
         return await handleConfig(request, env);
       }
-      if (path !== '/') return jsonResponse({ error: 'Não encontrado' }, 404, cors);
+      if (path !== '/' && path !== '/analyze') return jsonResponse({ error: 'Não encontrado' }, 404, cors);
       if (request.method !== 'POST') return jsonResponse({ error: 'Método não permitido' }, 405, cors);
       return await handleTask(request, env, cors);
     } catch (err: any) {

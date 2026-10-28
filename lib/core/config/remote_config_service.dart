@@ -102,7 +102,11 @@ class RemoteConfigService {
       url = dotenv.env['GEMINI_PROXY_URL'] ?? '';
     } catch (_) {}
     if (url.isEmpty) url = const String.fromEnvironment('GEMINI_PROXY_URL');
+    if (url.isEmpty || url.contains('proxy.peleia.com')) {
+      url = 'https://peleia-gemini-proxy.lin030682.workers.dev';
+    }
     if (url.endsWith('/')) url = url.substring(0, url.length - 1);
+    if (url.endsWith('/analyze')) url = url.substring(0, url.length - '/analyze'.length);
     if (url.endsWith('/config')) url = url.substring(0, url.length - '/config'.length);
     return url;
   }

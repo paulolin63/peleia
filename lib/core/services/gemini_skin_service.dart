@@ -38,7 +38,11 @@ class GeminiSkinService {
       _proxyUrl = dotenv.env['GEMINI_PROXY_URL'] ?? '';
     } catch (_) {}
     if (_proxyUrl.isEmpty) _proxyUrl = const String.fromEnvironment('GEMINI_PROXY_URL');
+    if (_proxyUrl.isEmpty || _proxyUrl.contains('proxy.peleia.com')) {
+      _proxyUrl = 'https://peleia-gemini-proxy.lin030682.workers.dev';
+    }
     if (_proxyUrl.endsWith('/')) _proxyUrl = _proxyUrl.substring(0, _proxyUrl.length - 1);
+    if (_proxyUrl.endsWith('/analyze')) _proxyUrl = _proxyUrl.substring(0, _proxyUrl.length - '/analyze'.length);
   }
 
   Future<SkinAnalysisRaw> analyzeImageBytes(
