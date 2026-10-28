@@ -12,6 +12,8 @@ class SubscriptionPlan {
   final bool isConsumable;
   final bool isHighlighted;
   final bool isBestValue;
+  final bool hasTrial;
+  final String? trialLabel;
 
   const SubscriptionPlan({
     required this.productId,
@@ -23,9 +25,10 @@ class SubscriptionPlan {
     required this.isConsumable,
     required this.isHighlighted,
     required this.isBestValue,
+    this.hasTrial = false,
+    this.trialLabel,
   });
 
-  bool get hasTrial => false;
   String get priceFormatted => priceLabel;
   String? get savings => null;
   String get monthlyEquivalent => '';
@@ -46,19 +49,46 @@ class SubscriptionPlan {
       }
       if (package == null && !allowWithoutStore) continue;
       final product = package?.storeProduct;
+      final trial = _trialInfo(product);
       plans.add(SubscriptionPlan(
         productId: plan.productId,
         label: plan.label,
-        badge: plan.badge,
+        badge: trial.$1 ? (trial.$2 ?? 'TESTE GRÁTIS') : plan.badge,
         quotaSubtitle: plan.subtitle,
         priceLabel: product?.priceString ?? '',
         periodLabel: plan.consumable ? 'único' : _period(product),
         isConsumable: plan.consumable,
         isHighlighted: plan.highlight,
         isBestValue: !plan.consumable && !plan.highlight && plan.productId.contains('annual'),
+        hasTrial: trial.$1,
+        trialLabel: trial.$2,
       ));
     }
     return plans;
+  }
+
+  static (bool, String?) _trialInfo(StoreProduct? product) {
+    if (product == null) return (false, null);
+    final intro = product.introductoryPrice;
+    if (intro == null) return (false, null);
+    final free = intro.price == 0;
+    if (!free) return (false, null);
+    final cycles = intro.periodNumberOfUnits;
+    final unit = intro.periodUnit;
+    String label;
+    switch (unit) {
+      case PeriodUnit.day:
+        label = cycles == 1 ? '1 dia grátis' : '$cycles dias grátis';
+      case PeriodUnit.week:
+        label = cycles == 1 ? '1 semana grátis' : '$cycles semanas grátis';
+      case PeriodUnit.month:
+        label = cycles == 1 ? '1 mês grátis' : '$cycles meses grátis';
+      case PeriodUnit.year:
+        label = cycles == 1 ? '1 ano grátis' : '$cycles anos grátis';
+      default:
+        label = 'Teste grátis';
+    }
+    return (true, label);
   }
 
   static String _period(StoreProduct? product) {

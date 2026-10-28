@@ -73,18 +73,21 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
 
     if (kIsWeb) {
       state = state.copyWith(
-        isPremium: premium || (prefs.getBool('is_premium') ?? false),
+        isPremium: premium || (!kReleaseMode && (prefs.getBool('is_premium') ?? false)),
         plans: SubscriptionPlan.fromStore(
           config: config,
           packages: const [],
-          allowWithoutStore: true,
+          allowWithoutStore: !kReleaseMode,
         ),
       );
       _selectDefault();
       return;
     }
 
-    state = state.copyWith(isLoadingPackages: true, isPremium: premium || (prefs.getBool('is_premium') ?? false));
+    state = state.copyWith(
+      isLoadingPackages: true,
+      isPremium: premium || (!kReleaseMode && (prefs.getBool('is_premium') ?? false)),
+    );
     final pkgs = await RevenueCatService.getPackages();
     state = state.copyWith(
       packages: pkgs,
@@ -92,7 +95,7 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
       plans: SubscriptionPlan.fromStore(
         config: config,
         packages: pkgs,
-        allowWithoutStore: pkgs.isEmpty,
+        allowWithoutStore: !kReleaseMode && pkgs.isEmpty,
       ),
     );
     _selectDefault();
@@ -147,8 +150,14 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
       final Package? package = _findPackage(selectedPlanData.productId);
 
       if (package == null) {
-        // Ambiente de teste/sideload (Google Play ainda não publicada para cobrança direta):
-        // Libera acesso Pro para teste de rotinas e limites sem bloquear a experiência
+        if (kReleaseMode) {
+          state = state.copyWith(
+            step: PurchaseStep.error,
+            errorMessage: 'Produto indisponível na loja. Tente novamente mais tarde.',
+          );
+          return;
+        }
+        // Debug/sideload only: unlock local Pro/SOS for UX testing.
         await Future.delayed(const Duration(milliseconds: 500));
         await _grantDebug(selectedPlanData);
         return;
@@ -211,6 +220,13 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
   }
 
   Future<void> _grantDebug(SubscriptionPlan plan) async {
+    if (kReleaseMode) {
+      state = state.copyWith(
+        step: PurchaseStep.error,
+        errorMessage: 'Compra de teste indisponível em produção.',
+      );
+      return;
+    }
     if (plan.isConsumable) {
       await QuotaService.addSosCredits(QuotaService.sosPackSize);
       state = state.copyWith(step: PurchaseStep.success);

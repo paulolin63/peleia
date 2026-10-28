@@ -100,7 +100,8 @@ class QuotaLimits {
   final int sosCredits;
   const QuotaLimits({required this.freeLifetime, required this.proDaily, required this.sosCredits});
 
-  static const fallback = QuotaLimits(freeLifetime: 20, proDaily: 10, sosCredits: 10);
+  // Production default. Closed testing boosts free via PeleiaEnv / Worker ENVIRONMENT.
+  static const fallback = QuotaLimits(freeLifetime: 1, proDaily: 2, sosCredits: 3);
 }
 
 class AppTexts {
@@ -131,19 +132,19 @@ class AppTexts {
   });
 
   static const fallback = AppTexts(
-    paywallTitle: 'Sua pele merece\no melhor cuidado',
-    paywallSubtitle: 'Cancele quando quiser pelo Google Play.',
+    paywallTitle: 'Veja se a rotina\nestá funcionando',
+    paywallSubtitle: 'Em 7 dias você compara oleosidade, acne e manchas. Cancele quando quiser.',
     paywallBenefits: [
-      BenefitText(emoji: '📸', title: '2 análises por dia', desc: 'Selfie de manhã e à noite analisada pela IA'),
-      BenefitText(emoji: '📈', title: 'Evolução da pele', desc: 'Compare suas análises ao longo do tempo'),
-      BenefitText(emoji: '🛍️', title: 'Produtos para o seu perfil', desc: 'Sem os ingredientes que você pediu para evitar'),
+      BenefitText(emoji: '📈', title: 'Evolução em 7 dias', desc: 'Compare selfies e veja se a rotina está dando resultado'),
+      BenefitText(emoji: '🌅', title: 'Ritual manhã + noite', desc: 'Análise visual cosmética nos dois momentos do dia'),
+      BenefitText(emoji: '🛍️', title: 'Pare de comprar errado', desc: 'Produtos sem os ingredientes que você pediu para evitar'),
     ],
     paywallSuccessItems: [
-      '📸 Até 2 análises por dia liberadas',
-      '📈 Histórico e evolução ativados',
+      '📈 Evolução da pele liberada',
+      '🌅 Ritual manhã + noite ativado',
     ],
-    premiumBannerTitle: 'Desbloqueie o Premium',
-    premiumBannerSubtitle: 'Até 2 análises por dia e acompanhamento da evolução da pele.',
+    premiumBannerTitle: 'Próximo passo: evolução',
+    premiumBannerSubtitle: 'Volte em 7 dias e compare. Pro libera a próxima análise.',
     dailyLimitMessage: 'A pele precisa de tempo para responder à rotina. Volte amanhã para uma nova análise.',
     onboardingProductsSubtitle: 'Recomendamos marcas brasileiras e importadas\nnas principais lojas online.',
     onboardingProductsBullets: [
@@ -191,6 +192,23 @@ class AppConfig {
     required this.conditions,
     required this.products,
   });
+
+  AppConfig copyWith({QuotaLimits? quota}) => AppConfig(
+        schema: schema,
+        version: version,
+        minAppBuild: minAppBuild,
+        notice: notice,
+        quota: quota ?? this.quota,
+        maxProducts: maxProducts,
+        requiredCategories: requiredCategories,
+        plans: plans,
+        texts: texts,
+        morning: morning,
+        night: night,
+        ingredients: ingredients,
+        conditions: conditions,
+        products: products,
+      );
 
   /// Retorna null se o JSON não for do esquema suportado.
   static AppConfig? tryParse(Map<String, dynamic> json) {

@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/history/data/history_entry.dart';
 import '../../features/scan/data/skin_analysis_result.dart';
 
+import 'history_thumb_store.dart';
 import 'privacy_service.dart';
 
 class HistoryService {
@@ -30,14 +31,19 @@ class HistoryService {
       final prefs = await SharedPreferences.getInstance();
       final currentEntries = await getEntries();
 
-      // Comprime a imagem para miniatura leve (~250px) para não pesar o storage
+      final id = 'scan_${DateTime.now().millisecondsSinceEpoch}';
+      String? imageFile;
       String? base64Thumb;
-      if (rawImageBytes != null && rawImageBytes.isNotEmpty) {
-        base64Thumb = _generateThumbnailBase64(rawImageBytes);
+      final thumbBytes = _generateThumbnailBytes(rawImageBytes);
+      if (thumbBytes != null) {
+        imageFile = await HistoryThumbStore.save(id, thumbBytes);
+        if (imageFile == null) {
+          base64Thumb = base64Encode(thumbBytes);
+        }
       }
 
       final newEntry = HistoryEntry(
-        id: 'scan_${DateTime.now().millisecondsSinceEpoch}',
+        id: id,
         date: DateTime.now(),
         skinType: analysis.skinType,
         scoreGeral: analysis.scoreGeral,
@@ -46,18 +52,22 @@ class HistoryService {
         manchas: analysis.scores.manchasSolares,
         hidratacao: analysis.scores.hidratacao,
         imageBase64: base64Thumb,
+        imageFile: imageFile,
         reportSnippet: report.length > 200 ? report.substring(0, 200) : report,
         fullReport: report,
         products: products,
       );
 
-      // Insere no início (mais recente primeiro)
       final updatedList = [newEntry, ...currentEntries];
       if (updatedList.length > _maxStoredEntries) {
+        final removed = updatedList.sublist(_maxStoredEntries);
         updatedList.removeRange(_maxStoredEntries, updatedList.length);
+        for (final entry in removed) {
+          await HistoryThumbStore.delete(entry.imageFile);
+        }
       }
 
-      final jsonString = jsonEncode(updatedList.map((e) => e.toJson()).toList());
+      final jsonString = jsonEncode(updatedList.map((e) => e.toStorageJson()).toList());
       await prefs.setString(_storageKey, jsonString);
       debugPrint('📈 Análise salva no histórico com sucesso! (Total: ${updatedList.length})');
     } catch (e) {
@@ -73,9 +83,19 @@ class HistoryService {
       if (raw == null || raw.isEmpty) return [];
 
       final List<dynamic> decoded = jsonDecode(raw);
-      return decoded
-          .map((item) => HistoryEntry.fromJson(item as Map<String, dynamic>))
-          .toList();
+      final entries = <HistoryEntry>[];
+      for (final item in decoded) {
+        var entry = HistoryEntry.fromJson(item as Map<String, dynamic>);
+        if ((entry.imageBase64 == null || entry.imageBase64!.isEmpty) &&
+            entry.imageFile != null) {
+          final bytes = await HistoryThumbStore.load(entry.imageFile);
+          if (bytes != null) {
+            entry = entry.copyWith(imageBase64: base64Encode(bytes));
+          }
+        }
+        entries.add(entry);
+      }
+      return entries;
     } catch (e) {
       debugPrint('⚠️ Erro ao ler histórico: $e');
       return [];
@@ -87,8 +107,16 @@ class HistoryService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final list = await getEntries();
-      list.removeWhere((e) => e.id == id);
-      final jsonString = jsonEncode(list.map((e) => e.toJson()).toList());
+      HistoryEntry? removed;
+      list.removeWhere((e) {
+        if (e.id == id) {
+          removed = e;
+          return true;
+        }
+        return false;
+      });
+      await HistoryThumbStore.delete(removed?.imageFile);
+      final jsonString = jsonEncode(list.map((e) => e.toStorageJson()).toList());
       await prefs.setString(_storageKey, jsonString);
     } catch (e) {
       debugPrint('⚠️ Erro ao deletar entrada do histórico: $e');
@@ -100,21 +128,19 @@ class HistoryService {
     await PrivacyService.purgeAllUserData();
   }
 
-  /// Comprime a foto original para miniatura base64 de ~15KB
-  static String? _generateThumbnailBase64(Uint8List originalBytes) {
+  static Uint8List? _generateThumbnailBytes(Uint8List? originalBytes) {
+    if (originalBytes == null || originalBytes.isEmpty) return null;
     try {
       final decoded = img.decodeImage(originalBytes);
       if (decoded == null) return null;
 
-      // Reduz para largura de 280px (suficiente para comparação na tela do celular)
       final thumbnail = img.copyResize(
         decoded,
         width: 280,
         interpolation: img.Interpolation.linear,
       );
 
-      final jpgBytes = img.encodeJpg(thumbnail, quality: 65);
-      return base64Encode(jpgBytes);
+      return Uint8List.fromList(img.encodeJpg(thumbnail, quality: 65));
     } catch (_) {
       return null;
     }

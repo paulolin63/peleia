@@ -45,12 +45,14 @@ dependencies:
   intl: ^0.19.0                     # Formatação R$ (NumberFormat)
   permission_handler: ^11.3.1       # Permissão de câmera Android
   url_launcher: ^6.2.6              # Links afiliados (Shopee, Mercado Livre)
-  envied: ^0.5.4                    # Gerenciamento seguro de chaves API
   flutter_dotenv: ^5.1.0
   package_info_plus: ^10.2.2        # Build do app (versão mínima exigida pela config)
   share_plus: ^13.3.1
   pdf: ^3.13.1
   printing: ^5.15.1
+  flutter_local_notifications: ^22.3.3
+  timezone: ^0.11.2
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:
@@ -58,7 +60,6 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   build_runner: ^2.4.9
   riverpod_generator: ^2.4.0
-  envied_generator: ^0.5.4
   json_serializable: ^6.7.1
 
 flutter:

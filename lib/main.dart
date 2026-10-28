@@ -11,6 +11,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/remote_config_service.dart';
 import 'core/localization/app_translations.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/evolution_reminder_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/revenuecat_service.dart';
@@ -31,6 +32,7 @@ void main() async {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+    await EvolutionReminderService.instance.initialize();
   }
 
   // Configura status bar transparente

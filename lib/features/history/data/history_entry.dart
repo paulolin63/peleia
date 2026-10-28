@@ -17,7 +17,8 @@ class HistoryEntry {
   final int acne;
   final int manchas;
   final int hidratacao;
-  final String? imageBase64; // Miniatura comprimida em Base64
+  final String? imageBase64; // In-memory / legacy prefs; prefer imageFile on disk
+  final String? imageFile; // Relative name under history_thumbs/
   final String reportSnippet;
   final String fullReport;
   final List<AffiliateProduct> products;
@@ -32,6 +33,7 @@ class HistoryEntry {
     required this.manchas,
     required this.hidratacao,
     this.imageBase64,
+    this.imageFile,
     required this.reportSnippet,
     this.fullReport = '',
     this.products = const [],
@@ -64,6 +66,7 @@ class HistoryEntry {
       manchas: json['manchas'] as int? ?? 3,
       hidratacao: json['hidratacao'] as int? ?? 6,
       imageBase64: json['image_base64'] as String?,
+      imageFile: json['image_file'] as String?,
       reportSnippet: json['report_snippet'] as String? ?? '',
       fullReport: json['full_report'] as String? ?? (json['report_snippet'] as String? ?? ''),
       products: (json['products'] as List?)
@@ -73,7 +76,8 @@ class HistoryEntry {
     );
   }
 
-  Map<String, dynamic> toJson() => {
+  /// Prefs payload: keep thumbnails out of SharedPreferences when on disk.
+  Map<String, dynamic> toStorageJson() => {
     'id': id,
     'date': date.toIso8601String(),
     'skin_type': skinType,
@@ -82,9 +86,32 @@ class HistoryEntry {
     'acne': acne,
     'manchas': manchas,
     'hidratacao': hidratacao,
-    'image_base64': imageBase64,
+    if (imageFile != null && imageFile!.isNotEmpty)
+      'image_file': imageFile
+    else if (imageBase64 != null && imageBase64!.isNotEmpty)
+      'image_base64': imageBase64,
     'report_snippet': reportSnippet,
     'full_report': fullReport,
     'products': products.map((p) => p.toJson()).toList(),
   };
+
+  Map<String, dynamic> toJson() => toStorageJson();
+
+  HistoryEntry copyWith({String? imageBase64, String? imageFile}) {
+    return HistoryEntry(
+      id: id,
+      date: date,
+      skinType: skinType,
+      scoreGeral: scoreGeral,
+      oleosidade: oleosidade,
+      acne: acne,
+      manchas: manchas,
+      hidratacao: hidratacao,
+      imageBase64: imageBase64 ?? this.imageBase64,
+      imageFile: imageFile ?? this.imageFile,
+      reportSnippet: reportSnippet,
+      fullReport: fullReport,
+      products: products,
+    );
+  }
 }

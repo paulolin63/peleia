@@ -51,10 +51,33 @@ export const CONFIG_KV_KEY = 'peleia_config';
 export const SUPPORTED_SCHEMA_VERSION = 1;
 const CACHE_TTL_MS = 60_000;
 
-let cached: { at: number; config: PeleiaConfig } | null = null;
+let cached: { at: number; key: string; config: PeleiaConfig } | null = null;
 
-export async function loadConfig(kv: KVNamespace | undefined): Promise<PeleiaConfig> {
-  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.config;
+export const CLOSED_TESTING_FREE_LIFETIME = 20;
+export const PRODUCTION_FREE_LIFETIME = 1;
+
+/** JSON holds production quotas; ENVIRONMENT boosts free scans for Play closed testing. */
+export function withEnvQuota(config: PeleiaConfig, environment?: string): PeleiaConfig {
+  const mode = (environment || 'production').trim().toLowerCase();
+  const free =
+    mode === 'closed_testing' || mode === 'development'
+      ? CLOSED_TESTING_FREE_LIFETIME
+      : PRODUCTION_FREE_LIFETIME;
+  if (config.quota.free_lifetime === free) return config;
+  return {
+    ...config,
+    quota: { ...config.quota, free_lifetime: free },
+  };
+}
+
+export async function loadConfig(
+  kv: KVNamespace | undefined,
+  environment?: string,
+): Promise<PeleiaConfig> {
+  const cacheKey = `${environment || 'production'}`;
+  if (cached && cached.key === cacheKey && Date.now() - cached.at < CACHE_TTL_MS) {
+    return cached.config;
+  }
 
   let config = bundledConfig as unknown as PeleiaConfig;
   if (kv) {
@@ -73,7 +96,8 @@ export async function loadConfig(kv: KVNamespace | undefined): Promise<PeleiaCon
     }
   }
 
-  cached = { at: Date.now(), config };
+  config = withEnvQuota(config, environment);
+  cached = { at: Date.now(), key: cacheKey, config };
   return config;
 }
 

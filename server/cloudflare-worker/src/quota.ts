@@ -177,6 +177,11 @@ export class QuotaDurableObject {
         return json({ completed: Boolean(r) });
       }
 
+      case '/purge': {
+        await storage.deleteAll();
+        return json({ purged: true });
+      }
+
       default:
         return new Response('Not Found', { status: 404 });
     }

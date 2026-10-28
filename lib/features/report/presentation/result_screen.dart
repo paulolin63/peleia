@@ -107,6 +107,14 @@ class ResultScreen extends ConsumerWidget {
                     .fadeIn(delay: 150.ms)
                     .slideY(begin: 0.2),
 
+                if (state.comparison == null || !state.comparison!.hasPrevious) ...[
+                  const SizedBox(height: 12),
+                  _buildFirstScanNextStep(context)
+                      .animate()
+                      .fadeIn(delay: 180.ms)
+                      .slideY(begin: 0.15),
+                ],
+
                 const SizedBox(height: 16),
 
                 // ── Score breakdown ──────────────────────────
@@ -136,7 +144,7 @@ class ResultScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // ── Banner Premium ───────────────────────────
-                _buildPremiumBanner(context, texts)
+                _buildPremiumBanner(context, texts, analysis, state)
                     .animate()
                     .fadeIn(delay: 450.ms)
                     .slideY(begin: 0.2),
@@ -982,7 +990,9 @@ class ResultScreen extends ConsumerWidget {
                 style: const TextStyle(fontSize: 12, color: Color(0xFFE8C9A0), height: 1.4),
               ),
             ),
-          ...products.map((product) => _buildProductCard(product)),
+          if (products.isNotEmpty)
+            _buildHeroProductCard(products.first, state.analysis),
+          ...products.skip(1).map((product) => _buildProductCard(product)),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
@@ -1019,6 +1029,132 @@ class ResultScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildHeroProductCard(AffiliateProduct product, SkinAnalysisRaw? analysis) {
+    final why = _productWhy(product, analysis);
+    return GestureDetector(
+      onTap: () => _openAffiliateLink(product.affiliateUrl),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFC8714A).withAlpha(35),
+              const Color(0xFF0F0F0F),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFC8714A).withAlpha(120)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'RECOMENDADO PARA VOCÊ',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFE8A44A),
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2C1A10),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(product.emoji, style: const TextStyle(fontSize: 26)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFF5F0EC),
+                        ),
+                      ),
+                      Text(
+                        '${product.brand} · ${product.storeLabel}',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF8A7A6E)),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        product.priceFormatted,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFE8C9A0),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (why.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                why,
+                style: const TextStyle(fontSize: 12, color: Color(0xFFE8C9A0), height: 1.4),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Ver na loja',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _productWhy(AffiliateProduct product, SkinAnalysisRaw? analysis) {
+    if (analysis == null) return '';
+    if (product.category == 'protetor') {
+      return 'Prioridade: UV alto no Brasil + sua urgência de protetor (${analysis.urgenciaProtetorSolar}).';
+    }
+    if (analysis.problemasDetectados.any((p) => p.contains('acne') || p.contains('cravo'))) {
+      return 'Combina com o foco da análise em acne/cravos no seu perfil.';
+    }
+    if (analysis.scores.oleosidade >= 7) {
+      return 'Escolhido para ajudar no controle de oleosidade detectado na selfie.';
+    }
+    if (analysis.scores.manchasSolares >= 6) {
+      return 'Alinhado ao cuidado com manchas solares na sua análise.';
+    }
+    return 'Selecionado para o tipo ${analysis.skinType} da sua análise.';
+  }
+
   Widget _buildProductCard(AffiliateProduct product) {
     return GestureDetector(
       onTap: () => _openAffiliateLink(product.affiliateUrl),
@@ -1034,7 +1170,6 @@ class ResultScreen extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // Ícone do produto
             Container(
               width: 48,
               height: 48,
@@ -1119,7 +1254,74 @@ class ResultScreen extends ConsumerWidget {
 
   // ── Helpers ──────────────────────────────────────────────
 
-  Widget _buildPremiumBanner(BuildContext context, AppTexts texts) {
+  Widget _buildFirstScanNextStep(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1712),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF6AB187).withAlpha(80)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Marco zero salvo',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF6AB187),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Daqui 7 dias compare oleosidade, acne e manchas com a mesma luz. A 2ª análise é o que mostra se a rotina está funcionando — e te avisamos com um lembrete.',
+            style: TextStyle(fontSize: 13, color: Color(0xFFE8C9A0), height: 1.45),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFE8C9A0),
+                    side: const BorderSide(color: Color(0xFFC8714A)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => context.push('/premium'),
+                  child: const Text('Ver planos', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumBanner(
+    BuildContext context,
+    AppTexts texts,
+    SkinAnalysisRaw analysis,
+    ScanState state,
+  ) {
+    final firstScan = state.comparison == null || !state.comparison!.hasPrevious;
+    String title = texts.premiumBannerTitle;
+    String subtitle = texts.premiumBannerSubtitle;
+    if (firstScan) {
+      title = 'Próximo passo: evolução';
+      subtitle = 'Volte em 7 dias e compare. Pro libera a próxima análise.';
+    } else if (analysis.problemasDetectados.any((p) => p.contains('acne') || p.contains('cravo'))) {
+      title = 'Quer ver a acne cair semana a semana?';
+      subtitle = 'Pro libera o ritual de acompanhamento manhã + noite.';
+    } else if (analysis.scores.manchasSolares >= 6) {
+      title = 'Compare manchas com a mesma luz em 14 dias';
+      subtitle = 'A evolução visual é o motivo de assinar — não a cota.';
+    } else if (analysis.scores.oleosidade >= 7) {
+      title = 'Acompanhe a oleosidade ao longo da rotina';
+      subtitle = 'Pro libera novas análises para ver se o brilho está baixando.';
+    }
+
     return GestureDetector(
       onTap: () => context.push('/premium'),
       child: Container(
@@ -1142,7 +1344,7 @@ class ResultScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    texts.premiumBannerTitle,
+                    title,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -1151,7 +1353,7 @@ class ResultScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    texts.premiumBannerSubtitle,
+                    subtitle,
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF8A7A6E),

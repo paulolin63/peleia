@@ -88,13 +88,42 @@ export function buildVisionPrompt(config: PeleiaConfig, profile: SanitizedProfil
   });
 }
 
+/** Rebuilds comparison text from clamped numeric fields only (never trusts free-form client text). */
+export function formatComparisonSummary(input: unknown): string {
+  if (!input || typeof input !== 'object') return '';
+  const c = input as Record<string, unknown>;
+  const n = (key: string, min: number, max: number) => clampInt(c[key], min, max, 0);
+  const days = n('days', 0, 3650);
+  const scorePrev = n('score_prev', 0, 100);
+  const scoreCurr = n('score_curr', 0, 100);
+  const acnePrev = n('acne_prev', 0, 10);
+  const acneCurr = n('acne_curr', 0, 10);
+  const oilPrev = n('oil_prev', 0, 10);
+  const oilCurr = n('oil_curr', 0, 10);
+  const spotsPrev = n('spots_prev', 0, 10);
+  const spotsCurr = n('spots_curr', 0, 10);
+  const hydraPrev = n('hydra_prev', 0, 10);
+  const hydraCurr = n('hydra_curr', 0, 10);
+  return (
+    `Intervalo: ${days} dias. ` +
+    `Indicador geral: ${scorePrev} -> ${scoreCurr}. ` +
+    `Acne: ${acnePrev} -> ${acneCurr}. ` +
+    `Oleosidade: ${oilPrev} -> ${oilCurr}. ` +
+    `Manchas: ${spotsPrev} -> ${spotsCurr}. ` +
+    `Hidratacao: ${hydraPrev} -> ${hydraCurr}.`
+  ).slice(0, MAX_COMPARISON_CHARS);
+}
+
 export function buildReportPrompt(
   config: PeleiaConfig,
   profile: SanitizedProfile,
   analysis: NormalizedAnalysis,
   comparisonSummary: unknown,
 ): string {
-  const summary = sanitizeUserText(comparisonSummary, MAX_COMPARISON_CHARS);
+  const summary =
+    typeof comparisonSummary === 'string'
+      ? '' // free-form client text is ignored
+      : formatComparisonSummary(comparisonSummary);
   const server = config.server;
 
   const hasRestrictions =

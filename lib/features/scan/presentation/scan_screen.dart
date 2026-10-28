@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/localization/app_translations.dart';
 import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/quota_service.dart';
+import '../../paywall/presentation/quota_upsell_dialog.dart';
 import 'scan_provider.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
@@ -98,45 +99,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         if (next.quotaReason == QuotaBlockReason.proDailyExceeded) {
           _showDailyLimitDialog(context, next.errorMessage ?? '');
         } else {
-          // Limite de teste gratuito atingido → exibe diálogo claro em vez de redirecionar de forma brusca
           final tr = ref.read(trProvider);
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: const Color(0xFF1C1712),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Row(
-                children: [
-                  const Text('✨ ', style: TextStyle(fontSize: 22)),
-                  Text(
-                    tr.dashQuotaDialogTitle,
-                    style: const TextStyle(color: Color(0xFFF5F0EC), fontWeight: FontWeight.w800, fontSize: 18),
-                  ),
-                ],
-              ),
-              content: Text(
-                next.errorMessage ?? tr.dashQuotaDialogContent,
-                style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 14, height: 1.5),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(tr.cancel, style: const TextStyle(color: Color(0xFF8A7A6E))),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC8714A),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    context.push('/premium');
-                  },
-                  child: Text(tr.dashQuotaDialogProBtn, style: const TextStyle(fontWeight: FontWeight.w700)),
-                ),
-              ],
-            ),
+          showQuotaUpsellDialog(
+            context,
+            message: next.errorMessage ??
+                tr.dashQuotaDialogContentWith(QuotaService.freeLifetime),
           );
         }
       }

@@ -88,6 +88,7 @@ class GeminiSkinService {
   }) async {
     initialize();
     final summary = (comparison != null && comparison.hasPrevious) ? comparison.deterministicSummary : '';
+    final comparisonWire = ComparisonService.toWire(comparison);
 
     if (_proxyUrl.isNotEmpty) {
       if (_lastAnalysisId == null) {
@@ -97,9 +98,10 @@ class GeminiSkinService {
         'task': 'report',
         'analysis_id': _lastAnalysisId,
         'profile': profile.toJson(),
-        'comparison_summary': summary,
+        'comparison': comparisonWire,
         'lang': lang,
       }, const Duration(seconds: 55));
+      _lastAnalysisId = null;
       final output = body['output'];
       if (output is! String || output.isEmpty) {
         throw AnalysisException('Erro ao gerar o relatório.');
@@ -114,6 +116,18 @@ class GeminiSkinService {
       json: false,
       timeout: const Duration(seconds: 55),
     );
+  }
+
+  Future<bool> deleteRemoteAccount() async {
+    initialize();
+    if (_proxyUrl.isEmpty) return false;
+    try {
+      await _post({'task': 'delete_account'}, const Duration(seconds: 15));
+      return true;
+    } catch (e) {
+      debugPrint('delete_account remoto falhou: $e');
+      return false;
+    }
   }
 
   Future<Map<String, dynamic>> _post(Map<String, dynamic> payload, Duration timeout) async {

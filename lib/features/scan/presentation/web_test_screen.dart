@@ -15,11 +15,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/remote_config_service.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/services/comparison_service.dart';
+import '../../../core/services/evolution_reminder_service.dart';
 import '../../../core/services/gemini_skin_service.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/recommendation.dart';
 import '../../../core/services/revenuecat_service.dart';
+import '../../paywall/presentation/quota_upsell_dialog.dart';
 import 'scan_provider.dart';
 
 class WebTestScreen extends ConsumerStatefulWidget {
@@ -61,7 +63,7 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
               ),
             );
           } else {
-            context.push('/premium');
+            await showQuotaUpsellDialog(context, message: quota.statusText);
           }
         }
         return;
@@ -115,6 +117,8 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
       if (!gemini.lastCallUsedProxy) {
         await QuotaService.consumeQuota(isPro: isPro);
       }
+
+      EvolutionReminderService.instance.scheduleAfterScan();
 
       // Salva no provider com bytes para miniatura de histórico
       ref.read(scanProvider.notifier).setResultDirectly(

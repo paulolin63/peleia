@@ -7,6 +7,13 @@ export interface Entitlements {
 
 export class EntitlementLookupError extends Error {}
 
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const cache = new Map<string, { at: number; ent: Entitlements }>();
+
+export function resetEntitlementCache(): void {
+  cache.clear();
+}
+
 /** Consulta o RevenueCat (fonte autoritativa de assinatura e compras avulsas). */
 export async function fetchEntitlements(
   uid: string,
@@ -16,6 +23,11 @@ export async function fetchEntitlements(
 ): Promise<Entitlements> {
   if (!secretKey) return { isPro: false, sosPurchased: 0 };
 
+  const cached = cache.get(uid);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+    return cached.ent;
+  }
+
   let res: Response;
   try {
     res = await fetch(
@@ -24,16 +36,20 @@ export async function fetchEntitlements(
     );
   } catch (err) {
     console.error(`[RevenueCat] Erro de rede ao consultar assinaturas: ${err}`);
+    if (cached) return cached.ent;
     return { isPro: false, sosPurchased: 0 };
   }
 
   // 404 significa que o usuário é novo e ainda não existe no RevenueCat (não comprou nada) -> Free
   if (res.status === 404) {
-    return { isPro: false, sosPurchased: 0 };
+    const empty = { isPro: false, sosPurchased: 0 };
+    cache.set(uid, { at: Date.now(), ent: empty });
+    return empty;
   }
 
   if (!res.ok) {
     console.error(`[RevenueCat] Resposta de erro da API: ${res.status}`);
+    if (cached) return cached.ent;
     return { isPro: false, sosPurchased: 0 };
   }
 
@@ -52,5 +68,7 @@ export async function fetchEntitlements(
     0,
   );
 
-  return { isPro, sosPurchased: sosPurchases * config.quota.sos_credits };
+  const ent = { isPro, sosPurchased: sosPurchases * config.quota.sos_credits };
+  cache.set(uid, { at: Date.now(), ent });
+  return ent;
 }

@@ -8,10 +8,16 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'auth_service.dart';
+import 'gemini_skin_service.dart';
+import 'history_thumb_store.dart';
+
 class PrivacyService {
   /// Limpeza completa de todos os dados do usuário (LGPD compliance)
   static Future<void> purgeAllUserData() async {
     try {
+      await GeminiSkinService.instance.deleteRemoteAccount();
+
       final prefs = await SharedPreferences.getInstance();
       const exact = [
         'peleia_skin_history_entries_v1',
@@ -34,6 +40,12 @@ class PrivacyService {
         }
       }
 
+      try {
+        await HistoryThumbStore.clearAll();
+      } catch (e) {
+        debugPrint('⚠️ Erro ao limpar thumbs do histórico: $e');
+      }
+
       // Limpa arquivos temporários de fotos capturadas pela câmera
       if (!kIsWeb) {
         try {
@@ -54,6 +66,8 @@ class PrivacyService {
           debugPrint('⚠️ Erro ao limpar arquivos temporários: $e');
         }
       }
+
+      await AuthService.deleteAnonymousAccount();
       debugPrint('🗑️ Purge completo de dados e arquivos locais realizado.');
     } catch (e) {
       debugPrint('⚠️ Erro ao purgar dados: $e');

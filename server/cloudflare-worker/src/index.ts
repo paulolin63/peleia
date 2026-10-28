@@ -160,11 +160,7 @@ async function callGemini(
   generationConfig: Record<string, unknown>,
   timeoutMs: number,
 ): Promise<string | null> {
-  const modelsToTry = [
-    model,
-    'gemini-3.6-flash',
-    'gemini-3.8-flash',
-  ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
+  const modelsToTry = [model].filter(Boolean);
 
   for (const m of modelsToTry) {
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -205,7 +201,7 @@ async function callGemini(
 
 async function handleConfig(request: Request, env: Env): Promise<Response> {
   const cors = corsHeaders(request, env, true);
-  const config = await loadConfig(env.CONFIG_KV);
+  const config = await loadConfig(env.CONFIG_KV, env.ENVIRONMENT);
   const body = JSON.stringify(publicConfig(config));
   const etag = `"${await sha1Hex(body)}"`;
   const headers = { ...cors, ETag: etag, 'Cache-Control': 'public, max-age=300' };
@@ -223,7 +219,7 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
   }
 
   const uid = await authenticate(request, env);
-  const config = await loadConfig(env.CONFIG_KV);
+  const config = await loadConfig(env.CONFIG_KV, env.ENVIRONMENT);
 
   const appBuild = Number(request.headers.get('X-App-Build') || '0');
   if (!(appBuild >= config.min_app_build)) {
@@ -253,6 +249,14 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
       limits: config.quota, isPro: ent.isPro, sosPurchased: ent.sosPurchased, day,
     });
     return jsonResponse(await res.json(), 200, cors);
+  }
+
+  if (body.task === 'delete_account') {
+    await callQuota(stub, '/purge', {
+      limits: config.quota, isPro: false, sosPurchased: 0, day,
+    });
+    console.log(`[Proxy] delete_account para UID ${uid.slice(0, 6)}***`);
+    return jsonResponse({ success: true }, 200, cors);
   }
 
   if (body.task === 'vision') {
@@ -332,10 +336,12 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
       ? '\n\nIMPORTANT LANGUAGE REQUIREMENT: Please generate the ENTIRE skincare prescription, routine steps, and explanations in fluent, professional ENGLISH so an international team can read and understand it.'
       : '';
 
+    const comparisonPayload = body.comparison ?? null;
+
     const text = await callGemini(
       env,
       config.server.model,
-      [{ text: buildReportPrompt(config, profile, analysis, body.comparison_summary) + langSuffix }],
+      [{ text: buildReportPrompt(config, profile, analysis, comparisonPayload) + langSuffix }],
       {
         temperature: 0.7,
         maxOutputTokens: 3072,

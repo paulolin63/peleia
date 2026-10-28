@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_config.dart';
+import 'peleia_env.dart';
 import '../services/quota_service.dart';
 
 class RemoteConfigService {
@@ -35,9 +36,11 @@ class RemoteConfigService {
     }
 
     resolved ??= AppConfig.tryParse(const {'schema_version': 0});
-    final config = resolved ?? _emptyFallback();
+    var config = resolved ?? _emptyFallback();
+    config = config.copyWith(quota: PeleiaEnv.applyQuota(config.quota));
     current = config;
     QuotaService.applyLimits(config.quota);
+    debugPrint('PELEIA_ENV=${PeleiaEnv.mode} free_lifetime=${config.quota.freeLifetime}');
     return config;
   }
 

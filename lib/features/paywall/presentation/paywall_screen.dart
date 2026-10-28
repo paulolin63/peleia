@@ -14,15 +14,34 @@ import '../../../core/config/remote_config_service.dart';
 import '../data/subscription_plan.dart';
 import 'paywall_provider.dart';
 
-class PaywallScreen extends ConsumerWidget {
+class PaywallScreen extends ConsumerStatefulWidget {
   /// Se true, exibe como modal (bottom sheet); se false, tela cheia
   final bool isModal;
-  const PaywallScreen({super.key, this.isModal = false});
+  /// Prefers SOS consumable when opened from quota impulse CTA.
+  final bool preferSos;
+  const PaywallScreen({super.key, this.isModal = false, this.preferSos = false});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PaywallScreen> createState() => _PaywallScreenState();
+}
+
+class _PaywallScreenState extends ConsumerState<PaywallScreen> {
+  bool _appliedSosPref = false;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(paywallProvider);
     final texts = ref.watch(appConfigProvider).valueOrNull?.texts ?? AppTexts.fallback;
+
+    if (widget.preferSos && !_appliedSosPref && state.plans.isNotEmpty) {
+      _appliedSosPref = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final sos = state.plans.where((p) => p.isConsumable);
+        if (sos.isNotEmpty) {
+          ref.read(paywallProvider.notifier).selectPlan(sos.first.productId);
+        }
+      });
+    }
 
     // Navega de volta após sucesso
     ref.listen<PaywallState>(paywallProvider, (_, next) {
@@ -30,7 +49,7 @@ class PaywallScreen extends ConsumerWidget {
           next.step == PurchaseStep.restored) {
         Future.delayed(const Duration(milliseconds: 1500), () {
           if (context.mounted) {
-            if (isModal) {
+            if (widget.isModal) {
               Navigator.of(context).pop(true);
             } else {
               context.go('/');
@@ -60,7 +79,7 @@ class PaywallScreen extends ConsumerWidget {
             leading: IconButton(
               icon: const Icon(Icons.close, color: Color(0xFF8A7A6E)),
               onPressed: () =>
-                  isModal ? Navigator.pop(context) : context.go('/'),
+                  widget.isModal ? Navigator.pop(context) : context.go('/'),
             ),
             actions: [
               TextButton(
@@ -111,7 +130,7 @@ class PaywallScreen extends ConsumerWidget {
 
                 const SizedBox(height: 32),
 
-                // ── Social proof ──────────────────────────────
+                // ── Social proof (honest during closed testing) ─
                 _buildSocialProof().animate().fadeIn(delay: 550.ms),
 
                 const SizedBox(height: 40),
@@ -407,6 +426,14 @@ class PaywallScreen extends ConsumerWidget {
       buttonText = 'Planos indisponíveis';
     } else if (state.isLoading) {
       buttonText = 'Processando...';
+    } else if (selectedPlan.hasTrial) {
+      buttonText = selectedPlan.trialLabel != null
+          ? 'Começar ${selectedPlan.trialLabel}'
+          : 'Começar teste grátis';
+    } else if (selectedPlan.isConsumable) {
+      buttonText = selectedPlan.priceFormatted.isEmpty
+          ? 'Comprar ${selectedPlan.label}'
+          : 'Comprar SOS por ${selectedPlan.priceFormatted}';
     } else if (selectedPlan.priceFormatted.isEmpty) {
       buttonText = 'Assinar ${selectedPlan.label}';
     } else {
@@ -543,6 +570,8 @@ class PaywallScreen extends ConsumerWidget {
   }
 
   // ── SOCIAL PROOF ─────────────────────────────────────────
+  // Honest during closed testing: no fake ratings. Swap to real
+  // testimonials via remote config when you have them.
   Widget _buildSocialProof() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -551,35 +580,22 @@ class PaywallScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF2C1A10)),
       ),
-      child: Column(
+      child: const Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('⭐⭐⭐⭐⭐',
-                  style: TextStyle(fontSize: 16, letterSpacing: 2)),
-              const SizedBox(width: 8),
-              const Text(
-                '4.8 • +12.000 usuárias',
-                style: TextStyle(
-                  color: Color(0xFFE8C9A0),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+          Text(
+            'Feito para o clima e a pele do Brasil',
+            style: TextStyle(
+              color: Color(0xFFE8C9A0),
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
-          const _Testimonial(
-            text:
-                '"Em 2 semanas de rotina personalizada minha pele oleosa melhorou muito! Os produtos recomendados foram acessíveis e funcionam 😍"',
-            author: 'Beatriz M., São Paulo',
-          ),
-          const SizedBox(height: 10),
-          const _Testimonial(
-            text:
-                '"A IA detectou que eu precisava de mais protetor solar antes que eu notasse as manchas. Indispensável no calor de Recife!"',
-            author: 'Larissa F., Recife',
+          SizedBox(height: 10),
+          Text(
+            'Cobrança segura via Google Play · Cancele quando quiser · Fotos ficam no seu aparelho',
+            style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.4),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -604,42 +620,6 @@ class _TrustBadge extends StatelessWidget {
           style: const TextStyle(fontSize: 10, color: Color(0xFF4A3E35)),
         ),
       ],
-    );
-  }
-}
-
-class _Testimonial extends StatelessWidget {
-  final String text;
-  final String author;
-  const _Testimonial({required this.text, required this.author});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFFF5F0EC),
-              height: 1.5,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '— $author 🇧🇷',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF8A7A6E)),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -29,4 +29,21 @@ class AuthService {
       return null;
     }
   }
+
+  /// LGPD: remove the anonymous Firebase user (best-effort).
+  static Future<void> deleteAnonymousAccount() async {
+    try {
+      if (Firebase.apps.isEmpty) return;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      try {
+        await user.delete();
+      } catch (e) {
+        debugPrint('Firebase delete falhou, fazendo signOut: $e');
+        await FirebaseAuth.instance.signOut();
+      }
+    } catch (e) {
+      debugPrint('Firebase deleteAnonymousAccount: $e');
+    }
+  }
 }

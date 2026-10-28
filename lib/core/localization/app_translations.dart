@@ -108,9 +108,10 @@ class Tr {
       ? 'UV radiation in Brazil is intense year-round. Use SPF 50+ every morning and reapply every 2 hours outdoors.'
       : 'O índice UV no Brasil é intenso o ano todo. Aplique protetor FPS 50+ pela manhã e reaplique a cada 2h se estiver ao sol.';
   String get dashQuotaDialogTitle => isEn ? 'Test Scans Limit' : 'Limite de Análises de Teste';
-  String get dashQuotaDialogContent => isEn
-      ? 'You have used all 20 free test scans! To continue testing, you can unlock PeleIA Pro.'
-      : 'Você utilizou as 20 análises de teste gratuitas! Para continuar, você pode desbloquear o PeleIA Pro.';
+  String dashQuotaDialogContentWith(int freeLifetime) => isEn
+      ? 'You have used all $freeLifetime free test scan(s)! To continue, unlock PeleIA Pro or buy an SOS pack.'
+      : 'Você utilizou as $freeLifetime análises de teste gratuitas! Para continuar, desbloqueie o PeleIA Pro ou compre um pacote SOS.';
+  String get dashQuotaDialogContent => dashQuotaDialogContentWith(20);
   String get dashQuotaDialogProBtn => isEn ? 'View Plans' : 'Conhecer Planos';
   String get cancel => isEn ? 'Cancel' : 'Cancelar';
   String get dashLastScore => isEn ? 'Latest Skin Score' : 'Última Pontuação';

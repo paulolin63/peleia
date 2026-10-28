@@ -4,9 +4,9 @@
   "min_app_build": 1,
   "notice": null,
   "quota": {
-    "free_lifetime": 20,
-    "pro_daily": 10,
-    "sos_credits": 10
+    "free_lifetime": 1,
+    "pro_daily": 2,
+    "sos_credits": 3
   },
   "recommendation": {
     "max_products": 4,
@@ -24,7 +24,7 @@
       "product_id": "peleia_monthly_1990",
       "label": "Pro Mensal",
       "badge": "MAIS POPULAR",
-      "subtitle": "Até 2 análises por dia",
+      "subtitle": "Ritual manhã + noite · evolução em 7 dias",
       "highlight": true,
       "consumable": false
     },
@@ -32,7 +32,7 @@
       "product_id": "peleia_annual_8990",
       "label": "Pro Anual",
       "badge": "MELHOR VALOR",
-      "subtitle": "Até 2 análises por dia",
+      "subtitle": "Ritual manhã + noite · evolução em 7 dias",
       "highlight": false,
       "consumable": false
     },
@@ -46,33 +46,33 @@
     }
   ],
   "texts": {
-    "paywall_title": "Sua pele merece\no melhor cuidado",
-    "paywall_subtitle": "Cancele quando quiser pelo Google Play.",
+    "paywall_title": "Veja se a rotina\nestá funcionando",
+    "paywall_subtitle": "Em 7 dias você compara oleosidade, acne e manchas. Cancele quando quiser.",
     "paywall_benefits": [
       {
-        "emoji": "📸",
-        "title": "2 análises por dia",
-        "desc": "Selfie de manhã e à noite analisada pela IA"
+        "emoji": "📈",
+        "title": "Evolução em 7 dias",
+        "desc": "Compare selfies e veja se a rotina está dando resultado"
       },
       {
-        "emoji": "📈",
-        "title": "Evolução da pele",
-        "desc": "Compare suas análises ao longo do tempo"
+        "emoji": "🌅",
+        "title": "Ritual manhã + noite",
+        "desc": "Análise visual cosmética nos dois momentos do dia"
       },
       {
         "emoji": "🛍️",
-        "title": "Produtos para o seu perfil",
-        "desc": "Sem os ingredientes que você pediu para evitar"
+        "title": "Pare de comprar errado",
+        "desc": "Produtos sem os ingredientes que você pediu para evitar"
       }
     ],
     "paywall_success_items": [
-      "📸 Até 2 análises por dia liberadas",
-      "📈 Histórico e evolução ativados"
+      "📈 Evolução da pele liberada",
+      "🌅 Ritual manhã + noite ativado"
     ],
     "paywall_rating": null,
     "paywall_testimonials": [],
-    "premium_banner_title": "Desbloqueie o Premium",
-    "premium_banner_subtitle": "Até 2 análises por dia e acompanhamento da evolução da pele.",
+    "premium_banner_title": "Próximo passo: evolução",
+    "premium_banner_subtitle": "Volte em 7 dias e compare. Pro libera a próxima análise.",
     "daily_limit_message": "A pele precisa de tempo para responder à rotina. Volte amanhã para uma nova análise.",
     "onboarding_products_subtitle": "Recomendamos marcas brasileiras e importadas\nnas principais lojas online.",
     "onboarding_products_bullets": [

@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/remote_config_service.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/services/comparison_service.dart';
+import '../../../core/services/evolution_reminder_service.dart';
 import '../../../core/services/gemini_skin_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/history_service.dart';
@@ -113,6 +114,10 @@ class ScanNotifier extends StateNotifier<ScanState> {
       await prefs.setBool('is_premium', true);
       return true;
     }
+    if (kReleaseMode) {
+      await prefs.setBool('is_premium', false);
+      return false;
+    }
     return prefs.getBool('is_premium') ?? false;
   }
 
@@ -188,6 +193,9 @@ class ScanNotifier extends StateNotifier<ScanState> {
         products: recommendation.products,
         rawImageBytes: bytes,
       );
+
+      // Retention hook: nudge the 2nd scan that unlocks "evolution" value.
+      EvolutionReminderService.instance.scheduleAfterScan();
 
       state = state.copyWith(
         step: ScanStep.done,

@@ -225,4 +225,22 @@ class ComparisonService {
       deterministicSummary: summary.toString(),
     );
   }
+
+  /// Structured payload for the Worker (no free-form prompt text).
+  static Map<String, dynamic>? toWire(SkinComparisonResult? comparison) {
+    if (comparison == null || !comparison.hasPrevious) return null;
+    return {
+      'days': comparison.daysBetween,
+      'score_prev': comparison.overallScore.previousValue,
+      'score_curr': comparison.overallScore.currentValue,
+      'acne_prev': comparison.acne.previousValue,
+      'acne_curr': comparison.acne.currentValue,
+      'oil_prev': comparison.oleosidade.previousValue,
+      'oil_curr': comparison.oleosidade.currentValue,
+      'spots_prev': comparison.manchas.previousValue,
+      'spots_curr': comparison.manchas.currentValue,
+      'hydra_prev': comparison.hidratacao.previousValue,
+      'hydra_curr': comparison.hidratacao.currentValue,
+    };
+  }
 }

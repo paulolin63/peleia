@@ -43,9 +43,10 @@ class QuotaService {
   static const String _proScanDateKey = 'quota_pro_last_scan_date';
   static const String _proScanCountKey = 'quota_pro_scans_today_count';
 
-  static int freeLifetime = 20;
-  static int maxProDailyScans = 10;
-  static int sosPackSize = 10;
+  // Defaults match production; PeleiaEnv / remote config override at load.
+  static int freeLifetime = 1;
+  static int maxProDailyScans = 2;
+  static int sosPackSize = 3;
 
   static void applyLimits(QuotaLimits limits) {
     freeLifetime = limits.freeLifetime;
@@ -115,19 +116,7 @@ class QuotaService {
       );
     }
 
-    // ── 2. Pacote SOS: se tem créditos comprados avulsos ────────
-    if (sosCredits > 0) {
-      return QuotaStatus(
-        canScan: true,
-        blockReason: QuotaBlockReason.none,
-        freeRemaining: 0,
-        proRemainingToday: 0,
-        sosCredits: sosCredits,
-        statusText: '$sosCredits crédito(s) SOS restante(s).',
-      );
-    }
-
-    // ── 3. Usuário Gratuito: 1 análise de teste ─────────────────
+    // Same order as Worker DO: Free lifetime, then SOS credits.
     final freeRemaining = freeLifetime - freeUsedCount;
     if (freeRemaining > 0) {
       return QuotaStatus(
@@ -142,7 +131,17 @@ class QuotaService {
       );
     }
 
-    // ── 4. Bloqueado: já usou a gratuita e não tem Pro nem SOS ─
+    if (sosCredits > 0) {
+      return QuotaStatus(
+        canScan: true,
+        blockReason: QuotaBlockReason.none,
+        freeRemaining: 0,
+        proRemainingToday: 0,
+        sosCredits: sosCredits,
+        statusText: '$sosCredits crédito(s) SOS restante(s).',
+      );
+    }
+
     return const QuotaStatus(
       canScan: false,
       blockReason: QuotaBlockReason.freeUsed,
@@ -172,18 +171,21 @@ class QuotaService {
       return;
     }
 
+    // Same order as Worker DO: free lifetime first, then SOS.
+    final used = await _freeUsedCount(prefs);
+    if (used < freeLifetime) {
+      final next = used + 1;
+      await prefs.setInt(_freeCountKey, next);
+      await prefs.setBool(_freeUsedKey, next >= freeLifetime);
+      debugPrint('🎁 Análise cortesia consumida ($next/$freeLifetime)');
+      return;
+    }
+
     final sosCredits = prefs.getInt(_sosCreditsKey) ?? 0;
     if (sosCredits > 0) {
       await prefs.setInt(_sosCreditsKey, sosCredits - 1);
       debugPrint('⚡ Crédito SOS consumido: ${sosCredits - 1} restante(s)');
-      return;
     }
-
-    final used = await _freeUsedCount(prefs);
-    final next = used + 1;
-    await prefs.setInt(_freeCountKey, next);
-    await prefs.setBool(_freeUsedKey, next >= freeLifetime);
-    debugPrint('🎁 Análise cortesia consumida ($next/$freeLifetime)');
   }
 
   static Future<int> _freeUsedCount(SharedPreferences prefs) async {

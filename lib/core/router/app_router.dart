@@ -45,7 +45,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/premium',
-        builder: (context, state) => const PaywallScreen(),
+        builder: (context, state) => PaywallScreen(
+          preferSos: state.uri.queryParameters['sos'] == '1',
+        ),
       ),
       GoRoute(
         path: '/history',

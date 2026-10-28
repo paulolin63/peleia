@@ -144,7 +144,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return _QuizScreen(
         onComplete: (skinType) async {
           await markOnboardingDone();
-          if (mounted) context.go('/');
+          // First value moment: go straight to the free selfie.
+          if (mounted) context.go('/scan');
         },
       );
     }
