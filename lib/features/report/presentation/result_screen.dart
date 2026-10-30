@@ -6,6 +6,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -342,17 +343,20 @@ class ResultScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(24, 60, 24, 16),
           child: Row(
             children: [
-              // Foto ou ícone
-              ClipRRect(
-                borderRadius: BorderRadius.circular(50),
-                child: Container(
-                  width: 80,
-                  height: 96,
-                  color: const Color(0xFF2C1A10),
-                  child: photo ??
-                      const Center(
-                        child: Text('👤', style: TextStyle(fontSize: 40)),
-                      ),
+              // Foto ou ícone com Hero transition
+              Hero(
+                tag: 'skin_analysis_selfie',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: Container(
+                    width: 80,
+                    height: 96,
+                    color: const Color(0xFF2C1A10),
+                    child: photo ??
+                        const Center(
+                          child: Text('👤', style: TextStyle(fontSize: 40)),
+                        ),
+                  ),
                 ),
               ),
               const SizedBox(width: 20),
@@ -423,38 +427,49 @@ class ResultScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // Circular progress
-          SizedBox(
-            width: 80,
-            height: 80,
-            child: CustomPaint(
-              painter: _ScoreRingPainter(
-                score: analysis.scoreGeral,
-                color: analysis.scoreColor,
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${analysis.scoreGeral}',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: analysis.scoreColor,
-                      ),
+          // Circular progress com animação count-up e preenchimento suave
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: analysis.scoreGeral.toDouble()),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutCubic,
+            onEnd: () {
+              HapticFeedback.lightImpact();
+            },
+            builder: (context, animatedScore, _) {
+              final scoreInt = animatedScore.round();
+              return SizedBox(
+                width: 80,
+                height: 80,
+                child: CustomPaint(
+                  painter: _ScoreRingPainter(
+                    score: animatedScore,
+                    color: analysis.scoreColor,
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$scoreInt',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: analysis.scoreColor,
+                          ),
+                        ),
+                        const Text(
+                          '/100',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF8A7A6E),
+                          ),
+                        ),
+                      ],
                     ),
-                    const Text(
-                      '/100',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFF8A7A6E),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -729,7 +744,10 @@ class ResultScreen extends ConsumerWidget {
             ),
           ],
         ),
-      );
+      )
+          .animate()
+          .scale(begin: const Offset(0.96, 0.96), end: const Offset(1.0, 1.0), curve: Curves.easeOutBack, duration: 450.ms)
+          .shimmer(delay: 350.ms, duration: 1000.ms, color: const Color(0xFF6AB187).withAlpha(120));
     }
   }
 
@@ -852,13 +870,15 @@ class ResultScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          ...analysis.scores.items.map((item) => _buildScoreRow(item)),
+          ...analysis.scores.items.asMap().entries.map(
+            (entry) => _buildScoreRow(entry.value, entry.key),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildScoreRow(ScoreItem item) {
+  Widget _buildScoreRow(ScoreItem item, int index) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -890,16 +910,26 @@ class ResultScreen extends ConsumerWidget {
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: item.normalized,
-              backgroundColor: Colors.white.withAlpha(20),
-              valueColor: AlwaysStoppedAnimation<Color>(item.color),
-              minHeight: 8,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: item.normalized),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutCubic,
+              builder: (context, val, _) {
+                return LinearProgressIndicator(
+                  value: val,
+                  backgroundColor: Colors.white.withAlpha(20),
+                  valueColor: AlwaysStoppedAnimation<Color>(item.color),
+                  minHeight: 8,
+                );
+              },
             ),
           ),
         ],
       ),
-    );
+    )
+        .animate()
+        .fadeIn(delay: (80 * index).ms, duration: 400.ms)
+        .slideX(begin: -0.05, end: 0, delay: (80 * index).ms, curve: Curves.easeOut);
   }
 
   Widget _buildReport(String report) {
@@ -991,8 +1021,16 @@ class ResultScreen extends ConsumerWidget {
               ),
             ),
           if (products.isNotEmpty)
-            _buildHeroProductCard(products.first, state.analysis),
-          ...products.skip(1).map((product) => _buildProductCard(product)),
+            _buildHeroProductCard(products.first, state.analysis)
+                .animate()
+                .fadeIn(delay: 100.ms, duration: 500.ms)
+                .slideY(begin: 0.15, end: 0, delay: 100.ms, curve: Curves.easeOutQuad),
+          ...products.skip(1).toList().asMap().entries.map(
+                (entry) => _buildProductCard(entry.value)
+                    .animate()
+                    .fadeIn(delay: (160 + entry.key * 80).ms, duration: 450.ms)
+                    .slideY(begin: 0.12, end: 0, delay: (160 + entry.key * 80).ms, curve: Curves.easeOutQuad),
+              ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
@@ -1443,7 +1481,7 @@ class ResultScreen extends ConsumerWidget {
 
 // ── Custom painter para o ring de score ──────────────────
 class _ScoreRingPainter extends CustomPainter {
-  final int score;
+  final double score;
   final Color color;
 
   _ScoreRingPainter({required this.score, required this.color});
@@ -1469,7 +1507,7 @@ class _ScoreRingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final sweepAngle = (score / 100) * 2 * pi;
+    final sweepAngle = (score.clamp(0.0, 100.0) / 100) * 2 * pi;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -pi / 2,

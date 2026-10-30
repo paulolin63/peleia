@@ -7,7 +7,10 @@
 //  - Checklist diário de rotina (Manhã e Noite com checkboxes)
 //  - Atalhos para Nova Análise, Evolução Antes & Depois e Premium
 // ============================================================
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +48,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isMorningTab = true;
   Set<int> _morningChecked = {};
   Set<int> _nightChecked = {};
+  bool _showStreakConfetti = false;
+  int _confettiKey = 0;
 
   @override
   void initState() {
@@ -99,6 +104,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final prefs = await SharedPreferences.getInstance();
     final today = _getTodayKey();
 
+    final prevChecked = isMorning ? _morningChecked : _nightChecked;
+    final totalSteps = (isMorning
+        ? (_config?.morning.isNotEmpty == true ? _config!.morning.length : 3)
+        : (_config?.night.isNotEmpty == true ? _config!.night.length : 3));
+    final wasComplete = totalSteps > 0 && prevChecked.length >= totalSteps;
+
     setState(() {
       if (isMorning) {
         if (_morningChecked.contains(index)) {
@@ -122,6 +133,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       }
     });
+
+    final currentChecked = isMorning ? _morningChecked : _nightChecked;
+    final nowComplete = totalSteps > 0 && currentChecked.length >= totalSteps;
+
+    if (!wasComplete && nowComplete) {
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _showStreakConfetti = true;
+        _confettiKey++;
+      });
+      Future.delayed(const Duration(milliseconds: 1600), () {
+        if (mounted) setState(() => _showStreakConfetti = false);
+      });
+    } else {
+      HapticFeedback.lightImpact();
+    }
   }
 
   String _getGreeting(AppTranslations tr) {
@@ -146,58 +173,68 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: const Color(0xFFC8714A),
-          backgroundColor: const Color(0xFF1C1712),
-          onRefresh: _loadDashboardData,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // ── Header Superior ─────────────────────────
-                    _buildTopHeader(tr),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: RefreshIndicator(
+              color: const Color(0xFFC8714A),
+              backgroundColor: const Color(0xFF1C1712),
+              onRefresh: _loadDashboardData,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        // ── Header Superior ─────────────────────────
+                        _buildTopHeader(tr),
 
-                    const SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
-                    // ── Perfil Declarado do Usuário ─────────────
-                    _buildUserProfileBadge(tr),
+                        // ── Perfil Declarado do Usuário ─────────────
+                        _buildUserProfileBadge(tr),
 
-                    const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                    // ── Card de Alerta UV e Clima BR ────────────
-                    _buildUvAlertCard(tr),
+                        // ── Card de Alerta UV e Clima BR ────────────
+                        _buildUvAlertCard(tr),
 
-                    const SizedBox(height: 18),
+                        const SizedBox(height: 18),
 
-                    // ── Card de Status da Pele / Última Análise ─
-                    _buildSkinStatusCard(tr),
+                        // ── Card de Status da Pele / Última Análise ─
+                        _buildSkinStatusCard(tr),
 
-                    const SizedBox(height: 22),
+                        const SizedBox(height: 22),
 
-                    // ── Checklist da Rotina de Hoje ─────────────
-                    _buildDailyRoutineSection(tr),
+                        // ── Checklist da Rotina de Hoje ─────────────
+                        _buildDailyRoutineSection(tr),
 
-                    const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                    // ── Botão Principal: Nova Análise com IA ────
-                    _buildScanCTA(tr),
+                        // ── Botão Principal: Nova Análise com IA ────
+                        _buildScanCTA(tr),
 
-                    const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                    // ── Atalhos Rápidos (Evolução & Premium) ─────
-                    _buildQuickActionCards(tr),
+                        // ── Atalhos Rápidos (Evolução & Premium) ─────
+                        _buildQuickActionCards(tr),
 
-                    const SizedBox(height: 32),
-                  ]),
-                ),
+                        const SizedBox(height: 32),
+                      ]),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          if (_showStreakConfetti)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: _TerracottaConfetti(key: ValueKey(_confettiKey)),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -923,17 +960,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: totalSteps > 0 ? completedCount / totalSteps : 0,
-              backgroundColor: Colors.white.withAlpha(10),
-              valueColor: const AlwaysStoppedAnimation(Color(0xFFC8714A)),
-              minHeight: 6,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(
+                begin: 0.0,
+                end: totalSteps > 0 ? completedCount / totalSteps : 0.0,
+              ),
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              builder: (context, val, _) {
+                return LinearProgressIndicator(
+                  value: val,
+                  backgroundColor: Colors.white.withAlpha(12),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    val >= 1.0 ? const Color(0xFF6AB187) : const Color(0xFFC8714A),
+                  ),
+                  minHeight: 7,
+                );
+              },
             ),
           ),
 
           const SizedBox(height: 16),
 
-          // Lista interativa de passos
+          // Lista interativa de passos com bounce no check
           ...activeSteps.asMap().entries.map((entry) {
             final idx = entry.key;
             final (emoji, title, desc) = entry.value;
@@ -942,7 +991,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             return GestureDetector(
               onTap: () => _toggleStep(idx, _isMorningTab),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -980,10 +1030,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ],
                       ),
                     ),
-                    Icon(
-                      isChecked ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: isChecked ? const Color(0xFF6AB187) : const Color(0xFF8A7A6E),
-                      size: 20,
+                    AnimatedScale(
+                      scale: isChecked ? 1.05 : 0.95,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.elasticOut,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                        child: Icon(
+                          isChecked ? Icons.check_circle : Icons.radio_button_unchecked,
+                          key: ValueKey<bool>(isChecked),
+                          color: isChecked ? const Color(0xFF6AB187) : const Color(0xFF8A7A6E),
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1146,4 +1206,135 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ],
     ).animate().fadeIn(delay: 550.ms);
   }
+}
+
+// ── Confetti leve de streak (partículas terracota curtas, sem emoji spam) ──
+class _TerracottaConfetti extends StatefulWidget {
+  const _TerracottaConfetti({super.key});
+
+  @override
+  State<_TerracottaConfetti> createState() => _TerracottaConfettiState();
+}
+
+class _TerracottaConfettiState extends State<_TerracottaConfetti>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final List<_ConfettiParticle> _particles;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..forward();
+
+    final rnd = math.Random();
+    const colors = [
+      Color(0xFFC8714A), // Terracota principal
+      Color(0xFFE8A44A), // Dourado quente
+      Color(0xFF6AB187), // Sálvia
+      Color(0xFFF2A58B), // Pêssego suave
+      Color(0xFFFFF0E8), // Pérola
+    ];
+
+    _particles = List.generate(24, (i) {
+      final angle = (rnd.nextDouble() * 2 * math.pi);
+      final speed = 120.0 + rnd.nextDouble() * 220.0;
+      final size = 4.0 + rnd.nextDouble() * 5.0;
+      final color = colors[i % colors.length];
+      final isCircle = rnd.nextBool();
+      return _ConfettiParticle(
+        angle: angle,
+        speed: speed,
+        size: size,
+        color: color,
+        isCircle: isCircle,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        final progress = _ctrl.value;
+        final opacity = (1.0 - progress).clamp(0.0, 1.0);
+        return CustomPaint(
+          size: Size.infinite,
+          painter: _ConfettiPainter(
+            particles: _particles,
+            progress: progress,
+            opacity: opacity,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ConfettiParticle {
+  final double angle;
+  final double speed;
+  final double size;
+  final Color color;
+  final bool isCircle;
+
+  const _ConfettiParticle({
+    required this.angle,
+    required this.speed,
+    required this.size,
+    required this.color,
+    required this.isCircle,
+  });
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final List<_ConfettiParticle> particles;
+  final double progress;
+  final double opacity;
+
+  _ConfettiPainter({
+    required this.particles,
+    required this.progress,
+    required this.opacity,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height * 0.45);
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    for (final p in particles) {
+      final dist = p.speed * progress * (1.0 - progress * 0.3);
+      final dx = center.dx + math.cos(p.angle) * dist;
+      // Adiciona gravidade suave puxando para baixo
+      final dy = center.dy + math.sin(p.angle) * dist + (progress * progress * 90);
+
+      paint.color = p.color.withAlpha((opacity * 0.9 * 255).round());
+
+      if (p.isCircle) {
+        canvas.drawCircle(Offset(dx, dy), p.size / 2, paint);
+      } else {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(center: Offset(dx, dy), width: p.size * 1.5, height: p.size * 0.7),
+            const Radius.circular(2),
+          ),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConfettiPainter old) =>
+      old.progress != progress || old.opacity != opacity;
 }

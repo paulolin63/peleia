@@ -3,7 +3,10 @@
 //
 //  Tela principal de captura + animação de análise
 // ============================================================
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +28,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     with TickerProviderStateMixin {
   late final AnimationController _pulseController;
   late final AnimationController _scanLineController;
+  Timer? _stepTimer;
+  int _activeStepIndex = 0;
 
   @override
   void initState() {
@@ -40,8 +45,38 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     )..repeat();
   }
 
+  void _startStepAnimation() {
+    _stepTimer?.cancel();
+    _activeStepIndex = 0;
+    _stepTimer = Timer.periodic(const Duration(milliseconds: 1300), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final scanState = ref.read(scanProvider);
+      if (!scanState.isLoading) {
+        timer.cancel();
+        return;
+      }
+      if (_activeStepIndex < 4) {
+        setState(() {
+          _activeStepIndex++;
+        });
+        HapticFeedback.lightImpact();
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  void _stopStepAnimation() {
+    _stepTimer?.cancel();
+    _stepTimer = null;
+  }
+
   @override
   void dispose() {
+    _stopStepAnimation();
     _pulseController.dispose();
     _scanLineController.dispose();
     super.dispose();
@@ -93,6 +128,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
     // Navega para resultado ou Paywall quando necessário
     ref.listen<ScanState>(scanProvider, (prev, next) {
+      if (prev?.isLoading != true && next.isLoading) {
+        _startStepAnimation();
+      } else if (prev?.isLoading == true && !next.isLoading) {
+        _stopStepAnimation();
+      }
+
       if (next.step == ScanStep.done) {
         context.push('/result');
       } else if (next.step == ScanStep.quotaBlocked) {
@@ -363,162 +404,267 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       tr.stepRoutine,
     ];
 
-    final currentStepIndex = state.step == ScanStep.generatingReport ? 4 : 2;
+    final chips = [
+      ('🔬', tr.indicatorSkinType),
+      ('💧', tr.indicatorOiliness),
+      ('😤', tr.indicatorAcne),
+      ('☀️', tr.indicatorSpots),
+      ('✨', tr.isEn ? 'Routine' : 'Rotina'),
+    ];
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Foto com overlay de scan
-        if (state.imageBytes != null)
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(100),
-                child: Image.memory(
-                  state.imageBytes!,
-                  width: 200,
-                  height: 250,
-                  fit: BoxFit.cover,
-                ),
-              ),
+    final currentStepIndex = state.step == ScanStep.generatingReport ? 4 : _activeStepIndex;
 
-              // Scan line overlay
-              ClipRRect(
-                borderRadius: BorderRadius.circular(100),
-                child: AnimatedBuilder(
-                  animation: _scanLineController,
-                  builder: (_, __) {
-                    return Container(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Foto com overlay de scan
+          if (state.imageBytes != null)
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Hero(
+                  tag: 'skin_analysis_selfie',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child: Image.memory(
+                      state.imageBytes!,
                       width: 200,
                       height: 250,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.transparent,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+
+                // Scan beam + sweeping vignette
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child: AnimatedBuilder(
+                    animation: _scanLineController,
+                    builder: (_, __) {
+                      final linePos = _scanLineController.value * 2 - 1;
+                      return SizedBox(
+                        width: 200,
+                        height: 250,
+                        child: Stack(
+                          children: [
+                            // Sweeping light vignette / beam around laser
+                            Align(
+                              alignment: Alignment(0, linePos),
+                              child: Container(
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      const Color(0xFFC8714A).withAlpha(35),
+                                      const Color(0xFFE8A44A).withAlpha(55),
+                                      const Color(0xFFC8714A).withAlpha(35),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // High-intensity laser line
+                            Align(
+                              alignment: Alignment(0, linePos),
+                              child: Container(
+                                height: 2.5,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.transparent,
+                                      const Color(0xFFC8714A).withAlpha(180),
+                                      const Color(0xFFFFF2EC),
+                                      const Color(0xFFFFA07A),
+                                      const Color(0xFFC8714A).withAlpha(180),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0xFFC8714A),
+                                      blurRadius: 14,
+                                      spreadRadius: 2,
+                                    ),
+                                    BoxShadow(
+                                      color: Color(0xFFFFE0D0),
+                                      blurRadius: 5,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      child: Align(
-                        alignment: Alignment(
-                          0,
-                          _scanLineController.value * 2 - 1,
-                        ),
-                        child: Container(
-                          height: 3,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.transparent,
-                                const Color(0xFFC8714A).withAlpha(200),
-                                const Color(0xFFF2A58B),
-                                const Color(0xFFC8714A).withAlpha(200),
-                                Colors.transparent,
-                              ],
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0xFFC8714A),
-                                blurRadius: 12,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
 
-              // Semitransparent overlay
-              Container(
-                width: 200,
-                height: 250,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(100),
-                  color: const Color(0xFF1C1712).withAlpha(120),
+                // Vignette / subtle ambient shadow around oval
+                Container(
+                  width: 200,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: const Color(0xFFC8714A).withAlpha(120),
+                      width: 2,
+                    ),
+                    gradient: RadialGradient(
+                      center: Alignment.center,
+                      radius: 0.85,
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFF0F0F0F).withAlpha(85),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
 
-              ..._buildCornerMarkers(),
-            ],
+                ..._buildCornerMarkers(),
+              ],
+            ),
+
+          // Chips caindo (metáfora bacon-do-Foomy)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            constraints: const BoxConstraints(minHeight: 38),
+            margin: const EdgeInsets.only(top: 14, bottom: 8),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (int i = 0; i < currentStepIndex && i < chips.length; i++)
+                  _buildLandedChip(chips[i].$1, chips[i].$2, key: ValueKey('chip_$i')),
+              ],
+            ),
           ),
 
-        const SizedBox(height: 32),
+          const SizedBox(height: 16),
 
-        // Status steps
-        ...List.generate(steps.length, (i) {
-          final isDone = i < currentStepIndex;
-          final isActive = i == currentStepIndex;
+          // Status steps
+          ...List.generate(steps.length, (i) {
+            final isDone = i < currentStepIndex;
+            final isActive = i == currentStepIndex;
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 400),
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDone
-                        ? const Color(0xFF6AB187).withAlpha(50)
-                        : isActive
-                            ? const Color(0xFFC8714A).withAlpha(50)
-                            : Colors.transparent,
-                    border: Border.all(
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  AnimatedScale(
+                    scale: isDone ? 1.05 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutBack,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 350),
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDone
+                            ? const Color(0xFF6AB187).withAlpha(50)
+                            : isActive
+                                ? const Color(0xFFC8714A).withAlpha(50)
+                                : Colors.transparent,
+                        border: Border.all(
+                          color: isDone
+                              ? const Color(0xFF6AB187)
+                              : isActive
+                                  ? const Color(0xFFC8714A)
+                                  : const Color(0xFF4A3E35),
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: isDone
+                            ? const Icon(
+                                Icons.check,
+                                size: 14,
+                                color: Color(0xFF6AB187),
+                              )
+                            : isActive
+                                ? const SizedBox(
+                                    width: 10,
+                                    height: 10,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFFC8714A),
+                                    ),
+                                  )
+                                : null,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    steps[i],
+                    style: TextStyle(
+                      fontSize: 13,
                       color: isDone
                           ? const Color(0xFF6AB187)
                           : isActive
-                              ? const Color(0xFFC8714A)
+                              ? const Color(0xFFF5F0EC)
                               : const Color(0xFF4A3E35),
-                      width: 2,
+                      fontWeight:
+                          isActive ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
-                  child: Center(
-                    child: isDone
-                        ? const Text('✓',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6AB187),
-                              fontWeight: FontWeight.bold,
-                            ))
-                        : isActive
-                            ? const SizedBox(
-                                width: 10,
-                                height: 10,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFFC8714A),
-                                ),
-                              )
-                            : null,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  steps[i],
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDone
-                        ? const Color(0xFF6AB187)
-                        : isActive
-                            ? const Color(0xFFF5F0EC)
-                            : const Color(0xFF4A3E35),
-                    fontWeight:
-                        isActive ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-      ],
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
     );
+  }
+
+  Widget _buildLandedChip(String emoji, String label, {Key? key}) {
+    return Container(
+      key: key,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF241C16),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFC8714A).withAlpha(120),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFC8714A).withAlpha(35),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 12)),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFE8C9A0),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    )
+        .animate()
+        .slideY(begin: -1.8, end: 0, duration: 420.ms, curve: Curves.easeOutBack)
+        .fadeIn(duration: 200.ms)
+        .scale(begin: const Offset(0.75, 0.75), end: const Offset(1, 1), curve: Curves.easeOutBack);
   }
 
   Widget _buildError(String message) {
