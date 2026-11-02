@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/config/remote_config_service.dart';
 import '../../../core/profile/user_profile.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../profile/avoidance_fields.dart';
 
 // ── Provider: controla se onboarding já foi visto ────────
@@ -49,7 +50,7 @@ const _pages = [
     emoji: '🌿',
     title: 'Sua pele merece\ncuidado inteligente',
     subtitle: 'Análise visual de rotina por IA em 30 segundos,\npersonalizada para o clima do Brasil 🇧🇷',
-    accentColor: Color(0xFFC8714A),
+    accentColor: Color(0xFF5E9C42),
     bullets: [
       '📸 Tire uma selfie — sem maquiagem',
       '🔬 IA analisa oleosidade, acne e manchas',
@@ -60,7 +61,7 @@ const _pages = [
     emoji: '☀️',
     title: 'Feito para o\nclima brasileiro',
     subtitle: 'O Brasil tem um dos índices UV mais altos do mundo.\nNossa IA entende isso.',
-    accentColor: Color(0xFFE8A44A),
+    accentColor: Color(0xFFEAA07A),
     bullets: [
       '🛢️ Controle de oleosidade para o calor',
       '😤 Tratamento de acne e cravos',
@@ -71,7 +72,7 @@ const _pages = [
     emoji: '💰',
     title: 'Produtos acessíveis\npara você',
     subtitle: 'Recomendamos marcas brasileiras e importadas\nnas principais lojas online.',
-    accentColor: Color(0xFF6AB187),
+    accentColor: Color(0xFF88BE63),
     bullets: [
       '🛍️ Shopee, Mercado Livre e Amazon Brasil',
       '💚 Principia, Sallve, CeraVe, La Roche-Posay',
@@ -151,7 +152,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -165,7 +166,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     onPressed: _skip,
                     child: const Text(
                       'Pular',
-                      style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 14),
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                     ),
                   ),
                 ],
@@ -200,7 +201,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         decoration: BoxDecoration(
                           color: isActive
                               ? _page(_currentPage).accentColor
-                              : const Color(0xFF4A3E35),
+                              : AppTheme.border,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       );
@@ -284,7 +285,7 @@ class _OnboardPageView extends StatelessWidget {
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
-              color: Color(0xFFF5F0EC),
+              color: AppTheme.textPrimary,
               height: 1.2,
             ),
             textAlign: TextAlign.center,
@@ -297,7 +298,7 @@ class _OnboardPageView extends StatelessWidget {
             page.subtitle,
             style: const TextStyle(
               fontSize: 15,
-              color: Color(0xFF8A7A6E),
+              color: AppTheme.textSecondary,
               height: 1.6,
             ),
             textAlign: TextAlign.center,
@@ -317,9 +318,16 @@ class _OnboardPageView extends StatelessWidget {
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: page.accentColor.withAlpha(20),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: page.accentColor.withAlpha(60)),
+                    border: Border.all(color: AppTheme.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(8),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
@@ -331,8 +339,8 @@ class _OnboardPageView extends StatelessWidget {
                           bullet.substring(bullet.indexOf(' ') + 1),
                           style: const TextStyle(
                             fontSize: 14,
-                            color: Color(0xFFE8C9A0),
-                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -496,19 +504,19 @@ class _QuizScreenState extends State<_QuizScreen> {
     if (_quizStep == 2) {
       final config = _config;
       return Scaffold(
-        backgroundColor: const Color(0xFF0F0F0F),
+        backgroundColor: AppTheme.bg,
         body: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
               const Text(
                 'Algo que devemos evitar?',
-                style: TextStyle(color: Color(0xFFF5F0EC), fontSize: 22, fontWeight: FontWeight.w800),
+                style: TextStyle(color: AppTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Opcional. Produtos com esses ingredientes saem da recomendação.',
-                style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 13, height: 1.4),
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 20),
               if (config != null)
@@ -530,12 +538,12 @@ class _QuizScreenState extends State<_QuizScreen> {
                       _saveUserProfile();
                       setState(() => _quizStep = 1);
                     },
-                    child: const Text('Pular', style: TextStyle(color: Color(0xFF8A7A6E))),
+                    child: const Text('Pular', style: TextStyle(color: AppTheme.textSecondary)),
                   ),
                   const Spacer(),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC8714A),
+                      backgroundColor: AppTheme.primary,
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () {
@@ -555,7 +563,7 @@ class _QuizScreenState extends State<_QuizScreen> {
     final question = _questions[_currentQuestion];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -569,7 +577,7 @@ class _QuizScreenState extends State<_QuizScreen> {
                     'Pergunta ${_currentQuestion + 1} de ${_questions.length}',
                     style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF8A7A6E),
+                        color: AppTheme.textSecondary,
                         fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
@@ -577,7 +585,7 @@ class _QuizScreenState extends State<_QuizScreen> {
                     '${((_currentQuestion + 1) / _questions.length * 100).toInt()}%',
                     style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFC8714A),
+                        color: AppTheme.primary,
                         fontWeight: FontWeight.w700),
                   ),
                 ],
@@ -587,8 +595,8 @@ class _QuizScreenState extends State<_QuizScreen> {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: (_currentQuestion + 1) / _questions.length,
-                  backgroundColor: const Color(0xFF2C1A10),
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFFC8714A)),
+                  backgroundColor: AppTheme.border,
+                  valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
                   minHeight: 6,
                 ),
               ),
@@ -611,7 +619,7 @@ class _QuizScreenState extends State<_QuizScreen> {
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFFF5F0EC),
+                  color: AppTheme.textPrimary,
                   height: 1.3,
                 ),
               ).animate(key: ValueKey('q$_currentQuestion')).fadeIn(delay: 100.ms),
@@ -634,15 +642,22 @@ class _QuizScreenState extends State<_QuizScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFFC8714A).withAlpha(30)
-                              : const Color(0xFF1C1712),
+                              ? AppTheme.primarySoft
+                              : AppTheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFFC8714A)
-                                : const Color(0xFF2C1A10),
+                                ? AppTheme.primary
+                                : AppTheme.border,
                             width: isSelected ? 2 : 1,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(isSelected ? 10 : 5),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Row(
                           children: [
@@ -658,8 +673,8 @@ class _QuizScreenState extends State<_QuizScreen> {
                                       ? FontWeight.w700
                                       : FontWeight.w500,
                                   color: isSelected
-                                      ? const Color(0xFFE8C9A0)
-                                      : const Color(0xFFF5F0EC),
+                                      ? AppTheme.primaryDark
+                                      : AppTheme.textPrimary,
                                 ),
                               ),
                             ),
@@ -667,7 +682,7 @@ class _QuizScreenState extends State<_QuizScreen> {
                               opacity: isSelected ? 1 : 0,
                               duration: const Duration(milliseconds: 200),
                               child: const Icon(Icons.check_circle,
-                                  color: Color(0xFFC8714A), size: 20),
+                                  color: AppTheme.primary, size: 20),
                             ),
                           ],
                         ),
@@ -689,11 +704,11 @@ class _QuizScreenState extends State<_QuizScreen> {
                   decoration: BoxDecoration(
                     gradient: _selectedAnswer != null
                         ? const LinearGradient(
-                            colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                            colors: [AppTheme.primary, AppTheme.primaryLight],
                           )
                         : null,
                     color: _selectedAnswer == null
-                        ? const Color(0xFF2C1A10)
+                        ? AppTheme.border
                         : null,
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -705,7 +720,7 @@ class _QuizScreenState extends State<_QuizScreen> {
                       style: TextStyle(
                         color: _selectedAnswer != null
                             ? Colors.white
-                            : const Color(0xFF4A3E35),
+                            : AppTheme.textMuted,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -808,7 +823,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFE8C9A0),
+                  color: AppTheme.textPrimary,
                 ),
               ),
               const SizedBox(height: 1),
@@ -816,7 +831,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                 desc,
                 style: const TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF8A7A6E),
+                  color: AppTheme.textSecondary,
                   height: 1.35,
                 ),
               ),
@@ -830,7 +845,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -842,14 +857,21 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF2C1A10), Color(0xFF1C1712)],
+                    colors: [AppTheme.primarySoft, Colors.white],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFFC8714A).withAlpha(75),
+                    color: AppTheme.primaryLight.withAlpha(120),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primary.withAlpha(15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
@@ -861,7 +883,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                       'Pelo quiz rápido, seu tipo de pele é:',
                       style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF8A7A6E),
+                          color: AppTheme.textSecondary,
                           fontWeight: FontWeight.w600),
                       textAlign: TextAlign.center,
                     ),
@@ -871,7 +893,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFFE8C9A0),
+                        color: AppTheme.primaryDark,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -885,9 +907,16 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1C1712),
+                  color: AppTheme.surface,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+                  border: Border.all(color: AppTheme.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(6),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -900,7 +929,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFFF5F0EC),
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                       ],
@@ -941,7 +970,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFFF5F0EC),
+                  color: AppTheme.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 500.ms),
@@ -952,7 +981,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                 'Usamos a câmera APENAS para analisar sua pele.\nNenhuma foto é salva em nossos servidores.',
                 style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF8A7A6E),
+                    color: AppTheme.textSecondary,
                     height: 1.6),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 600.ms),
@@ -963,10 +992,10 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6AB187).withAlpha(20),
+                  color: AppTheme.primarySoft,
                   borderRadius: BorderRadius.circular(14),
                   border:
-                      Border.all(color: const Color(0xFF6AB187).withAlpha(50)),
+                      Border.all(color: AppTheme.primaryLight.withAlpha(80)),
                 ),
                 child: const Row(
                   children: [
@@ -976,7 +1005,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                       child: Text(
                         'Sua privacidade é protegida. As imagens são processadas pela IA e descartadas imediatamente.',
                         style:
-                            TextStyle(fontSize: 12, color: Color(0xFF6AB187)),
+                            TextStyle(fontSize: 12, color: AppTheme.primaryDark),
                       ),
                     ),
                   ],
@@ -992,12 +1021,12 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                   height: 58,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                      colors: [AppTheme.primary, AppTheme.primaryLight],
                     ),
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFC8714A).withAlpha(75),
+                        color: AppTheme.primary.withAlpha(75),
                         blurRadius: 20,
                         offset: const Offset(0, 6),
                       ),
@@ -1032,7 +1061,7 @@ class _CameraPermissionStepState extends State<_CameraPermissionStep> {
                 onPressed: widget.onContinue,
                 child: const Text(
                   'Não agora — usar galeria',
-                  style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 13),
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                 ),
               ).animate().fadeIn(delay: 900.ms),
             ],

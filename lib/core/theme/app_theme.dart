@@ -1,56 +1,87 @@
 // ============================================================
 //  lib/core/theme/app_theme.dart
+//  Identidade Visual PeleIA: Alinhada com o Ícone Oficial do App
+//  (Verde Botânico / Sálvia, Branco Pérola e Nude Pêssego Radiante)
 // ============================================================
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color terra = Color(0xFFC8714A);
-  static const Color sand = Color(0xFFE8C9A0);
-  static const Color blush = Color(0xFFF2A58B);
-  static const Color deepBg = Color(0xFF0F0F0F);
-  static const Color cardBg = Color(0xFF1C1712);
-  static const Color muted = Color(0xFF8A7A6E);
-  static const Color success = Color(0xFF6AB187);
+  // ── 🌿 Paleta Primária Botânica (Extraída do Círculo do Ícone) ─
+  static const Color primary = Color(0xFF5E9C42); // Verde herba/sálvia vibrante e elegante
+  static const Color primaryLight = Color(0xFF88BE63); // Verde matcha suave do anel do ícone
+  static const Color primarySoft = Color(0xFFEDF5E8); // Lavagem botânica suave para pills e badges
+  static const Color primaryDark = Color(0xFF3F6E2A); // Verde floresta profundo para ênfase
 
-  static ThemeData get darkTheme {
+  // ── 🌸 Pêssego / Nude Radiante (Extraído do Tom de Pele do Ícone) ─
+  static const Color peach = Color(0xFFEAA07A); // Pêssego dourado aquecido
+  static const Color peachLight = Color(0xFFF9DFD2); // Pêssego claro
+  static const Color peachSoft = Color(0xFFFDF4ED); // Lavagem pêssego suave
+  static const Color gold = Color(0xFFD4973B); // Dourado âmbar para alerta UV / FPS
+
+  // ── 🏛️ Superfícies e Fundos (Estética Skincare Clean & Luminosa) ─
+  static const Color bg = Color(0xFFF8FAF6); // Branco pérola suave (idêntico ao fundo do launcher)
+  static const Color surface = Color(0xFFFFFFFF); // Branco puro para cartões clínicos
+  static const Color surfaceMuted = Color(0xFFF0F5EE); // Superfície atenuada para pills/seletores
+  static const Color border = Color(0xFFE2EBE0); // Borda sutil de cartões
+  static const Color borderSubtle = Color(0xFFEBF0E9); // Borda ultrafina
+
+  // ── 🖋️ Tipografia e Alto Contraste ─
+  static const Color textPrimary = Color(0xFF192418); // Carvão florestal escuro (leitura ultra nítida)
+  static const Color textSecondary = Color(0xFF586B56); // Cinza esverdeado para subtítulos
+  static const Color textMuted = Color(0xFF8B9C89); // Texto secundário atenuado
+
+  // ── 🎯 Feedback e Status de Pele ─
+  static const Color success = Color(0xFF48A03D); // Pele saudável / etapa concluída
+  static const Color warning = Color(0xFFE59533); // Atenção / oleosidade moderada
+  static const Color error = Color(0xFFD9534F); // Irritação alta / alerta
+
+  // ── 🔄 Aliases de Compatibilidade Reversa ─
+  static const Color terra = primary;
+  static const Color sand = peachLight;
+  static const Color blush = peach;
+  static const Color deepBg = bg;
+  static const Color cardBg = surface;
+  static const Color muted = textSecondary;
+
+  static ThemeData get lightTheme {
     return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: deepBg,
-      colorScheme: const ColorScheme.dark(
-        primary: terra,
-        secondary: sand,
-        surface: cardBg,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: bg,
+      colorScheme: const ColorScheme.light(
+        primary: primary,
+        secondary: peach,
+        surface: surface,
         onPrimary: Colors.white,
-        onSurface: Color(0xFFF5F0EC),
+        onSurface: textPrimary,
       ),
       fontFamily: 'Inter',
       appBarTheme: const AppBarTheme(
-        backgroundColor: deepBg,
+        backgroundColor: bg,
         elevation: 0,
-        iconTheme: IconThemeData(color: terra),
+        iconTheme: IconThemeData(color: primary),
         titleTextStyle: TextStyle(
-          color: Color(0xFFF5F0EC),
+          color: textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
       ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
-          color: Color(0xFFF5F0EC),
+          color: textPrimary,
           fontWeight: FontWeight.w900,
           fontSize: 28,
         ),
         headlineMedium: TextStyle(
-          color: Color(0xFFF5F0EC),
+          color: textPrimary,
           fontWeight: FontWeight.w700,
           fontSize: 22,
         ),
-        bodyLarge: TextStyle(color: Color(0xFFF5F0EC), fontSize: 16),
-        bodyMedium: TextStyle(color: Color(0xFF8A7A6E), fontSize: 14),
+        bodyLarge: TextStyle(color: textPrimary, fontSize: 16),
+        bodyMedium: TextStyle(color: textSecondary, fontSize: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: terra,
+          backgroundColor: primary,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -64,4 +95,7 @@ class AppTheme {
       ),
     );
   }
+
+  // Compatibilidade com main.dart
+  static ThemeData get darkTheme => lightTheme;
 }

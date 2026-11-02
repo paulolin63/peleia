@@ -18,6 +18,7 @@ import '../../../core/localization/app_translations.dart';
 import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/comparison_service.dart';
 import '../../../core/services/report_export_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../history/data/history_entry.dart';
 import '../../scan/data/skin_analysis_result.dart';
 import '../../scan/presentation/scan_provider.dart';
@@ -41,7 +42,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
     if (analysis == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0F0F0F),
+        backgroundColor: AppTheme.bg,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -50,13 +51,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               const SizedBox(height: 12),
               const Text(
                 'Nenhuma análise encontrada',
-                style: TextStyle(color: Color(0xFF8A7A6E)),
+                style: TextStyle(color: AppTheme.textSecondary),
               ),
               TextButton(
                 onPressed: () => context.go('/'),
                 child: const Text(
                   'Fazer nova análise',
-                  style: TextStyle(color: Color(0xFFC8714A)),
+                  style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -66,16 +67,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: CustomScrollView(
         slivers: [
           // ── App Bar ──────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
-            backgroundColor: const Color(0xFF0F0F0F),
+            backgroundColor: AppTheme.bg,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFC8714A)),
+              icon: const Icon(Icons.arrow_back_ios, color: AppTheme.primary),
               onPressed: () {
                 ref.read(scanProvider.notifier).reset();
                 context.go('/');
@@ -174,9 +175,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surfaceMuted,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Row(
         children: [
@@ -202,13 +203,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFC8714A) : Colors.transparent,
+            color: isSelected ? AppTheme.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: const Color(0xFFC8714A).withAlpha(60),
-                      blurRadius: 10,
+                      color: Colors.black.withAlpha(12),
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ]
@@ -220,7 +221,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-              color: isSelected ? Colors.white : const Color(0xFF8A7A6E),
+              color: isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
             ),
           ),
         ),
@@ -260,21 +261,28 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFF2C1A10),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFFC8714A).withAlpha(120),
+                  color: AppTheme.border,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(5),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.picture_as_pdf, color: Color(0xFFE8C9A0), size: 16),
+                  const Icon(Icons.picture_as_pdf, color: AppTheme.primary, size: 16),
                   const SizedBox(width: 8),
                   Text(
                     tr.downloadPdf,
                     style: const TextStyle(
-                      color: Color(0xFFE8C9A0),
+                      color: AppTheme.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -301,8 +309,15 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFC8714A),
+                color: AppTheme.primary,
                 borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(60),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -341,11 +356,18 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             child: Container(
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFF1C1712),
+                color: AppTheme.surface,
                 border: Border.all(
-                  color: const Color(0xFFC8714A).withAlpha(80),
+                  color: AppTheme.border,
                 ),
                 borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(6),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -355,7 +377,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   Text(
                     'Nova Análise',
                     style: TextStyle(
-                      color: Color(0xFFC8714A),
+                      color: AppTheme.primary,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -375,12 +397,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               height: 50,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                  colors: [AppTheme.primary, AppTheme.primaryLight],
                 ),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFC8714A).withAlpha(60),
+                    color: AppTheme.primary.withAlpha(70),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -415,8 +437,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            analysis.skinTypeColor.withAlpha(50),
-            const Color(0xFF0F0F0F),
+            AppTheme.primarySoft,
+            AppTheme.bg,
           ],
         ),
       ),
@@ -433,7 +455,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   child: Container(
                     width: 80,
                     height: 96,
-                    color: const Color(0xFF2C1A10),
+                    color: AppTheme.surfaceMuted,
                     child: photo ??
                         const Center(
                           child: Text('👤', style: TextStyle(fontSize: 40)),
@@ -475,7 +497,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFFF5F0EC),
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     if (analysis.problemasDetectados.isNotEmpty)
@@ -483,7 +505,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         'com ${_formatProblemas(analysis.problemasDetectados)}',
                         style: const TextStyle(
                           fontSize: 13,
-                          color: Color(0xFFC8714A),
+                          color: AppTheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -501,11 +523,18 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: analysis.scoreColor.withAlpha(75),
+          color: AppTheme.border,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(6),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -543,7 +572,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           '/100',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Color(0xFF8A7A6E),
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                       ],
@@ -563,7 +592,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFF5F0EC),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -571,7 +600,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   'Referência cosmética • Não é diagnóstico clínico',
                   style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF8A7A6E),
+                    color: AppTheme.textSecondary,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -580,7 +609,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   _getScoreMessage(analysis.scoreGeral),
                   style: const TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF8A7A6E),
+                    color: AppTheme.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -591,10 +620,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8A44A).withAlpha(30),
+                    color: AppTheme.primarySoft,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: const Color(0xFFE8A44A).withAlpha(75),
+                      color: AppTheme.border,
                     ),
                   ),
                   child: Text(
@@ -602,7 +631,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFE8A44A),
+                      color: AppTheme.primaryDark,
                     ),
                   ),
                 ),
@@ -633,8 +662,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       final isBetter = scoreDelta > 0 && !isWithinVariance;
 
       final deltaColor = isWithinVariance
-          ? const Color(0xFFE8A44A)
-          : (isBetter ? const Color(0xFF6AB187) : const Color(0xFFE05353));
+          ? AppTheme.gold
+          : (isBetter ? AppTheme.success : AppTheme.error);
 
       final deltaText = isWithinVariance
           ? 'Variação pequena • Inconclusivo'
@@ -645,19 +674,19 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF241C16),
-              Color(0xFF1C1712),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFFC8714A).withAlpha(90),
+            color: AppTheme.border,
             width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(6),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,7 +696,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC8714A).withAlpha(40),
+                    color: AppTheme.primarySoft,
                     shape: BoxShape.circle,
                   ),
                   child: const Text('🧠', style: TextStyle(fontSize: 16)),
@@ -682,14 +711,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFE8C9A0),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       Text(
                         'Comparado com: $timeAgoStr',
                         style: const TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF8A7A6E),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -699,7 +728,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: deltaColor.withAlpha(30),
+                    color: deltaColor.withAlpha(20),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: deltaColor.withAlpha(80)),
                   ),
@@ -719,7 +748,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF120E0B),
+                color: AppTheme.surfaceMuted,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -758,7 +787,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(Icons.info_outline, size: 13, color: Color(0xFFC8714A)),
+                const Icon(Icons.info_outline, size: 13, color: AppTheme.primary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -767,7 +796,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         : 'Tendência calculada matematicamente. As orientações cosméticas foram adaptadas abaixo.',
                     style: const TextStyle(
                       fontSize: 11,
-                      color: Color(0xFFD4C2B2),
+                      color: AppTheme.textSecondary,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -782,19 +811,26 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1712),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFF6AB187).withAlpha(60),
+            color: AppTheme.primary.withAlpha(80),
             width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withAlpha(20),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF6AB187).withAlpha(30),
+              decoration: const BoxDecoration(
+                color: AppTheme.primarySoft,
                 shape: BoxShape.circle,
               ),
               child: const Text('🌱', style: TextStyle(fontSize: 20)),
@@ -809,7 +845,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFE8C9A0),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -817,7 +853,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     'Seu indicador inicial (${analysis.scoreGeral}/100) foi salvo de forma privada no aparelho. Em selfies futuras sob condições similares, mostraremos sua evolução visual.',
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF8A7A6E),
+                      color: AppTheme.textSecondary,
                       height: 1.4,
                     ),
                   ),
@@ -891,9 +927,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16120E),
+        color: AppTheme.surfaceMuted,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -908,7 +944,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFE8C9A0),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
               ),
@@ -923,7 +959,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             'consulte sempre presencialmente um médico dermatologista credenciado pela SBD.',
             style: TextStyle(
               fontSize: 11,
-              color: Color(0xFF8A7A6E),
+              color: AppTheme.textSecondary,
               height: 1.5,
             ),
           ),
@@ -936,9 +972,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -948,7 +991,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFE8C9A0),
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -974,7 +1017,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   item.label,
                   style: const TextStyle(
                     fontSize: 13,
-                    color: Color(0xFFE8C9A0),
+                    color: AppTheme.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -999,7 +1042,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               builder: (context, val, _) {
                 return LinearProgressIndicator(
                   value: val,
-                  backgroundColor: Colors.white.withAlpha(20),
+                  backgroundColor: AppTheme.surfaceMuted,
                   valueColor: AlwaysStoppedAnimation<Color>(item.color),
                   minHeight: 8,
                 );
@@ -1018,9 +1061,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1030,7 +1080,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFE8C9A0),
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -1039,7 +1089,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             report,
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFFF5F0EC),
+              color: AppTheme.textPrimary,
               height: 1.7,
             ),
           ),
@@ -1053,9 +1103,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1067,7 +1124,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFE8C9A0),
+                  color: AppTheme.textPrimary,
                 ),
               ),
               const Spacer(),
@@ -1077,16 +1134,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6AB187).withAlpha(30),
+                  color: AppTheme.primarySoft,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFF6AB187).withAlpha(75)),
+                  border: Border.all(color: AppTheme.border),
                 ),
                 child: const Text(
                   'PARCEIRO',
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF6AB187),
+                    color: AppTheme.primaryDark,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1099,7 +1156,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 _avoidanceNotice(state),
-                style: const TextStyle(fontSize: 12, color: Color(0xFFE8C9A0), height: 1.4),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
               ),
             ),
           if (products.isNotEmpty)
@@ -1117,9 +1174,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF6AB187).withAlpha(20),
+              color: AppTheme.primarySoft,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF6AB187).withAlpha(50)),
+              border: Border.all(color: AppTheme.border),
             ),
             child: Column(
               children: [
@@ -1128,7 +1185,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF6AB187),
+                    color: AppTheme.primaryDark,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1137,7 +1194,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   '*Preços estimados. Valores sujeitos a alteração e promoções na loja parceira.',
                   style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF8A7A6E),
+                    color: AppTheme.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1157,16 +1214,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              const Color(0xFFC8714A).withAlpha(35),
-              const Color(0xFF0F0F0F),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFC8714A).withAlpha(120)),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withAlpha(15),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1176,7 +1233,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFFE8A44A),
+                color: AppTheme.primaryDark,
                 letterSpacing: 0.8,
               ),
             ),
@@ -1187,7 +1244,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2C1A10),
+                    color: AppTheme.primarySoft,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Center(
@@ -1204,12 +1261,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFFF5F0EC),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       Text(
                         '${product.brand} · ${product.storeLabel}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF8A7A6E)),
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -1217,7 +1274,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFFE8C9A0),
+                          color: AppTheme.primaryDark,
                         ),
                       ),
                     ],
@@ -1229,7 +1286,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               const SizedBox(height: 10),
               Text(
                 why,
-                style: const TextStyle(fontSize: 12, color: Color(0xFFE8C9A0), height: 1.4),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
               ),
             ],
             const SizedBox(height: 12),
@@ -1238,9 +1295,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                  colors: [AppTheme.primary, AppTheme.primaryLight],
                 ),
                 borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(50),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: const Text(
                 'Ver na loja',
@@ -1282,11 +1346,18 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF0F0F0F),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: const Color(0xFFC8714A).withAlpha(40),
+            color: AppTheme.border,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(4),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -1294,7 +1365,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFF2C1A10),
+                color: AppTheme.surfaceMuted,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -1314,14 +1385,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFF5F0EC),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   Text(
                     product.brand,
                     style: const TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF8A7A6E),
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1333,10 +1404,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFC8714A).withAlpha(30),
+                          color: AppTheme.primarySoft,
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: const Color(0xFFC8714A).withAlpha(75),
+                            color: AppTheme.border,
                           ),
                         ),
                         child: Text(
@@ -1344,7 +1415,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFFE8C9A0),
+                            color: AppTheme.primaryDark,
                           ),
                         ),
                       ),
@@ -1353,7 +1424,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         product.storeLabel,
                         style: const TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF6AB187),
+                          color: AppTheme.primary,
                         ),
                       ),
                     ],
@@ -1363,7 +1434,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             ),
             const Icon(
               Icons.arrow_forward_ios,
-              color: Color(0xFFC8714A),
+              color: AppTheme.textMuted,
               size: 14,
             ),
           ],
@@ -1378,9 +1449,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF6AB187).withAlpha(80)),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1390,13 +1468,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF6AB187),
+              color: AppTheme.primaryDark,
             ),
           ),
           const SizedBox(height: 6),
           const Text(
             'Daqui 7 dias compare oleosidade, acne e manchas com a mesma luz. A 2ª análise é o que mostra se a rotina está funcionando — e te avisamos com um lembrete.',
-            style: TextStyle(fontSize: 13, color: Color(0xFFE8C9A0), height: 1.45),
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.45),
           ),
           const SizedBox(height: 12),
           Row(
@@ -1404,8 +1482,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFE8C9A0),
-                    side: const BorderSide(color: Color(0xFFC8714A)),
+                    foregroundColor: AppTheme.primary,
+                    side: const BorderSide(color: AppTheme.primary),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () => context.push('/premium'),
@@ -1447,13 +1525,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2C1A10), Color(0xFF1C1712)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFC8714A).withAlpha(100)),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(6),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -1468,7 +1549,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFFE8C9A0),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -1476,7 +1557,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF8A7A6E),
+                      color: AppTheme.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -1487,9 +1568,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                  colors: [AppTheme.primary, AppTheme.primaryLight],
                 ),
                 borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(50),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Text(
                 'Ver planos',

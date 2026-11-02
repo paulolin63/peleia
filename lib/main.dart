@@ -35,11 +35,12 @@ void main() async {
     await EvolutionReminderService.instance.initialize();
   }
 
-  // Configura status bar transparente
+  // Configura status bar transparente e ícones escuros para tema botânico claro
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
     ),
   );
 
@@ -71,7 +72,9 @@ class PeleIAApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'PeleIA',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light,
       routerConfig: router,
       locale: locale,
     );

@@ -12,6 +12,8 @@ import 'auth_service.dart';
 import 'gemini_skin_service.dart';
 import 'history_thumb_store.dart';
 
+import '../theme/app_theme.dart';
+
 class PrivacyService {
   /// Limpeza completa de todos os dados do usuário (LGPD compliance)
   static Future<void> purgeAllUserData() async {
@@ -79,7 +81,7 @@ class PrivacyService {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF16120E),
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -99,7 +101,7 @@ class PrivacyService {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: AppTheme.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -112,7 +114,7 @@ class PrivacyService {
                   Text(
                     'Privacidade & Retenção de Dados',
                     style: TextStyle(
-                      color: Color(0xFFF5F0EC),
+                      color: AppTheme.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
@@ -123,7 +125,7 @@ class PrivacyService {
               const Text(
                 'Em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) '
                 'e com as diretrizes de transparência das lojas de aplicativos:',
-                style: TextStyle(color: Color(0xFFD4C2B2), fontSize: 13, height: 1.5),
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.5),
               ),
               const SizedBox(height: 16),
 
@@ -169,7 +171,7 @@ class PrivacyService {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC8714A),
+                    backgroundColor: AppTheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -206,7 +208,7 @@ class PrivacyService {
               Text(
                 title,
                 style: const TextStyle(
-                  color: Color(0xFFE8C9A0),
+                  color: AppTheme.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
@@ -215,7 +217,7 @@ class PrivacyService {
               Text(
                 desc,
                 style: const TextStyle(
-                  color: Color(0xFF8A7A6E),
+                  color: AppTheme.textSecondary,
                   fontSize: 12,
                   height: 1.4,
                 ),

@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/config/remote_config_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../data/subscription_plan.dart';
 import 'paywall_provider.dart';
 
@@ -69,7 +70,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: CustomScrollView(
         slivers: [
           // ── App Bar ───────────────────────────────────────
@@ -77,7 +78,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             pinned: false,
             backgroundColor: Colors.transparent,
             leading: IconButton(
-              icon: const Icon(Icons.close, color: Color(0xFF8A7A6E)),
+              icon: const Icon(Icons.close, color: AppTheme.textSecondary),
               onPressed: () =>
                   widget.isModal ? Navigator.pop(context) : context.go('/'),
             ),
@@ -88,7 +89,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     : () => ref.read(paywallProvider.notifier).restorePurchases(),
                 child: const Text(
                   'Restaurar',
-                  style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 13),
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                 ),
               ),
             ],
@@ -151,9 +152,16 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+              colors: [AppTheme.primary, AppTheme.primaryLight],
             ),
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withAlpha(50),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: const Text(
             '✨ PeleIA Premium',
@@ -173,7 +181,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           style: const TextStyle(
             fontSize: 30,
             fontWeight: FontWeight.w900,
-            color: Color(0xFFF5F0EC),
+            color: AppTheme.textPrimary,
             height: 1.15,
           ),
           textAlign: TextAlign.center,
@@ -183,7 +191,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
         Text(
           texts.paywallSubtitle,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF8A7A6E)),
+          style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
           textAlign: TextAlign.center,
         ),
       ],
@@ -197,9 +205,16 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: features.asMap().entries.map((entry) {
@@ -214,7 +229,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC8714A).withAlpha(30),
+                    color: AppTheme.primarySoft,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
@@ -231,14 +246,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFF5F0EC),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       Text(
                         desc,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF8A7A6E),
+                          color: AppTheme.textSecondary,
                           height: 1.4,
                         ),
                       ),
@@ -246,7 +261,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   ),
                 ),
                 const Icon(Icons.check_circle,
-                    color: Color(0xFF6AB187), size: 18),
+                    color: AppTheme.primary, size: 18),
               ],
             ),
           );
@@ -272,24 +287,23 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               top: plan.isHighlighted ? 4 : 0,
             ),
             decoration: BoxDecoration(
-              gradient: isSelected
-                  ? LinearGradient(
-                      colors: [
-                        const Color(0xFFC8714A).withAlpha(40),
-                        const Color(0xFFE8A44A).withAlpha(20),
-                      ],
-                    )
-                  : null,
-              color: isSelected ? null : const Color(0xFF1C1712),
+              color: isSelected ? AppTheme.primarySoft : AppTheme.surface,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: isSelected
-                    ? const Color(0xFFC8714A)
+                    ? AppTheme.primary
                     : plan.isBestValue
-                        ? const Color(0xFF6AB187).withAlpha(100)
-                        : const Color(0xFF2C1A10),
+                        ? AppTheme.primaryLight
+                        : AppTheme.border,
                 width: isSelected ? 2 : 1.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected ? AppTheme.primary.withAlpha(20) : Colors.black.withAlpha(4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Stack(
               children: [
@@ -306,12 +320,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFFC8714A)
-                                : const Color(0xFF4A3E35),
+                                ? AppTheme.primary
+                                : AppTheme.border,
                             width: 2,
                           ),
                           color: isSelected
-                              ? const Color(0xFFC8714A)
+                              ? AppTheme.primary
                               : Colors.transparent,
                         ),
                         child: isSelected
@@ -333,8 +347,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: isSelected
-                                    ? const Color(0xFFE8C9A0)
-                                    : const Color(0xFFF5F0EC),
+                                    ? AppTheme.primaryDark
+                                    : AppTheme.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -342,14 +356,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                               plan.quotaSubtitle,
                               style: const TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFF8A7A6E),
+                                color: AppTheme.textSecondary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             if (plan.priceFormatted.isEmpty)
                               const Text(
                                 'Preço na Google Play',
-                                style: TextStyle(fontSize: 11, color: Color(0xFF8A7A6E)),
+                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                               ),
                           ],
                         ),
@@ -365,15 +379,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
                               color: isSelected
-                                  ? const Color(0xFFE8A44A)
-                                  : const Color(0xFFF5F0EC),
+                                  ? AppTheme.primaryDark
+                                  : AppTheme.textPrimary,
                             ),
                           ),
                           Text(
                             plan.periodLabel,
                             style: const TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF8A7A6E),
+                              color: AppTheme.textSecondary,
                             ),
                           ),
                         ],
@@ -394,7 +408,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                             horizontal: 14, vertical: 4),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                            colors: [AppTheme.primary, AppTheme.primaryLight],
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -448,9 +462,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFD96B6B).withAlpha(30),
+              color: AppTheme.error.withAlpha(20),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFD96B6B).withAlpha(75)),
+              border: Border.all(color: AppTheme.error.withAlpha(75)),
             ),
             child: Row(
               children: [
@@ -459,14 +473,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   child: Text(
                     state.errorMessage!,
                     style: const TextStyle(
-                        color: Color(0xFFD96B6B), fontSize: 13),
+                        color: AppTheme.error, fontSize: 13),
                   ),
                 ),
                 GestureDetector(
                   onTap: () =>
                       ref.read(paywallProvider.notifier).dismissError(),
                   child: const Icon(Icons.close,
-                      color: Color(0xFFD96B6B), size: 16),
+                      color: AppTheme.error, size: 16),
                 ),
               ],
             ),
@@ -484,17 +498,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               gradient: state.isLoading
                   ? null
                   : const LinearGradient(
-                      colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                      colors: [AppTheme.primary, AppTheme.primaryLight],
                     ),
-              color: state.isLoading ? const Color(0xFF2C1A10) : null,
+              color: state.isLoading ? AppTheme.surfaceMuted : null,
               borderRadius: BorderRadius.circular(18),
               boxShadow: state.isLoading
                   ? []
                   : [
                       BoxShadow(
-                        color: const Color(0xFFC8714A).withAlpha(100),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
+                        color: AppTheme.primary.withAlpha(80),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
                       ),
                     ],
             ),
@@ -504,7 +518,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       width: 26,
                       height: 26,
                       child: CircularProgressIndicator(
-                        color: Color(0xFFC8714A),
+                        color: AppTheme.primary,
                         strokeWidth: 2.5,
                       ),
                     )
@@ -576,16 +590,23 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2C1A10)),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: const Column(
         children: [
           Text(
             'Feito para o clima e a pele do Brasil',
             style: TextStyle(
-              color: Color(0xFFE8C9A0),
+              color: AppTheme.textPrimary,
               fontWeight: FontWeight.w700,
               fontSize: 13,
             ),
@@ -594,7 +615,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           SizedBox(height: 10),
           Text(
             'Cobrança segura via Google Play · Cancele quando quiser · Fotos ficam no seu aparelho',
-            style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.4),
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.4),
             textAlign: TextAlign.center,
           ),
         ],
@@ -617,7 +638,7 @@ class _TrustBadge extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           label,
-          style: const TextStyle(fontSize: 10, color: Color(0xFF4A3E35)),
+          style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
         ),
       ],
     );
@@ -642,7 +663,7 @@ class _SuccessOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -664,7 +685,7 @@ class _SuccessOverlay extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFFF5F0EC),
+                  color: AppTheme.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 400.ms),
@@ -675,7 +696,7 @@ class _SuccessOverlay extends StatelessWidget {
                 'Você agora tem acesso completo a todas\nas funcionalidades do PeleIA Premium.',
                 style: TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF8A7A6E),
+                  color: AppTheme.textSecondary,
                   height: 1.6,
                 ),
                 textAlign: TextAlign.center,
@@ -688,8 +709,8 @@ class _SuccessOverlay extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
-                      Color(0xFF6AB187),
-                      Color(0xFF4A9268),
+                      AppTheme.primary,
+                      AppTheme.primaryLight,
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -710,7 +731,7 @@ class _SuccessOverlay extends StatelessWidget {
 
               const Text(
                 'Redirecionando para o app...',
-                style: TextStyle(fontSize: 12, color: Color(0xFF4A3E35)),
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
               ).animate().fadeIn(delay: 900.ms),
             ],
           ),

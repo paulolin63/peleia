@@ -24,6 +24,7 @@ import '../../../core/profile/user_profile.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/revenuecat_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../history/data/history_entry.dart';
 import '../../profile/avoidance_fields.dart';
 
@@ -164,21 +165,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFF0F0F0F),
+        backgroundColor: AppTheme.bg,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFFC8714A)),
+          child: CircularProgressIndicator(color: AppTheme.primary),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: Stack(
         children: [
           SafeArea(
             child: RefreshIndicator(
-              color: const Color(0xFFC8714A),
-              backgroundColor: const Color(0xFF1C1712),
+              color: AppTheme.primary,
+              backgroundColor: AppTheme.surface,
               onRefresh: _loadDashboardData,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -244,12 +245,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           height: 44,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+              colors: [AppTheme.primary, AppTheme.primaryLight],
             ),
             borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withAlpha(50),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: const Center(
-            child: Text('✨', style: TextStyle(fontSize: 22)),
+            child: Text('🌿', style: TextStyle(fontSize: 22)),
           ),
         ),
         const SizedBox(width: 12),
@@ -259,7 +267,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Text(
               '${_getGreeting(tr)}${tr.dashGreetingSuffix}',
               style: const TextStyle(
-                color: Color(0xFF8A7A6E),
+                color: AppTheme.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -267,7 +275,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Text(
               tr.dashDailyHeader,
               style: const TextStyle(
-                color: Color(0xFFF5F0EC),
+                color: AppTheme.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
               ),
@@ -283,9 +291,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF1C1712),
+                color: AppTheme.primarySoft,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF6AB187).withAlpha(120)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -295,7 +303,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Text(
                     '${_latestEntry!.scoreGeral}',
                     style: const TextStyle(
-                      color: Color(0xFF6AB187),
+                      color: AppTheme.primaryDark,
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
                     ),
@@ -317,11 +325,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF1C1712),
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(8),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: const Icon(Icons.history, color: Color(0xFFE8C9A0), size: 20),
+            child: const Icon(Icons.history, color: AppTheme.primary, size: 20),
           ),
         ),
 
@@ -332,9 +347,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               gradient: _isPro
-                  ? const LinearGradient(colors: [Color(0xFF6AB187), Color(0xFF4A9268)])
-                  : const LinearGradient(colors: [Color(0xFFC8714A), Color(0xFFE8A44A)]),
+                  ? const LinearGradient(colors: [AppTheme.primaryDark, AppTheme.primary])
+                  : const LinearGradient(colors: [AppTheme.primary, AppTheme.primaryLight]),
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primary.withAlpha(60),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -391,19 +413,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1712),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFC8714A).withAlpha(45)),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(6),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.tune, color: Color(0xFFE8C9A0), size: 16),
+            const Icon(Icons.tune, color: AppTheme.primary, size: 16),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '${tr.dashProfilePrefix} $ageText • $outdoorText${_profile.note.isEmpty && _profile.avoidIngredients.isEmpty && _profile.conditions.isEmpty ? '' : ' • ${tr.dashWithRestrictions}'}',
                 style: const TextStyle(
-                  color: Color(0xFFE8C9A0),
+                  color: AppTheme.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -413,7 +442,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Text(
               tr.dashAdjustProfile,
               style: const TextStyle(
-                color: Color(0xFFC8714A),
+                color: AppTheme.primary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -434,7 +463,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     showModalBottomSheet(
       isDismissible: true,
       context: context,
-      backgroundColor: const Color(0xFF16120E),
+      backgroundColor: AppTheme.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -458,7 +487,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF3A3026),
+                        color: AppTheme.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -467,7 +496,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const Text(
                     'Perfil e Hábitos de Sol',
                     style: TextStyle(
-                      color: Color(0xFFF5F0EC),
+                      color: AppTheme.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
@@ -476,7 +505,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const Text(
                     'Personaliza a análise do Gemini e a escolha do protetor solar ideal.',
                     style: TextStyle(
-                      color: Color(0xFF8A7A6E),
+                      color: AppTheme.textSecondary,
                       fontSize: 13,
                     ),
                   ),
@@ -484,7 +513,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const Text(
                     'Faixa Etária',
                     style: TextStyle(
-                      color: Color(0xFFE8C9A0),
+                      color: AppTheme.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -520,7 +549,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const Text(
                     'Exposição Solar & Esportes ao Ar Livre',
                     style: TextStyle(
-                      color: Color(0xFFE8C9A0),
+                      color: AppTheme.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -581,7 +610,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC8714A),
+                        backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -612,16 +641,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFC8714A) : const Color(0xFF221A14),
+          color: selected ? AppTheme.primarySoft : AppTheme.surfaceMuted,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? const Color(0xFFE8A44A) : const Color(0xFF3A3026),
+            color: selected ? AppTheme.primary : AppTheme.border,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : const Color(0xFFD6C8BC),
+            color: selected ? AppTheme.primaryDark : AppTheme.textSecondary,
             fontSize: 13,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
@@ -642,10 +671,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF261C14) : const Color(0xFF1C1712),
+          color: selected ? AppTheme.primarySoft : AppTheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? const Color(0xFFC8714A) : const Color(0xFF2E241C),
+            color: selected ? AppTheme.primary : AppTheme.border,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -660,7 +689,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: selected ? const Color(0xFFF5F0EC) : const Color(0xFFD6C8BC),
+                      color: selected ? AppTheme.textPrimary : AppTheme.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -668,7 +697,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Text(
                     subtitle,
                     style: const TextStyle(
-                      color: Color(0xFF8A7A6E),
+                      color: AppTheme.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -677,7 +706,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             Icon(
               selected ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: selected ? const Color(0xFFC8714A) : const Color(0xFF4A3C30),
+              color: selected ? AppTheme.primary : AppTheme.textMuted,
               size: 20,
             ),
           ],
@@ -691,20 +720,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF261A12), Color(0xFF1C1712)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        color: const Color(0xFFFFFDF9),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8A44A).withAlpha(50)),
+        border: Border.all(color: const Color(0xFFF5E6DA)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEAA07A).withAlpha(15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8A44A).withAlpha(25),
+              color: const Color(0xFFFDF4ED),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Text('☀️', style: TextStyle(fontSize: 18)),
@@ -719,7 +751,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Text(
                       tr.isEn ? 'UV 8 • Very High (Brazil)' : 'UV 8 • Muito Alto (Brasil)',
                       style: const TextStyle(
-                        color: Color(0xFFE8A44A),
+                        color: Color(0xFFB8652A),
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
@@ -731,7 +763,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ? 'Essential: Dry-touch SPF 50+ recommended today'
                       : 'Toque seco e FPS 50+ recomendados para seu perfil',
                   style: const TextStyle(
-                    color: Color(0xFF8A7A6E),
+                    color: Color(0xFF7A6A5E),
                     fontSize: 11,
                   ),
                   maxLines: 1,
@@ -743,14 +775,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8A44A).withAlpha(20),
+              color: const Color(0xFFFDF4ED),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE8A44A).withAlpha(60)),
+              border: Border.all(color: const Color(0xFFF5D5C2)),
             ),
             child: const Text(
               'FPS 50+',
               style: TextStyle(
-                color: Color(0xFFE8A44A),
+                color: Color(0xFFB8652A),
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
               ),
@@ -769,9 +801,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1712),
+            color: AppTheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF6AB187).withAlpha(50)),
+            border: Border.all(color: AppTheme.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(5),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -784,21 +823,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Text(
                       tr.dashNewUserTitle,
                       style: const TextStyle(
-                        color: Color(0xFFF5F0EC),
+                        color: AppTheme.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
                       tr.dashNewUserDesc,
-                      style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, color: Color(0xFF8A7A6E), size: 13),
+              const Icon(Icons.arrow_forward_ios, color: AppTheme.textMuted, size: 13),
             ],
           ),
         ),
@@ -810,16 +849,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1712),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFC8714A).withAlpha(45)),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(5),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: const Color(0xFF6AB187).withAlpha(20),
+                color: AppTheme.primarySoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Text('🌱', style: TextStyle(fontSize: 16)),
@@ -834,7 +880,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Text(
                         '${tr.dashCurrentSkinPrefix}${tr.translateSkinType(_latestEntry!.skinType)}',
                         style: const TextStyle(
-                          color: Color(0xFFF5F0EC),
+                          color: AppTheme.textPrimary,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -843,7 +889,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Text(
                         '(${_latestEntry!.scoreGeral} pts)',
                         style: const TextStyle(
-                          color: Color(0xFF6AB187),
+                          color: AppTheme.primaryDark,
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
                         ),
@@ -854,14 +900,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     tr.isEn
                         ? 'Follow-up evolution selfie recommended in 7 days'
                         : '2ª Selfie de evolução: acompanhe seu Antes & Depois',
-                    style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Color(0xFF8A7A6E), size: 13),
+            const Icon(Icons.arrow_forward_ios, color: AppTheme.textMuted, size: 13),
           ],
         ),
       ),
@@ -901,9 +947,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF2C1A10)),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(6),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -913,7 +966,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Text(
                 tr.dashTodayRoutine,
                 style: const TextStyle(
-                  color: Color(0xFFF5F0EC),
+                  color: AppTheme.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -922,7 +975,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // Toggle Manhã / Noite
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F0F0F),
+                  color: AppTheme.surfaceMuted,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.all(3),
@@ -947,11 +1000,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Text(
                 tr.dashStepsCompleted(completedCount, totalSteps),
-                style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
               ),
               const Spacer(),
               if (completedCount == totalSteps)
-                Text(tr.dashAllDone, style: const TextStyle(color: Color(0xFF6AB187), fontSize: 11, fontWeight: FontWeight.w700)),
+                Text(tr.dashAllDone, style: const TextStyle(color: AppTheme.primaryDark, fontSize: 11, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 6),
@@ -967,9 +1020,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               builder: (context, val, _) {
                 return LinearProgressIndicator(
                   value: val,
-                  backgroundColor: Colors.white.withAlpha(12),
+                  backgroundColor: AppTheme.surfaceMuted,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    val >= 1.0 ? const Color(0xFF6AB187) : const Color(0xFFC8714A),
+                    val >= 1.0 ? AppTheme.primaryDark : AppTheme.primary,
                   ),
                   minHeight: 7,
                 );
@@ -993,10 +1046,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isChecked ? const Color(0xFF6AB187).withAlpha(15) : const Color(0xFF0F0F0F),
+                  color: isChecked ? AppTheme.primarySoft : AppTheme.surface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isChecked ? const Color(0xFF6AB187).withAlpha(60) : const Color(0xFF2C1A10),
+                    color: isChecked ? AppTheme.primary.withAlpha(80) : AppTheme.border,
                   ),
                 ),
                 child: Row(
@@ -1010,7 +1063,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Text(
                             title,
                             style: TextStyle(
-                              color: isChecked ? const Color(0xFF6AB187) : const Color(0xFFF5F0EC),
+                              color: isChecked ? AppTheme.textMuted : AppTheme.textPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               decoration: isChecked ? TextDecoration.lineThrough : null,
@@ -1019,7 +1072,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Text(
                             desc,
                             style: TextStyle(
-                              color: const Color(0xFF8A7A6E),
+                              color: AppTheme.textSecondary,
                               fontSize: 11,
                               decoration: isChecked ? TextDecoration.lineThrough : null,
                             ),
@@ -1037,7 +1090,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         child: Icon(
                           isChecked ? Icons.check_circle : Icons.radio_button_unchecked,
                           key: ValueKey<bool>(isChecked),
-                          color: isChecked ? const Color(0xFF6AB187) : const Color(0xFF8A7A6E),
+                          color: isChecked ? AppTheme.primary : AppTheme.textMuted,
                           size: 22,
                         ),
                       ),
@@ -1058,13 +1111,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFC8714A) : Colors.transparent,
+          color: isSelected ? AppTheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF8A7A6E),
+            color: isSelected ? Colors.white : AppTheme.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w700,
           ),
@@ -1081,13 +1134,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         height: 62,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+            colors: [AppTheme.primary, AppTheme.primaryLight],
           ),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFC8714A).withAlpha(90),
-              blurRadius: 20,
+              color: AppTheme.primary.withAlpha(70),
+              blurRadius: 18,
               offset: const Offset(0, 6),
             ),
           ],
@@ -1126,7 +1179,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-// ── Confetti leve de streak (partículas terracota curtas, sem emoji spam) ──
+// ── Confetti leve de streak (partículas botânicas & pêssego, sem emoji spam) ──
 class _TerracottaConfetti extends StatefulWidget {
   const _TerracottaConfetti({super.key});
 
@@ -1149,11 +1202,11 @@ class _TerracottaConfettiState extends State<_TerracottaConfetti>
 
     final rnd = math.Random();
     const colors = [
-      Color(0xFFC8714A), // Terracota principal
-      Color(0xFFE8A44A), // Dourado quente
-      Color(0xFF6AB187), // Sálvia
-      Color(0xFFF2A58B), // Pêssego suave
-      Color(0xFFFFF0E8), // Pérola
+      AppTheme.primary, // Verde botânico
+      AppTheme.primaryLight, // Matcha
+      AppTheme.peach, // Pêssego suave
+      AppTheme.gold, // Dourado radiante
+      Color(0xFFEBF5E6), // Pérola botânica
     ];
 
     _particles = List.generate(24, (i) {

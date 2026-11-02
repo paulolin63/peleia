@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Chips de ingredientes e condições, mais a observação livre. A lista vem da config.
 class AvoidanceFields extends StatelessWidget {
@@ -26,7 +27,7 @@ class AvoidanceFields extends StatelessWidget {
       children: [
         const Text(
           'Ingredientes a evitar',
-          style: TextStyle(color: Color(0xFFE8C9A0), fontSize: 13, fontWeight: FontWeight.w700),
+          style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -44,21 +45,22 @@ class AvoidanceFields extends StatelessWidget {
                     avoid.remove(option.id);
                   }
                 }),
-                selectedColor: const Color(0xFFC8714A),
-                checkmarkColor: Colors.white,
+                selectedColor: AppTheme.primarySoft,
+                checkmarkColor: AppTheme.primary,
                 labelStyle: TextStyle(
-                  color: avoid.contains(option.id) ? Colors.white : const Color(0xFFE8C9A0),
+                  color: avoid.contains(option.id) ? AppTheme.primaryDark : AppTheme.textPrimary,
                   fontSize: 12,
+                  fontWeight: avoid.contains(option.id) ? FontWeight.w700 : FontWeight.w500,
                 ),
-                backgroundColor: const Color(0xFF1C1712),
-                side: const BorderSide(color: Color(0xFF2C1A10)),
+                backgroundColor: AppTheme.surface,
+                side: BorderSide(color: avoid.contains(option.id) ? AppTheme.primary : AppTheme.border),
               ),
           ],
         ),
         const SizedBox(height: 16),
         const Text(
           'Condições',
-          style: TextStyle(color: Color(0xFFE8C9A0), fontSize: 13, fontWeight: FontWeight.w700),
+          style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -76,44 +78,53 @@ class AvoidanceFields extends StatelessWidget {
                     conditions.remove(option.id);
                   }
                 }),
-                selectedColor: const Color(0xFF6AB187),
-                checkmarkColor: Colors.white,
+                selectedColor: AppTheme.primarySoft,
+                checkmarkColor: AppTheme.primary,
                 labelStyle: TextStyle(
-                  color: conditions.contains(option.id) ? Colors.white : const Color(0xFFE8C9A0),
+                  color: conditions.contains(option.id) ? AppTheme.primaryDark : AppTheme.textPrimary,
                   fontSize: 12,
+                  fontWeight: conditions.contains(option.id) ? FontWeight.w700 : FontWeight.w500,
                 ),
-                backgroundColor: const Color(0xFF1C1712),
-                side: const BorderSide(color: Color(0xFF2C1A10)),
+                backgroundColor: AppTheme.surface,
+                side: BorderSide(color: conditions.contains(option.id) ? AppTheme.primary : AppTheme.border),
               ),
           ],
         ),
         const SizedBox(height: 16),
         const Text(
           'Observação pessoal',
-          style: TextStyle(color: Color(0xFFE8C9A0), fontSize: 13, fontWeight: FontWeight.w700),
+          style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: note,
           maxLength: 280,
           maxLines: 3,
-          style: const TextStyle(color: Color(0xFFF5F0EC), fontSize: 14),
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
           decoration: const InputDecoration(
             hintText: 'Ex.: alergia à marca X, uso isotretinoína',
-            hintStyle: TextStyle(color: Color(0xFF8A7A6E), fontSize: 13),
-            counterStyle: TextStyle(color: Color(0xFF8A7A6E)),
+            hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            counterStyle: TextStyle(color: AppTheme.textMuted),
             filled: true,
-            fillColor: Color(0xFF1C1712),
+            fillColor: AppTheme.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(14)),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: AppTheme.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+              borderSide: BorderSide(color: AppTheme.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+              borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
             ),
           ),
         ),
         const SizedBox(height: 8),
         const Text(
           'Isso fica no seu aparelho e só vai para a IA na hora de montar a rotina. Confira sempre o rótulo do produto.',
-          style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 11, height: 1.4),
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 11, height: 1.4),
         ),
       ],
     );

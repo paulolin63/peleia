@@ -21,6 +21,7 @@ import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/recommendation.dart';
 import '../../../core/services/revenuecat_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../paywall/presentation/quota_upsell_dialog.dart';
 import 'scan_provider.dart';
 
@@ -58,8 +59,8 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
           if (quota.blockReason == QuotaBlockReason.proDailyExceeded) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                backgroundColor: const Color(0xFF1C1712),
-                content: Text(quota.statusText, style: const TextStyle(color: Color(0xFFE8C9A0))),
+                backgroundColor: AppTheme.surface,
+                content: Text(quota.statusText, style: const TextStyle(color: AppTheme.textPrimary)),
               ),
             );
           } else {
@@ -146,7 +147,7 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -161,7 +162,7 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                     height: 36,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                        colors: [AppTheme.primary, AppTheme.primaryLight],
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -176,13 +177,13 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFFF5F0EC))),
+                              color: AppTheme.textPrimary)),
                       TextSpan(
                           text: 'IA',
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFFC8714A))),
+                              color: AppTheme.primary)),
                     ]),
                   ),
                   const Spacer(),
@@ -193,10 +194,10 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                       padding:
                           const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1C1712),
+                        color: AppTheme.surface,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: const Color(0xFFC8714A).withAlpha(100)),
+                            color: AppTheme.border),
                       ),
                       child: const Row(
                         children: [
@@ -259,15 +260,15 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1C1712),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: const Color(0xFFC8714A).withAlpha(75)),
+                        color: AppTheme.border),
                   ),
                   child: Column(
                     children: [
                       const CircularProgressIndicator(
-                        color: Color(0xFFC8714A),
+                        color: AppTheme.primary,
                         strokeWidth: 3,
                       ),
                       const SizedBox(height: 16),
@@ -360,10 +361,10 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1C1712),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: const Color(0xFFC8714A).withAlpha(40)),
+                        color: AppTheme.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,7 +374,7 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFFE8C9A0)),
+                            color: AppTheme.textPrimary),
                       ),
                       const SizedBox(height: 10),
                       ...[

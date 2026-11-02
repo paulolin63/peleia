@@ -16,6 +16,7 @@ import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/privacy_service.dart';
 import '../../../core/services/report_export_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../data/history_entry.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -60,11 +61,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1712),
+        backgroundColor: AppTheme.surface,
         title: const Text(
           'Excluir Histórico (Privacidade LGPD)',
           style: TextStyle(
-            color: Color(0xFFE8C9A0),
+            color: AppTheme.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -73,7 +74,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           'Deseja apagar permanentemente todas as fotos e avaliações salvas no seu aparelho?\n\n'
           'Suas fotos são mantidas exclusivamente na memória local do seu dispositivo e essa exclusão é definitiva.',
           style: TextStyle(
-            color: Color(0xFFD4C2B2),
+            color: AppTheme.textSecondary,
             fontSize: 13,
             height: 1.4,
           ),
@@ -83,12 +84,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text(
               'Cancelar',
-              style: TextStyle(color: Color(0xFF8A7A6E)),
+              style: TextStyle(color: AppTheme.textSecondary),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE05353),
+              backgroundColor: AppTheme.error,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
@@ -107,7 +108,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Todo o histórico de fotos foi apagado com sucesso.'),
-            backgroundColor: Color(0xFF2C1A10),
+            backgroundColor: AppTheme.primaryDark,
           ),
         );
       }
@@ -117,17 +118,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F0F),
+        backgroundColor: AppTheme.bg,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFC8714A)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.primary),
           onPressed: () => context.pop(),
         ),
         title: Text(
           ref.watch(trProvider).historyTitle,
           style: const TextStyle(
-            color: Color(0xFFF5F0EC),
+            color: AppTheme.textPrimary,
             fontWeight: FontWeight.w800,
             fontSize: 18,
           ),
@@ -136,23 +138,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           const LanguageToggleButton(compact: true),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.shield_outlined, color: Color(0xFF8A7A6E)),
+            icon: const Icon(Icons.shield_outlined, color: AppTheme.textSecondary),
             tooltip: 'Privacidade de Dados (LGPD)',
             onPressed: () => PrivacyService.showPrivacyNoticeModal(context),
           ),
           if (_entries.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Color(0xFF8A7A6E)),
+              icon: const Icon(Icons.delete_outline, color: AppTheme.textSecondary),
               tooltip: 'Excluir Histórico (LGPD)',
               onPressed: _showClearHistoryDialog,
             ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFFC8714A),
+          indicatorColor: AppTheme.primary,
           indicatorWeight: 3,
-          labelColor: const Color(0xFFE8C9A0),
-          unselectedLabelColor: const Color(0xFF8A7A6E),
+          labelColor: AppTheme.primaryDark,
+          unselectedLabelColor: AppTheme.textSecondary,
           labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           tabs: const [
             Tab(text: '✨ Antes & Depois'),
@@ -162,7 +164,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFC8714A)),
+              child: CircularProgressIndicator(color: AppTheme.primary),
             )
           : TabBarView(
               controller: _tabController,
@@ -204,11 +206,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2C1A10), Color(0xFF1C1712)],
-              ),
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFC8714A).withAlpha(75)),
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(5),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -221,7 +228,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                       const Text(
                         'Progresso da sua Pele',
                         style: TextStyle(
-                          color: Color(0xFFF5F0EC),
+                          color: AppTheme.textPrimary,
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                         ),
@@ -230,7 +237,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                       Text(
                         'Comparando ${before.formattedDate} com ${after.formattedDate}',
                         style: const TextStyle(
-                          color: Color(0xFF8A7A6E),
+                          color: AppTheme.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -248,7 +255,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             const Text(
               'Arraste a barra para comparar:',
               style: TextStyle(
-                color: Color(0xFFE8C9A0),
+                color: AppTheme.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -262,7 +269,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           const Text(
             'Comparativo de Scores:',
             style: TextStyle(
-              color: Color(0xFFE8C9A0),
+              color: AppTheme.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -451,22 +458,22 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
     String diffText;
 
     if (isSame) {
-      badgeColor = const Color(0xFF8A7A6E);
+      badgeColor = AppTheme.textSecondary;
       diffText = 'Estável';
     } else if (isImproved) {
-      badgeColor = const Color(0xFF6AB187);
+      badgeColor = AppTheme.success;
       diffText = higherIsBetter ? '+$diff' : '$diff';
     } else {
-      badgeColor = const Color(0xFFD96B6B);
+      badgeColor = AppTheme.error;
       diffText = higherIsBetter ? '$diff' : '+$diff';
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF2C1A10)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Row(
         children: [
@@ -476,7 +483,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             child: Text(
               label,
               style: const TextStyle(
-                color: Color(0xFFF5F0EC),
+                color: AppTheme.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -485,7 +492,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           Text(
             '$beforeVal ➔ $afterVal',
             style: const TextStyle(
-              color: Color(0xFFE8C9A0),
+              color: AppTheme.textPrimary,
               fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
@@ -494,9 +501,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: badgeColor.withAlpha(30),
+              color: badgeColor.withAlpha(20),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: badgeColor.withAlpha(75)),
+              border: Border.all(color: badgeColor.withAlpha(60)),
             ),
             child: Text(
               diffText,
@@ -528,7 +535,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             const Text(
               'Sua jornada de pele começou!',
               style: TextStyle(
-                color: Color(0xFFF5F0EC),
+                color: AppTheme.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
               ),
@@ -540,7 +547,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
               'Siga sua rotina de skincare recomendada e volte daqui a alguns dias para sua 2ª análise. '
               'A barra de comparação interativa Antes & Depois será ativada automaticamente!',
               style: const TextStyle(
-                color: Color(0xFF8A7A6E),
+                color: AppTheme.textSecondary,
                 fontSize: 14,
                 height: 1.6,
               ),
@@ -550,7 +557,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             ElevatedButton(
               onPressed: () => _tabController.animateTo(1),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC8714A),
+                backgroundColor: AppTheme.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -600,7 +607,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF14100D),
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -620,7 +627,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8A7A6E).withAlpha(100),
+                    color: AppTheme.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -637,7 +644,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                       Text(
                         'Análise de ${entry.formattedDate}',
                         style: const TextStyle(
-                          color: Color(0xFF8A7A6E),
+                          color: AppTheme.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -645,7 +652,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                       Text(
                         'Pele ${_capitalize(entry.skinType)}',
                         style: const TextStyle(
-                          color: Color(0xFFF5F0EC),
+                          color: AppTheme.textPrimary,
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                         ),
@@ -655,7 +662,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFC8714A),
+                      color: AppTheme.primary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -675,9 +682,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1C1712),
+                  color: AppTheme.surfaceMuted,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
+                  border: Border.all(color: AppTheme.border),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -697,9 +704,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                   Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2C1A10),
-                        foregroundColor: const Color(0xFFE8C9A0),
-                        side: BorderSide(color: const Color(0xFFC8714A).withAlpha(100)),
+                        backgroundColor: AppTheme.surface,
+                        foregroundColor: AppTheme.textPrimary,
+                        side: const BorderSide(color: AppTheme.border),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -726,7 +733,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                   Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC8714A),
+                        backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -755,7 +762,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                 const Text(
                   '🌿 Produtos Recomendados',
                   style: TextStyle(
-                    color: Color(0xFFE8C9A0),
+                    color: AppTheme.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -765,9 +772,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1C1712),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: InkWell(
                     onTap: () => _openProductLink(p.affiliateUrl),
@@ -782,7 +789,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                               Text(
                                 p.name,
                                 style: const TextStyle(
-                                  color: Color(0xFFF5F0EC),
+                                  color: AppTheme.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -790,7 +797,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                               Text(
                                 '${p.brand} • ${p.storeLabel}',
                                 style: const TextStyle(
-                                  color: Color(0xFF8A7A6E),
+                                  color: AppTheme.textSecondary,
                                   fontSize: 11,
                                 ),
                               ),
@@ -800,20 +807,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFC8714A).withAlpha(30),
+                            color: AppTheme.primarySoft,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             p.priceFormatted,
                             style: const TextStyle(
-                              color: Color(0xFFE8C9A0),
+                              color: AppTheme.primaryDark,
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFFC8714A)),
+                        const Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.primary),
                       ],
                     ),
                   ),
@@ -826,7 +833,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                 const Text(
                   '📋 Relatório e Rotina da IA',
                   style: TextStyle(
-                    color: Color(0xFFE8C9A0),
+                    color: AppTheme.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -835,14 +842,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1C1712),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF2C1A10)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Text(
                     entry.fullReport,
                     style: const TextStyle(
-                      color: Color(0xFFD4C2B2),
+                      color: AppTheme.textSecondary,
                       fontSize: 13,
                       height: 1.5,
                     ),
@@ -860,9 +867,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
   Widget _buildMetricDetailItem(String title, String val) {
     return Column(
       children: [
-        Text(title, style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11)),
+        Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
         const SizedBox(height: 2),
-        Text(val, style: const TextStyle(color: Color(0xFFF5F0EC), fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(val, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
       ],
     );
   }
@@ -875,14 +882,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1712),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isLatest
-                ? const Color(0xFFC8714A)
-                : const Color(0xFF2C1A10),
+                ? AppTheme.primary
+                : AppTheme.border,
             width: isLatest ? 1.5 : 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(isLatest ? 12 : 5),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -896,7 +910,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                   child: Container(
                     width: 60,
                     height: 75,
-                    color: const Color(0xFF2C1A10),
+                    color: AppTheme.primarySoft,
                     child: entry.imageBytes != null
                         ? Image.memory(entry.imageBytes!, fit: BoxFit.cover)
                         : const Center(
@@ -968,7 +982,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
 
                 // Botão deletar
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Color(0xFF8A7A6E), size: 18),
+                  icon: const Icon(Icons.delete_outline, color: AppTheme.textMuted, size: 18),
                   onPressed: () => _confirmDelete(entry.id),
                 ),
               ],
@@ -977,21 +991,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             // Prévia dos produtos recomendados
             if (entry.products.isNotEmpty) ...[
               const SizedBox(height: 10),
-              const Divider(color: Color(0xFF2C1A10), height: 1),
+              const Divider(color: AppTheme.border, height: 1),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Text('🌿 Produtos: ', style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 11, fontWeight: FontWeight.bold)),
+                  const Text('🌿 Produtos: ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
                   Expanded(
                     child: Text(
                       entry.products.map((p) => '${p.emoji} ${p.name}').join(' • '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 11),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFFC8714A)),
+                  const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.primary),
                 ],
               ),
             ],
@@ -1005,12 +1019,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(8),
+        color: AppTheme.primarySoft,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 11, fontWeight: FontWeight.w600),
+        style: const TextStyle(color: AppTheme.primaryDark, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -1031,19 +1045,19 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(color: Color(0xFFF5F0EC), fontSize: 18, fontWeight: FontWeight.w800),
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
               desc,
-              style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 13, height: 1.5),
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.5),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC8714A),
+                backgroundColor: AppTheme.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
@@ -1059,16 +1073,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1712),
-        title: const Text('Excluir análise?', style: TextStyle(color: Color(0xFFF5F0EC))),
+        backgroundColor: AppTheme.surface,
+        title: const Text('Excluir análise?', style: TextStyle(color: AppTheme.textPrimary)),
         content: const Text(
           'Esta análise será removida permanentemente do seu histórico.',
-          style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 13),
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar', style: TextStyle(color: Color(0xFF8A7A6E))),
+            child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
           ),
           TextButton(
             onPressed: () async {

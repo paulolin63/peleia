@@ -1,11 +1,11 @@
 // ============================================================
 //  lib/core/localization/language_toggle_button.dart
-//
 //  Botão pill compacto para alternar rapidamente entre PT e EN
 // ============================================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../theme/app_theme.dart';
 import 'app_translations.dart';
 
 class LanguageToggleButton extends ConsumerWidget {
@@ -30,15 +30,15 @@ class LanguageToggleButton extends ConsumerWidget {
               vertical: compact ? 4 : 6,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFF1C1712),
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFFC8714A).withAlpha(120),
+                color: AppTheme.border,
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFC8714A).withAlpha(30),
+                  color: Colors.black.withAlpha(10),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -57,7 +57,7 @@ class LanguageToggleButton extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: compact ? 11 : 12,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFFF2A58B),
+                    color: AppTheme.primary,
                     letterSpacing: 0.5,
                   ),
                 ),

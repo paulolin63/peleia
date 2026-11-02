@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
+
 /// Shown when free/SOS quota is exhausted. SOS = impulse, Pro = habit.
 Future<void> showQuotaUpsellDialog(
   BuildContext context, {
@@ -9,12 +11,12 @@ Future<void> showQuotaUpsellDialog(
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: const Color(0xFF1C1712),
+      backgroundColor: AppTheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text(
         'Continue sua evolução',
         style: TextStyle(
-          color: Color(0xFFF5F0EC),
+          color: AppTheme.textPrimary,
           fontWeight: FontWeight.w800,
           fontSize: 18,
         ),
@@ -25,12 +27,12 @@ Future<void> showQuotaUpsellDialog(
         children: [
           Text(
             message,
-            style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 14, height: 1.5),
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: 12),
           const Text(
             'Quer só mais uma análise agora, ou acompanhar a pele semana a semana?',
-            style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 13, height: 1.4),
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
           ),
         ],
       ),
@@ -41,7 +43,7 @@ Future<void> showQuotaUpsellDialog(
           width: double.infinity,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC8714A),
+              backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -61,8 +63,8 @@ Future<void> showQuotaUpsellDialog(
           width: double.infinity,
           child: OutlinedButton(
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFE8C9A0),
-              side: const BorderSide(color: Color(0xFFC8714A)),
+              foregroundColor: AppTheme.primary,
+              side: const BorderSide(color: AppTheme.primary),
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -78,7 +80,7 @@ Future<void> showQuotaUpsellDialog(
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Agora não', style: TextStyle(color: Color(0xFF8A7A6E))),
+          child: const Text('Agora não', style: TextStyle(color: AppTheme.textSecondary)),
         ),
       ],
     ),

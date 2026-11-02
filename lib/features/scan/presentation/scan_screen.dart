@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/localization/app_translations.dart';
 import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/quota_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../paywall/presentation/quota_upsell_dialog.dart';
 import 'scan_provider.dart';
 
@@ -86,14 +87,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1712),
+        backgroundColor: AppTheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
             Text('🌙 ', style: TextStyle(fontSize: 22)),
             Text(
               'Limite Diário',
-              style: TextStyle(color: Color(0xFFF5F0EC), fontWeight: FontWeight.w800),
+              style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -103,19 +104,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           children: [
             Text(
               message,
-              style: const TextStyle(color: Color(0xFFE8C9A0), fontSize: 14, height: 1.5),
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 12),
             const Text(
               'A pele precisa de tempo para responder à rotina. Volte amanhã para uma nova análise.',
-              style: TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.5),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.5),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido', style: TextStyle(color: Color(0xFFC8714A), fontWeight: FontWeight.w700)),
+            child: const Text('Entendido', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -151,7 +152,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppTheme.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -181,12 +182,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           height: 36,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+              colors: [AppTheme.primary, AppTheme.primaryLight],
             ),
             borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withAlpha(50),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: const Center(
-            child: Text('✨', style: TextStyle(fontSize: 18)),
+            child: Text('🌿', style: TextStyle(fontSize: 18)),
           ),
         ),
         const SizedBox(width: 10),
@@ -198,7 +206,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFFF5F0EC),
+                  color: AppTheme.textPrimary,
                 ),
               ),
               TextSpan(
@@ -206,7 +214,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFFC8714A),
+                  color: AppTheme.primaryDark,
                 ),
               ),
             ],
@@ -220,9 +228,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1C1712),
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFC8714A).withAlpha(75)),
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(6),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -231,7 +246,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 Text(
                   ref.watch(trProvider).isEn ? 'History' : 'Evolução',
                   style: const TextStyle(
-                    color: Color(0xFFE8C9A0),
+                    color: AppTheme.textPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -274,8 +289,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   height: 280 + (value * 30),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: const Color(0xFFC8714A)
-                          .withAlpha((255 * (1 - value)).round()),
+                      color: AppTheme.primary
+                          .withAlpha((200 * (1 - value)).round()),
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(115),
@@ -292,13 +307,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 gradient: const LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFF3D2518), Color(0xFF2C1A10)],
+                  colors: [Color(0xFFEBF5E6), Color(0xFFF2F7EF)],
                 ),
                 borderRadius: BorderRadius.circular(100),
                 border: Border.all(
-                  color: const Color(0xFFC8714A).withAlpha(100),
+                  color: AppTheme.primary.withAlpha(120),
                   width: 2,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(25),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: const Center(
                 child: Text('👤', style: TextStyle(fontSize: 80)),
@@ -320,7 +342,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w900,
-            color: Color(0xFFF5F0EC),
+            color: AppTheme.textPrimary,
           ),
           textAlign: TextAlign.center,
         ).animate().fadeIn(delay: 200.ms),
@@ -331,7 +353,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           ref.watch(trProvider).scanSubtitle,
           style: const TextStyle(
             fontSize: 14,
-            color: Color(0xFF8A7A6E),
+            color: AppTheme.textSecondary,
             height: 1.6,
           ),
           textAlign: TextAlign.center,
@@ -358,9 +380,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1712),
+            color: AppTheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
+            border: Border.all(color: AppTheme.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(5),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -373,7 +402,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFE8C9A0),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                 ],
@@ -460,9 +489,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                     end: Alignment.bottomCenter,
                                     colors: [
                                       Colors.transparent,
-                                      const Color(0xFFC8714A).withAlpha(35),
-                                      const Color(0xFFE8A44A).withAlpha(55),
-                                      const Color(0xFFC8714A).withAlpha(35),
+                                      AppTheme.primary.withAlpha(25),
+                                      AppTheme.primaryLight.withAlpha(50),
+                                      AppTheme.primary.withAlpha(25),
                                       Colors.transparent,
                                     ],
                                   ),
@@ -475,24 +504,23 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                               child: Container(
                                 height: 2.5,
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
+                                  gradient: const LinearGradient(
                                     colors: [
                                       Colors.transparent,
-                                      const Color(0xFFC8714A).withAlpha(180),
-                                      const Color(0xFFFFF2EC),
-                                      const Color(0xFFFFA07A),
-                                      const Color(0xFFC8714A).withAlpha(180),
+                                      AppTheme.primary,
+                                      Colors.white,
+                                      AppTheme.primaryLight,
                                       Colors.transparent,
                                     ],
                                   ),
-                                  boxShadow: const [
+                                  boxShadow: [
                                     BoxShadow(
-                                      color: Color(0xFFC8714A),
+                                      color: AppTheme.primary.withAlpha(180),
                                       blurRadius: 14,
                                       spreadRadius: 2,
                                     ),
-                                    BoxShadow(
-                                      color: Color(0xFFFFE0D0),
+                                    const BoxShadow(
+                                      color: Colors.white,
                                       blurRadius: 5,
                                       spreadRadius: 1,
                                     ),
@@ -514,7 +542,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: const Color(0xFFC8714A).withAlpha(120),
+                      color: AppTheme.primary.withAlpha(120),
                       width: 2,
                     ),
                     gradient: RadialGradient(
@@ -522,7 +550,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                       radius: 0.85,
                       colors: [
                         Colors.transparent,
-                        const Color(0xFF0F0F0F).withAlpha(85),
+                        Colors.black.withAlpha(60),
                       ],
                     ),
                   ),
@@ -570,16 +598,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isDone
-                            ? const Color(0xFF6AB187).withAlpha(50)
+                            ? AppTheme.primarySoft
                             : isActive
-                                ? const Color(0xFFC8714A).withAlpha(50)
+                                ? AppTheme.primarySoft
                                 : Colors.transparent,
                         border: Border.all(
                           color: isDone
-                              ? const Color(0xFF6AB187)
+                              ? AppTheme.primary
                               : isActive
-                                  ? const Color(0xFFC8714A)
-                                  : const Color(0xFF4A3E35),
+                                  ? AppTheme.primary
+                                  : AppTheme.border,
                           width: 2,
                         ),
                       ),
@@ -588,7 +616,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                             ? const Icon(
                                 Icons.check,
                                 size: 14,
-                                color: Color(0xFF6AB187),
+                                color: AppTheme.primary,
                               )
                             : isActive
                                 ? const SizedBox(
@@ -596,7 +624,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                                     height: 10,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Color(0xFFC8714A),
+                                      color: AppTheme.primary,
                                     ),
                                   )
                                 : null,
@@ -609,12 +637,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                     style: TextStyle(
                       fontSize: 13,
                       color: isDone
-                          ? const Color(0xFF6AB187)
+                          ? AppTheme.primaryDark
                           : isActive
-                              ? const Color(0xFFF5F0EC)
-                              : const Color(0xFF4A3E35),
+                              ? AppTheme.textPrimary
+                              : AppTheme.textMuted,
                       fontWeight:
-                          isActive ? FontWeight.w600 : FontWeight.normal,
+                          isActive ? FontWeight.w700 : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -631,15 +659,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       key: key,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFF241C16),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFC8714A).withAlpha(120),
+          color: AppTheme.border,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFC8714A).withAlpha(35),
+            color: AppTheme.primary.withAlpha(25),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -653,7 +681,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           Text(
             label,
             style: const TextStyle(
-              color: Color(0xFFE8C9A0),
+              color: AppTheme.textPrimary,
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
@@ -677,7 +705,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           Text(
             message,
             style: const TextStyle(
-              color: Color(0xFFD96B6B),
+              color: AppTheme.error,
               fontSize: 15,
             ),
             textAlign: TextAlign.center,
@@ -687,7 +715,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             onPressed: () => ref.read(scanProvider.notifier).reset(),
             child: const Text(
               'Tentar novamente',
-              style: TextStyle(color: Color(0xFFC8714A)),
+              style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -709,12 +737,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
             height: 58,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                colors: [AppTheme.primary, AppTheme.primaryLight],
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFC8714A).withAlpha(100),
+                  color: AppTheme.primary.withAlpha(80),
                   blurRadius: 20,
                   offset: const Offset(0, 6),
                 ),
@@ -746,10 +774,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           child: Container(
             height: 48,
             decoration: BoxDecoration(
+              color: AppTheme.surface,
               border: Border.all(
-                color: const Color(0xFFC8714A).withAlpha(100),
+                color: AppTheme.border,
               ),
               borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(5),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -759,7 +795,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 Text(
                   ref.watch(trProvider).scanGalleryBtn,
                   style: const TextStyle(
-                    color: Color(0xFFC8714A),
+                    color: AppTheme.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -776,7 +812,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     const size = 20.0;
     const thickness = 3.0;
     const offset = -4.0;
-    const color = Color(0xFFC8714A);
+    const color = AppTheme.primary;
 
     return [
       Positioned(
@@ -855,8 +891,8 @@ class _FeatureTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFC8714A).withAlpha(30),
-        border: Border.all(color: const Color(0xFFC8714A).withAlpha(75)),
+        color: AppTheme.primarySoft,
+        border: Border.all(color: AppTheme.border),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -868,8 +904,8 @@ class _FeatureTag extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFFF2A58B),
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primaryDark,
             ),
           ),
         ],
@@ -895,7 +931,7 @@ class _CaptureMiniTip extends StatelessWidget {
           label,
           style: const TextStyle(
             fontSize: 11,
-            color: Color(0xFFF5F0EC),
+            color: AppTheme.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
