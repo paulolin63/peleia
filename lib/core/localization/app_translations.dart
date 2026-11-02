@@ -139,6 +139,10 @@ class Tr {
   String get stepRoutine => isEn ? '📋 Generating custom skincare prescription...' : '📋 Criando sua rotina personalizada...';
 
   // ── Tela de Resultado (Result Screen) ────────────────────────
+  String get tabDiagnosis => isEn ? 'Diagnosis' : 'Diagnóstico';
+  String get tabProducts => isEn ? 'Products' : 'Produtos';
+  String get tabReport => isEn ? 'Full Report' : 'Relatório';
+
   String get resultTitle => isEn ? 'Skin Diagnosis & Routine' : 'Diagnóstico da Pele & Rotina';
   String get resultOverallScore => isEn ? 'Overall Skin Score' : 'Pontuação Geral';
   String get resultIndicators => isEn ? 'Clinical Indicators' : 'Indicadores Clínicos';

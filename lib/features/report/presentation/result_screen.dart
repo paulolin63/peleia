@@ -22,13 +22,21 @@ import '../../history/data/history_entry.dart';
 import '../../scan/data/skin_analysis_result.dart';
 import '../../scan/presentation/scan_provider.dart';
 
-class ResultScreen extends ConsumerWidget {
+class ResultScreen extends ConsumerStatefulWidget {
   const ResultScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends ConsumerState<ResultScreen> {
+  int _selectedTab = 0; // 0: Diagnóstico, 1: Produtos, 2: Relatório
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(scanProvider);
     final texts = ref.watch(appConfigProvider).valueOrNull?.texts ?? AppTexts.fallback;
+    final tr = ref.watch(trProvider);
     final analysis = state.analysis;
 
     if (analysis == null) {
@@ -88,241 +96,315 @@ class ResultScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // ── Score geral ──────────────────────────────
+                // ── Score geral (Resumo visual rápido) ───────
                 _buildOverallScore(analysis)
                     .animate()
                     .fadeIn(delay: 100.ms)
-                    .slideY(begin: 0.2),
+                    .slideY(begin: 0.1),
 
                 const SizedBox(height: 16),
 
-                // ── Memória Inteligente / Evolução ───────────
-                _buildEvolutionCard(
-                  analysis,
-                  state.previousEntry,
-                  state.comparison,
-                )
-                    .animate()
-                    .fadeIn(delay: 150.ms)
-                    .slideY(begin: 0.2),
+                // ── Tab Bar de 3 Abas ─────────────────────────
+                _buildTabBar(tr),
 
-                if (state.comparison == null || !state.comparison!.hasPrevious) ...[
-                  const SizedBox(height: 12),
-                  _buildFirstScanNextStep(context)
+                const SizedBox(height: 16),
+
+                // ── Conteúdo da Aba Ativa ────────────────────
+                if (_selectedTab == 0) ...[
+                  // Aba 1: Diagnóstico visual
+                  _buildScoreBreakdown(analysis)
                       .animate()
-                      .fadeIn(delay: 180.ms)
-                      .slideY(begin: 0.15),
+                      .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 14),
+                  _buildEvolutionCard(
+                    analysis,
+                    state.previousEntry,
+                    state.comparison,
+                  ).animate().fadeIn(duration: 250.ms),
+                  if (state.comparison == null || !state.comparison!.hasPrevious) ...[
+                    const SizedBox(height: 12),
+                    _buildFirstScanNextStep(context)
+                        .animate()
+                        .fadeIn(duration: 250.ms),
+                  ],
+                ] else if (_selectedTab == 1) ...[
+                  // Aba 2: Produtos & Prescrição
+                  if (state.products.isNotEmpty || state.hiddenProducts > 0 || state.missingSunscreen)
+                    _buildProducts(state)
+                        .animate()
+                        .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 14),
+                  _buildPremiumBanner(context, texts, analysis, state)
+                      .animate()
+                      .fadeIn(duration: 250.ms),
+                ] else ...[
+                  // Aba 3: Relatório Clínico Completo
+                  if (state.report != null)
+                    _buildReport(state.report!)
+                        .animate()
+                        .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 14),
+                  _buildExportActions(context, analysis, state, tr)
+                      .animate()
+                      .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 14),
+                  _buildRegulatoryDisclaimer()
+                      .animate()
+                      .fadeIn(duration: 250.ms),
                 ],
 
-                const SizedBox(height: 16),
-
-                // ── Score breakdown ──────────────────────────
-                _buildScoreBreakdown(analysis)
-                    .animate()
-                    .fadeIn(delay: 200.ms)
-                    .slideY(begin: 0.2),
-
-                const SizedBox(height: 16),
-
-                // ── Relatório PT-BR ──────────────────────────
-                if (state.report != null)
-                  _buildReport(state.report!)
-                      .animate()
-                      .fadeIn(delay: 300.ms)
-                      .slideY(begin: 0.2),
-
-                const SizedBox(height: 16),
-
-                // ── Produtos afiliados ───────────────────────
-                if (state.products.isNotEmpty || state.hiddenProducts > 0 || state.missingSunscreen)
-                  _buildProducts(state)
-                      .animate()
-                      .fadeIn(delay: 400.ms)
-                      .slideY(begin: 0.2),
-
                 const SizedBox(height: 24),
 
-                // ── Banner Premium ───────────────────────────
-                _buildPremiumBanner(context, texts, analysis, state)
-                    .animate()
-                    .fadeIn(delay: 450.ms)
-                    .slideY(begin: 0.2),
+                // ── Ações Fixas de Navegação ─────────────────
+                _buildBottomNavActions(context),
 
-                const SizedBox(height: 14),
-
-                // ── Botão Ver Evolução (Antes & Depois) ──────────
-                GestureDetector(
-                  onTap: () => context.push('/history'),
-                  child: Container(
-                    height: 54,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2C1A10), Color(0xFF1C1712)],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFFC8714A).withAlpha(120),
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('📈', style: TextStyle(fontSize: 18)),
-                        SizedBox(width: 8),
-                        Text(
-                          'Ver Minha Evolução (Antes & Depois)',
-                          style: TextStyle(
-                            color: Color(0xFFE8C9A0),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ).animate().fadeIn(delay: 480.ms),
-
-                const SizedBox(height: 12),
-
-                // ── Ações: Baixar PDF & Compartilhar ──────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          final now = DateTime.now();
-                          final dateStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
-                          ReportExportService.exportAndDownloadPdf(
-                            context: context,
-                            score: analysis.scoreGeral,
-                            skinType: ref.read(trProvider).translateSkinType(analysis.skinType),
-                            oleosidade: analysis.scores.oleosidade,
-                            acne: analysis.scores.acneCravos,
-                            manchas: analysis.scores.manchasSolares,
-                            hidratacao: analysis.scores.hidratacao,
-                            fullReport: state.report ?? '',
-                            products: state.products,
-                            dateFormatted: dateStr,
-                            isEn: ref.read(trProvider).isEn,
-                          );
-                        },
-                        child: Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2C1A10),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: const Color(0xFFC8714A).withAlpha(120),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.picture_as_pdf, color: Color(0xFFE8C9A0), size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                ref.watch(trProvider).downloadPdf,
-                                style: const TextStyle(
-                                  color: Color(0xFFE8C9A0),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          ReportExportService.shareToSocial(
-                            score: analysis.scoreGeral,
-                            skinType: ref.read(trProvider).translateSkinType(analysis.skinType),
-                            oleosidade: analysis.scores.oleosidade,
-                            acne: analysis.scores.acneCravos,
-                            hidratacao: analysis.scores.hidratacao,
-                            products: state.products,
-                            isEn: ref.read(trProvider).isEn,
-                          );
-                        },
-                        child: Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFC8714A),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.share, color: Colors.white, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                ref.watch(trProvider).share,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ).animate().fadeIn(delay: 490.ms),
-
-                const SizedBox(height: 12),
-
-                // ── Botão nova análise ───────────────────────
-                GestureDetector(
-                  onTap: () {
-                    ref.read(scanProvider.notifier).reset();
-                    context.go('/');
-                  },
-                  child: Container(
-                    height: 54,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFFC8714A).withAlpha(100),
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('🔄', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 8),
-                        Text(
-                          'Nova Análise',
-                          style: TextStyle(
-                            color: Color(0xFFC8714A),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ).animate().fadeIn(delay: 500.ms),
-
-                const SizedBox(height: 24),
-
-                // ── Aviso Regulatório / ANVISA / CFM ──────────
-                _buildRegulatoryDisclaimer()
-                    .animate()
-                    .fadeIn(delay: 550.ms),
-
-                const SizedBox(height: 40),
+                const SizedBox(height: 36),
               ]),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // ── Tab Bar de 3 Abas ─────────────────────────────────────
+  Widget _buildTabBar(AppTranslations tr) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1712),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+      ),
+      child: Row(
+        children: [
+          _buildTabItem(0, '📊 ${tr.tabDiagnosis}'),
+          _buildTabItem(1, '🛍️ ${tr.tabProducts}'),
+          _buildTabItem(2, '📋 ${tr.tabReport}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabItem(int index, String label) {
+    final isSelected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_selectedTab != index) {
+            HapticFeedback.lightImpact();
+            setState(() => _selectedTab = index);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFC8714A) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFC8714A).withAlpha(60),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? Colors.white : const Color(0xFF8A7A6E),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Botões de Exportar & Compartilhar ──────────────────────
+  Widget _buildExportActions(
+    BuildContext context,
+    SkinAnalysisRaw analysis,
+    ScanState state,
+    AppTranslations tr,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              final now = DateTime.now();
+              final dateStr =
+                  '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+              ReportExportService.exportAndDownloadPdf(
+                context: context,
+                score: analysis.scoreGeral,
+                skinType: tr.translateSkinType(analysis.skinType),
+                oleosidade: analysis.scores.oleosidade,
+                acne: analysis.scores.acneCravos,
+                manchas: analysis.scores.manchasSolares,
+                hidratacao: analysis.scores.hidratacao,
+                fullReport: state.report ?? '',
+                products: state.products,
+                dateFormatted: dateStr,
+                isEn: tr.isEn,
+              );
+            },
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2C1A10),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: const Color(0xFFC8714A).withAlpha(120),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.picture_as_pdf, color: Color(0xFFE8C9A0), size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    tr.downloadPdf,
+                    style: const TextStyle(
+                      color: Color(0xFFE8C9A0),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              ReportExportService.shareToSocial(
+                score: analysis.scoreGeral,
+                skinType: tr.translateSkinType(analysis.skinType),
+                oleosidade: analysis.scores.oleosidade,
+                acne: analysis.scores.acneCravos,
+                hidratacao: analysis.scores.hidratacao,
+                products: state.products,
+                isEn: tr.isEn,
+              );
+            },
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFC8714A),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.share, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    tr.share,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Botões de Navegação Inferior ──────────────────────────
+  Widget _buildBottomNavActions(BuildContext context) {
+    return Row(
+      children: [
+        // Nova Análise
+        Expanded(
+          flex: 2,
+          child: GestureDetector(
+            onTap: () {
+              ref.read(scanProvider.notifier).reset();
+              context.go('/');
+            },
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1712),
+                border: Border.all(
+                  color: const Color(0xFFC8714A).withAlpha(80),
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('🔄', style: TextStyle(fontSize: 15)),
+                  SizedBox(width: 6),
+                  Text(
+                    'Nova Análise',
+                    style: TextStyle(
+                      color: Color(0xFFC8714A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Ver Evolução
+        Expanded(
+          flex: 3,
+          child: GestureDetector(
+            onTap: () => context.push('/history'),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFC8714A), Color(0xFFE8A44A)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFC8714A).withAlpha(60),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('📈', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 6),
+                  Text(
+                    'Ver Evolução',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -813,10 +895,10 @@ class ResultScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFC8714A).withAlpha(40)),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Text('🩺', style: TextStyle(fontSize: 16)),
               SizedBox(width: 8),
@@ -832,8 +914,8 @@ class ResultScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             'O PeleIA é um assistente de rotina de cuidados cosméticos e higiene pessoal. '
             'As avaliações visuais por IA são estimativas orientativas de referência e NÃO '
             'constituem diagnóstico médico, exame clínico ou prescrição dermatológica.\n\n'

@@ -187,38 +187,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        // ── Header Superior ─────────────────────────
+                        // ── 1. Header Superior com Saudação e Score ─
                         _buildTopHeader(tr),
 
                         const SizedBox(height: 12),
 
-                        // ── Perfil Declarado do Usuário ─────────────
+                        // ── 2. Perfil Declarado do Usuário (Ajuste rápido) ─
                         _buildUserProfileBadge(tr),
+
+                        const SizedBox(height: 12),
+
+                        // ── 3. Cápsula Integrada de UV e Clima BR ─
+                        _buildUvAlertCapsule(tr),
 
                         const SizedBox(height: 16),
 
-                        // ── Card de Alerta UV e Clima BR ────────────
-                        _buildUvAlertCard(tr),
+                        // ── 4. Checklist da Rotina de Hoje (Destaque Principal) ─
+                        _buildDailyRoutineSection(tr),
+
+                        const SizedBox(height: 14),
+
+                        // ── 5. Cartão Compacto de Evolução (Marco Zero / 2ª Selfie) ─
+                        _buildEvolutionSummaryCard(tr),
 
                         const SizedBox(height: 18),
 
-                        // ── Card de Status da Pele / Última Análise ─
-                        _buildSkinStatusCard(tr),
-
-                        const SizedBox(height: 22),
-
-                        // ── Checklist da Rotina de Hoje ─────────────
-                        _buildDailyRoutineSection(tr),
-
-                        const SizedBox(height: 24),
-
-                        // ── Botão Principal: Nova Análise com IA ────
+                        // ── 6. Botão Principal: Nova Análise com IA ─
                         _buildScanCTA(tr),
-
-                        const SizedBox(height: 16),
-
-                        // ── Atalhos Rápidos (Evolução & Premium) ─────
-                        _buildQuickActionCards(tr),
 
                         const SizedBox(height: 32),
                       ]),
@@ -280,6 +275,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
         const Spacer(),
+
+        // Score Badge Compacto (se já tiver análise)
+        if (_latestEntry != null) ...[
+          GestureDetector(
+            onTap: () => context.push('/history').then((_) => _loadDashboardData()),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1712),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF6AB187).withAlpha(120)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🌱', style: TextStyle(fontSize: 11)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_latestEntry!.scoreGeral}',
+                    style: const TextStyle(
+                      color: Color(0xFF6AB187),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
 
         // Alternador de Idioma (PT / EN)
         const LanguageToggleButton(compact: true),
@@ -660,34 +686,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  // ── 2. Card de Alerta UV e Clima Tropical do Brasil ───────
-  Widget _buildUvAlertCard(AppTranslations tr) {
-    final title = tr.isEn ? tr.dashSunTitle : (_config?.texts.dashboardSunTitle ?? AppTexts.fallback.dashboardSunTitle);
-    final body = tr.isEn ? tr.dashSunDesc : (_config?.texts.dashboardSunBody ?? AppTexts.fallback.dashboardSunBody);
-
+  // ── 2. Cápsula Compacta de UV e Clima Tropical BR ─────────
+  Widget _buildUvAlertCapsule(AppTranslations tr) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2C1A10), Color(0xFF1C1712)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [Color(0xFF261A12), Color(0xFF1C1712)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE8A44A).withAlpha(60)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8A44A).withAlpha(50)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8A44A).withAlpha(30),
-              borderRadius: BorderRadius.circular(14),
+              color: const Color(0xFFE8A44A).withAlpha(25),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Text('☀️', style: TextStyle(fontSize: 26)),
+            child: const Text('☀️', style: TextStyle(fontSize: 18)),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,37 +717,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Row(
                   children: [
                     Text(
-                      title,
+                      tr.isEn ? 'UV 8 • Very High (Brazil)' : 'UV 8 • Muito Alto (Brasil)',
                       style: const TextStyle(
                         color: Color(0xFFE8A44A),
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD96B6B).withAlpha(30),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'BRASIL',
-                        style: TextStyle(color: Color(0xFFD96B6B), fontSize: 9, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
                 Text(
-                  body,
+                  tr.isEn
+                      ? 'Essential: Dry-touch SPF 50+ recommended today'
+                      : 'Toque seco e FPS 50+ recomendados para seu perfil',
                   style: const TextStyle(
                     color: Color(0xFF8A7A6E),
-                    fontSize: 12,
-                    height: 1.45,
+                    fontSize: 11,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8A44A).withAlpha(20),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE8A44A).withAlpha(60)),
+            ),
+            child: const Text(
+              'FPS 50+',
+              style: TextStyle(
+                color: Color(0xFFE8A44A),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -733,142 +761,111 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ).animate().fadeIn(delay: 150.ms);
   }
 
-  // ── 3. Card de Status da Pele / Última Análise ────────────
-  Widget _buildSkinStatusCard(AppTranslations tr) {
+  // ── 3. Resumo Compacto de Evolução (Marco Zero / 2ª Selfie) ─
+  Widget _buildEvolutionSummaryCard(AppTranslations tr) {
     if (_latestEntry == null) {
-      // Usuário novo — convite para primeira análise
-      return Container(
-        padding: const EdgeInsets.all(18),
+      return GestureDetector(
+        onTap: () => context.push('/scan').then((_) => _loadDashboardData()),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1712),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF6AB187).withAlpha(50)),
+          ),
+          child: Row(
+            children: [
+              const Text('🌱', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr.dashNewUserTitle,
+                      style: const TextStyle(
+                        color: Color(0xFFF5F0EC),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      tr.dashNewUserDesc,
+                      style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, color: Color(0xFF8A7A6E), size: 13),
+            ],
+          ),
+        ),
+      ).animate().fadeIn(delay: 350.ms);
+    }
+
+    return GestureDetector(
+      onTap: () => context.push('/history').then((_) => _loadDashboardData()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
           color: const Color(0xFF1C1712),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFC8714A).withAlpha(45)),
         ),
         child: Row(
           children: [
-            const Text('🌱', style: TextStyle(fontSize: 36)),
-            const SizedBox(width: 14),
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6AB187).withAlpha(20),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text('🌱', style: TextStyle(fontSize: 16)),
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    tr.dashNewUserTitle,
-                    style: const TextStyle(
-                      color: Color(0xFFF5F0EC),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        '${tr.dashCurrentSkinPrefix}${tr.translateSkinType(_latestEntry!.skinType)}',
+                        style: const TextStyle(
+                          color: Color(0xFFF5F0EC),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '(${_latestEntry!.scoreGeral} pts)',
+                        style: const TextStyle(
+                          color: Color(0xFF6AB187),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 3),
                   Text(
-                    tr.dashNewUserDesc,
-                    style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 12, height: 1.4),
+                    tr.isEn
+                        ? 'Follow-up evolution selfie recommended in 7 days'
+                        : '2ª Selfie de evolução: acompanhe seu Antes & Depois',
+                    style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
+            const Icon(Icons.arrow_forward_ios, color: Color(0xFF8A7A6E), size: 13),
           ],
         ),
-      ).animate().fadeIn(delay: 250.ms);
-    }
-
-    // Usuário já tem histórico
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1712),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFC8714A).withAlpha(60)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                '${tr.dashCurrentSkinPrefix}${tr.translateSkinType(_latestEntry!.skinType)}',
-                style: const TextStyle(
-                  color: Color(0xFFF5F0EC),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                _latestEntry!.formattedDate,
-                style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildMiniMetric(
-                label: tr.dashIndicatorGeneral,
-                value: '${_latestEntry!.scoreGeral}',
-                suffix: 'pts',
-                color: const Color(0xFF6AB187),
-              ),
-              _buildMiniMetric(
-                label: tr.dashOiliness,
-                value: '${_latestEntry!.oleosidade}',
-                suffix: '/10',
-                color: const Color(0xFFE8A44A),
-              ),
-              _buildMiniMetric(
-                label: tr.dashAcne,
-                value: '${_latestEntry!.acne}',
-                suffix: '/10',
-                color: const Color(0xFFD96B6B),
-              ),
-              _buildMiniMetric(
-                label: tr.dashSpots,
-                value: '${_latestEntry!.manchas}',
-                suffix: '/10',
-                color: const Color(0xFFE8A44A),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 250.ms);
-  }
-
-  Widget _buildMiniMetric({
-    required String label,
-    required String value,
-    required String suffix,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: value,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              TextSpan(
-                text: ' $suffix',
-                style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 10),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          label,
-          style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
-        ),
-      ],
-    );
+    ).animate().fadeIn(delay: 350.ms);
   }
 
   // ── 4. Checklist da Rotina de Hoje (Manhã / Noite) ────────
@@ -1126,85 +1123,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
       ),
     ).animate().fadeIn(delay: 450.ms).scale(begin: const Offset(0.98, 0.98), end: const Offset(1, 1));
-  }
-
-  // ── 6. Atalhos Secundários (Antes & Depois + Premium) ─────
-  Widget _buildQuickActionCards(AppTranslations tr) {
-    return Row(
-      children: [
-        // Antes & Depois
-        Expanded(
-          child: GestureDetector(
-            onTap: () => context.push('/history').then((_) => _loadDashboardData()),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1712),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFC8714A).withAlpha(50)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('📈', style: TextStyle(fontSize: 22)),
-                  const SizedBox(height: 8),
-                  Text(
-                    tr.dashEvolutionTitle,
-                    style: const TextStyle(
-                      color: Color(0xFFF5F0EC),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr.dashEvolutionDesc,
-                    style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 12),
-
-        // Planos Pro
-        Expanded(
-          child: GestureDetector(
-            onTap: () => context.push('/premium').then((_) => _loadDashboardData()),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1712),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF6AB187).withAlpha(50)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('💎', style: TextStyle(fontSize: 22)),
-                  const SizedBox(height: 8),
-                  Text(
-                    tr.dashProTitle,
-                    style: const TextStyle(
-                      color: Color(0xFFF5F0EC),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr.dashProDesc,
-                    style: const TextStyle(color: Color(0xFF8A7A6E), fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    ).animate().fadeIn(delay: 550.ms);
   }
 }
 
