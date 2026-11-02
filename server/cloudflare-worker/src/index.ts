@@ -264,19 +264,64 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
       throw new HttpError(400, { error: 'Requisição inválida: envie a imagem.' });
     }
 
+    const deviceIdRaw = request.headers.get('X-Device-Id') || body.device_id;
+    const deviceId =
+      typeof deviceIdRaw === 'string' && deviceIdRaw.length >= 8 && deviceIdRaw.length <= 128
+        ? deviceIdRaw
+        : null;
+
     const ent = await entitlementsFor(uid, env, config);
+
+    // ── Anti-abuso: Verificação de Cota por Aparelho Físico (Device-Binding) ──
+    // Se o usuário NÃO for assinante Pro nem tiver créditos SOS comprados,
+    // garantimos que o mesmo aparelho físico não possa reutilizar a análise gratuita.
+    let deviceStub: DurableObjectStub | null = null;
+    if (!ent.isPro && ent.sosPurchased <= 0 && deviceId) {
+      deviceStub = env.QUOTA_DO.get(env.QUOTA_DO.idFromName(`device:${deviceId}`));
+      const deviceStatusRes = await callQuota(deviceStub, '/status', {
+        limits: config.quota,
+        isPro: false,
+        sosPurchased: 0,
+        day,
+      });
+      if (deviceStatusRes.ok) {
+        const devStatus = (await deviceStatusRes.json()) as any;
+        if (devStatus.free_remaining <= 0) {
+          throw new HttpError(403, {
+            code: 'DEVICE_QUOTA_EXCEEDED',
+            error:
+              'Este aparelho já utilizou a análise cortesia de boas-vindas. Entre com sua conta Google ou assine o PeleIA Pro.',
+          });
+        }
+      }
+    }
+
     const analysisId = crypto.randomUUID();
     const quotaReq: QuotaRequest = {
-      limits: config.quota, isPro: ent.isPro, sosPurchased: ent.sosPurchased, day, analysisId,
+      limits: config.quota,
+      isPro: ent.isPro,
+      sosPurchased: ent.sosPurchased,
+      day,
+      analysisId,
     };
 
     const reserveRes = await callQuota(stub, '/reserve', quotaReq);
     if (!reserveRes.ok) return jsonResponse(await reserveRes.json(), reserveRes.status, cors);
     const reservation = (await reserveRes.json()) as Record<string, unknown>;
 
-    console.log(`[Proxy] vision para UID ${uid.slice(0, 6)}***`);
+    // Se reservou cota gratuita, vincula e trava também no aparelho físico
+    if (reservation.kind === 'free' && deviceStub) {
+      await callQuota(deviceStub, '/reserve', quotaReq);
+    }
 
-    const rollback = () => callQuota(stub, '/rollback', quotaReq);
+    console.log(`[Proxy] vision para UID ${uid.slice(0, 6)}*** (device: ${deviceId ? deviceId.slice(0, 8) : 'none'})`);
+
+    const rollback = async () => {
+      await callQuota(stub, '/rollback', quotaReq);
+      if (reservation.kind === 'free' && deviceStub) {
+        await callQuota(deviceStub, '/rollback', quotaReq);
+      }
+    };
 
     const text = await callGemini(
       env,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_theme.dart';
 
 /// Shown when free/SOS quota is exhausted. SOS = impulse, Pro = habit.
@@ -78,6 +79,36 @@ Future<void> showQuotaUpsellDialog(
             ),
           ),
         ),
+        if (!AuthService.isGoogleUser) ...[
+          const SizedBox(height: 6),
+          TextButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final cred = await AuthService.signInWithGoogle();
+                if (cred != null && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Conta Google conectada com sucesso!'),
+                      backgroundColor: AppTheme.primary,
+                    ),
+                  );
+                }
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Não foi possível conectar com o Google no momento.')),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.account_circle_outlined, size: 16, color: AppTheme.primary),
+            label: const Text(
+              'Já tem assinatura? Entrar com Google',
+              style: TextStyle(color: AppTheme.primary, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
         TextButton(
           onPressed: () => Navigator.pop(ctx),
           child: const Text('Agora não', style: TextStyle(color: AppTheme.textSecondary)),

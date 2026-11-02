@@ -16,6 +16,7 @@ enum QuotaBlockReason {
   freeUsed,            // Usou a análise gratuita → mostrar Paywall
   proDailyExceeded,    // Assinante Pro já fez 2 análises hoje
   sosEmpty,            // Créditos do Pacote SOS acabaram
+  deviceExceeded,      // Aparelho já utilizou a análise cortesia (anti-abuso)
 }
 
 class QuotaStatus {

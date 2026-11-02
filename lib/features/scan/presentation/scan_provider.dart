@@ -213,6 +213,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
         'FREE_QUOTA_EXCEEDED' => QuotaBlockReason.freeUsed,
         'SOS_EMPTY' => QuotaBlockReason.sosEmpty,
         'PRO_DAILY_LIMIT_REACHED' => QuotaBlockReason.proDailyExceeded,
+        'DEVICE_QUOTA_EXCEEDED' => QuotaBlockReason.deviceExceeded,
         _ => null,
       };
       state = state.copyWith(

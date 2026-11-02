@@ -195,5 +195,18 @@ void main() {
       expect(status.sosCredits, equals(3));
       expect(status.blockReason, equals(QuotaBlockReason.none));
     });
+
+    // ── 5. Ancoragem de Dispositivo e Mapeamento de Bloqueio ──
+    test('5. Anti-Abuso: Mapeamento de erro de dispositivo e QuotaBlockReason', () {
+      final reason = switch ('DEVICE_QUOTA_EXCEEDED') {
+        'FREE_QUOTA_EXCEEDED' => QuotaBlockReason.freeUsed,
+        'SOS_EMPTY' => QuotaBlockReason.sosEmpty,
+        'PRO_DAILY_LIMIT_REACHED' => QuotaBlockReason.proDailyExceeded,
+        'DEVICE_QUOTA_EXCEEDED' => QuotaBlockReason.deviceExceeded,
+        _ => QuotaBlockReason.none,
+      };
+
+      expect(reason, equals(QuotaBlockReason.deviceExceeded));
+    });
   });
 }

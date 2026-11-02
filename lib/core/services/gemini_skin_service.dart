@@ -13,6 +13,7 @@ import '../../features/scan/data/skin_analysis_result.dart';
 import '../profile/user_profile.dart';
 import 'auth_service.dart';
 import 'comparison_service.dart';
+import 'device_security_service.dart';
 import 'quota_service.dart';
 
 class AnalysisException implements Exception {
@@ -137,6 +138,13 @@ class GeminiSkinService {
   Future<Map<String, dynamic>> _post(Map<String, dynamic> payload, Duration timeout) async {
     final token = await AuthService.idToken();
     final build = await _buildNumber();
+    final deviceId = await DeviceSecurityService.getDeviceFingerprint();
+
+    final enrichedPayload = {
+      ...payload,
+      'device_id': deviceId,
+    };
+
     http.Response res;
     try {
       res = await http
@@ -145,9 +153,10 @@ class GeminiSkinService {
             headers: {
               'Content-Type': 'application/json',
               'X-App-Build': build,
+              'X-Device-Id': deviceId,
               if (token != null) 'Authorization': 'Bearer $token',
             },
-            body: jsonEncode(payload),
+            body: jsonEncode(enrichedPayload),
           )
           .timeout(timeout);
     } on TimeoutException {
