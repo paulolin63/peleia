@@ -29,10 +29,27 @@ flutter pub get
 flutter build appbundle \
   --release \
   --android-skip-build-dependency-validation \
-  --dart-define=GEMINI_API_KEY=${GEMINI_API_KEY:-""}
+  --dart-define=PELEIA_ENV=closed_testing
+
+# Build APK (para teste direto no celular se desejar)
+flutter build apk \
+  --release \
+  --android-skip-build-dependency-validation \
+  --dart-define=PELEIA_ENV=closed_testing
+
+# Copia para /Users/paulolin/Projects para fácil upload no Play Console
+mkdir -p /Users/paulolin/Projects
+cp build/app/outputs/bundle/release/app-release.aab /Users/paulolin/Projects/peleia.aab
+cp build/app/outputs/flutter-apk/app-release.apk /Users/paulolin/Projects/peleia.apk
 
 echo ""
-echo "✅ AAB gerado em: build/app/outputs/bundle/release/app-release.aab"
+echo "✅ AAB gerado com sucesso em:"
+echo "   1. build/app/outputs/bundle/release/app-release.aab"
+echo "   2. /Users/paulolin/Projects/peleia.aab (Pronto para upload no Play Console)"
+echo ""
+echo "✅ APK de teste gerado em:"
+echo "   1. build/app/outputs/flutter-apk/app-release.apk"
+echo "   2. /Users/paulolin/Projects/peleia.apk"
 echo ""
 echo "📤 Próximo passo: enviar para o Google Play Console"
-echo "   Play Console → Testes → Teste interno → Criar versão → Upload AAB"
+echo "   Play Console → Testes → Teste fechado (Closed testing) → Criar nova versão → Upload /Users/paulolin/Projects/peleia.aab"
