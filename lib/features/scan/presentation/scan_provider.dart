@@ -214,8 +214,16 @@ class ScanNotifier extends StateNotifier<ScanState> {
         'SOS_EMPTY' => QuotaBlockReason.sosEmpty,
         'PRO_DAILY_LIMIT_REACHED' => QuotaBlockReason.proDailyExceeded,
         'DEVICE_QUOTA_EXCEEDED' => QuotaBlockReason.deviceExceeded,
+        'DEVICE_ID_REQUIRED' => QuotaBlockReason.deviceExceeded,
         _ => null,
       };
+      if (e.code == 'RATE_LIMITED') {
+        state = state.copyWith(
+          step: ScanStep.error,
+          errorMessage: e.message,
+        );
+        return;
+      }
       state = state.copyWith(
         step: blocked == null ? ScanStep.error : ScanStep.quotaBlocked,
         quotaReason: blocked ?? QuotaBlockReason.none,
@@ -300,41 +308,6 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
   void reset() {
     state = const ScanState();
-  }
-
-  // Injeção direta (usado pela WebTestScreen)
-  void setResultDirectly({
-    required SkinAnalysisRaw analysis,
-    required String report,
-    required List<AffiliateProduct> products,
-    int hiddenProducts = 0,
-    bool missingSunscreen = false,
-    List<String> avoidedLabels = const [],
-    Uint8List? imageBytes,
-    HistoryEntry? previousEntry,
-    SkinComparisonResult? comparison,
-  }) {
-    if (imageBytes != null && imageBytes.isNotEmpty) {
-      HistoryService.saveAnalysis(
-        analysis: analysis,
-        report: report,
-        rawImageBytes: imageBytes,
-      );
-    }
-
-    state = state.copyWith(
-      step: ScanStep.done,
-      analysis: analysis,
-      report: report,
-      products: products,
-      hiddenProducts: hiddenProducts,
-      missingSunscreen: missingSunscreen,
-      avoidedLabels: avoidedLabels,
-      imageBytes: imageBytes,
-      previousEntry: previousEntry,
-      comparison: comparison,
-      statusMessage: '✅ Pronto!',
-    );
   }
 }
 

@@ -2,8 +2,9 @@
 //  lib/core/services/revenuecat_service.dart
 // ============================================================
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+
+import '../config/env_values.dart';
 
 class RevenueCatService {
   static const String _weeklyId = 'peleia_weekly_990';
@@ -14,7 +15,7 @@ class RevenueCatService {
     // RevenueCat só funciona em Android/iOS — nunca em Web ou macOS desktop
     if (kIsWeb || !_isMobile) return;
 
-    final apiKey = dotenv.env['REVENUECAT_ANDROID_KEY'] ?? '';
+    final apiKey = EnvValues.revenueCatAndroidKey;
     if (apiKey.isEmpty) return; // Dev mode sem RevenueCat
 
     final configuration = PurchasesConfiguration(apiKey);

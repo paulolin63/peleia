@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'app_config.dart';
+import 'env_values.dart';
 
 /// Runtime quota mode. JSON keeps production values; this flag boosts free scans
 /// during Play closed testing without editing config files.
@@ -9,7 +9,7 @@ import 'app_config.dart';
 /// - `closed_testing` / `development` → free_lifetime = 20
 /// - `production` → free_lifetime = 1
 ///
-/// Set via `.env` `PELEIA_ENV=` or `--dart-define=PELEIA_ENV=production`.
+/// Set via `--dart-define=PELEIA_ENV=...` (or local `.env` in debug).
 /// Default: debug/profile → closed_testing, release → production.
 class PeleiaEnv {
   PeleiaEnv._();
@@ -18,13 +18,7 @@ class PeleiaEnv {
   static const productionFreeLifetime = 1;
 
   static String get mode {
-    var value = '';
-    try {
-      value = dotenv.env['PELEIA_ENV'] ?? '';
-    } catch (_) {}
-    if (value.isEmpty) {
-      value = const String.fromEnvironment('PELEIA_ENV');
-    }
+    var value = EnvValues.peleiaEnv;
     if (value.isEmpty) {
       value = kReleaseMode ? 'production' : 'closed_testing';
     }

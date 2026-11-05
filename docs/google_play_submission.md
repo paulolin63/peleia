@@ -202,4 +202,6 @@ Antes de publicar abertamente, o Google exige:
 - [ ] Ficha de segurança preenchida
 - [ ] 20 testadores confirmados para o closed test
 - [ ] RevenueCat conectado ao Google Play (produtos cadastrados)
-- [ ] `.env` com `GEMINI_API_KEY` real (não de desenvolvimento)
+- [ ] Release com `--dart-define=GEMINI_PROXY_URL=...` + `REVENUECAT_ANDROID_KEY` (sem Gemini key no client; ver `docs/GO_LIVE.md`)
+- [ ] Worker `ENVIRONMENT=production` quando sair do closed testing (`free_lifetime=1`)
+- [ ] Nenhum `.env` / keystore no AAB nem no zip de source (`scripts/export_source.sh`)

@@ -1,26 +1,10 @@
-// ============================================================
-//  lib/features/scan/presentation/web_test_screen.dart
-//
-//  Tela de teste para Web/macOS — bypassa câmera
-//  Permite testar a IA com URLs de imagens de rosto
-// ============================================================
-import 'package:flutter/foundation.dart';
+// Web / desktop: gallery-only entry that reuses ScanNotifier (same pipeline as mobile).
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/config/remote_config_service.dart';
-import '../../../core/profile/user_profile.dart';
-import '../../../core/services/comparison_service.dart';
-import '../../../core/services/evolution_reminder_service.dart';
-import '../../../core/services/gemini_skin_service.dart';
-import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
-import '../../../core/services/recommendation.dart';
-import '../../../core/services/revenuecat_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../paywall/presentation/quota_upsell_dialog.dart';
 import 'scan_provider.dart';
@@ -33,119 +17,39 @@ class WebTestScreen extends ConsumerStatefulWidget {
 }
 
 class _WebTestScreenState extends ConsumerState<WebTestScreen> {
-  bool _isLoading = false;
-  String _status = '';
-  String? _errorMsg;
-
-  Future<void> _runAnalysisFromPicker() async {
-    setState(() {
-      _isLoading = true;
-      _status = '📂 Abrindo galeria...';
-      _errorMsg = null;
-    });
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final remotePro = await RevenueCatService.isPremium();
-      final isPro = remotePro || (!kReleaseMode && (prefs.getBool('is_premium') ?? false));
-      final quota = await QuotaService.checkQuota(isPro: isPro);
-
-      if (!quota.canScan) {
-        setState(() {
-          _isLoading = false;
-          _status = '';
-        });
-        if (mounted) {
-          if (quota.blockReason == QuotaBlockReason.proDailyExceeded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                backgroundColor: AppTheme.surface,
-                content: Text(quota.statusText, style: const TextStyle(color: AppTheme.textPrimary)),
-              ),
-            );
-          } else {
-            await showQuotaUpsellDialog(context, message: quota.statusText);
-          }
-        }
-        return;
-      }
-
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 90,
+  Future<void> _handleQuotaBlocked(ScanState state) async {
+    if (state.quotaReason == QuotaBlockReason.proDailyExceeded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppTheme.surface,
+          content: Text(
+            state.errorMessage ?? state.statusMessage,
+            style: const TextStyle(color: AppTheme.textPrimary),
+          ),
+        ),
       );
-
-      if (picked == null) {
-        setState(() {
-          _isLoading = false;
-          _status = '';
-        });
-        return;
-      }
-
-      setState(() => _status = '🔬 Analisando com Gemini Vision...');
-
-      final gemini = GeminiSkinService.instance;
-      gemini.initialize();
-
-      final profile = await UserProfileStore.load();
-      final bytes = await picked.readAsBytes();
-      final analysis = await gemini.analyzeImageBytes(bytes, profile: profile);
-
-      setState(() => _status = '📋 Consultando histórico e gerando relatório...');
-      final previousEntries = await HistoryService.getEntries();
-      final previousEntry =
-          previousEntries.isNotEmpty ? previousEntries.first : null;
-
-      final comparison = ComparisonService.compare(
-        current: analysis,
-        previous: previousEntry,
-      );
-
-      final report = await gemini.generateReport(
-        analysis,
-        profile: profile,
-        comparison: comparison,
-      );
-      final config = await RemoteConfigService.load();
-      final recommendation = recommendProducts(
-        config: config,
-        analysis: analysis,
-        profile: profile,
-      );
-
-      if (!gemini.lastCallUsedProxy) {
-        await QuotaService.consumeQuota(isPro: isPro);
-      }
-
-      EvolutionReminderService.instance.scheduleAfterScan();
-
-      // Salva no provider com bytes para miniatura de histórico
-      ref.read(scanProvider.notifier).setResultDirectly(
-            analysis: analysis,
-            report: report,
-            products: recommendation.products,
-            hiddenProducts: recommendation.hiddenCount,
-            missingSunscreen: recommendation.missingSunscreen,
-            avoidedLabels: recommendation.avoidedLabels,
-            imageBytes: bytes,
-            previousEntry: previousEntry,
-            comparison: comparison,
-          );
-
-      if (mounted) context.push('/result');
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMsg = e.toString().replaceFirst('Exception: ', '');
-        _status = '';
-      });
+      return;
     }
+    await showQuotaUpsellDialog(
+      context,
+      message: state.errorMessage ?? state.statusMessage,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ScanState>(scanProvider, (prev, next) {
+      if (next.step == ScanStep.done && prev?.step != ScanStep.done) {
+        context.push('/result');
+      } else if (next.step == ScanStep.quotaBlocked &&
+          prev?.step != ScanStep.quotaBlocked) {
+        _handleQuotaBlocked(next);
+      }
+    });
+
+    final scan = ref.watch(scanProvider);
+    final loading = scan.isLoading || scan.step == ScanStep.capturing;
+
     return Scaffold(
       backgroundColor: AppTheme.bg,
       body: SafeArea(
@@ -154,7 +58,6 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
               Row(
                 children: [
                   Container(
@@ -167,103 +70,67 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Center(
-                        child: Text('✨', style: TextStyle(fontSize: 18))),
+                      child: Text('✨', style: TextStyle(fontSize: 18)),
+                    ),
                   ),
                   const SizedBox(width: 10),
-                  RichText(
-                    text: const TextSpan(children: [
-                      TextSpan(
-                          text: 'Pele',
-                          style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: AppTheme.textPrimary)),
-                      TextSpan(
-                          text: 'IA',
-                          style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: AppTheme.primary)),
-                    ]),
+                  const Text(
+                    'PeleIA',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => context.push('/history'),
                     child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: AppTheme.border),
+                        border: Border.all(color: AppTheme.border),
                       ),
-                      child: const Row(
-                        children: [
-                          Text('📈', style: TextStyle(fontSize: 12)),
-                          SizedBox(width: 4),
-                          Text(
-                            'Evolução',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFFE8C9A0),
-                                fontWeight: FontWeight.w700),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8A44A).withAlpha(40),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: const Color(0xFFE8A44A).withAlpha(75)),
-                    ),
-                    child: const Text(
-                      '🧪 Modo Teste',
-                      style: TextStyle(
+                      child: const Text(
+                        '📈 Evolução',
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Color(0xFFE8A44A),
-                          fontWeight: FontWeight.w700),
+                          color: Color(0xFFE8C9A0),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ).animate().fadeIn(),
-
               const SizedBox(height: 32),
-
-              // Título
               const Text(
-                'Teste a IA de\nDiagnóstico de Pele',
+                'Análise de pele',
                 style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFFF5F0EC),
-                    height: 1.2),
-              ).animate().fadeIn(delay: 100.ms),
-
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textPrimary,
+                  height: 1.2,
+                ),
+              ),
               const SizedBox(height: 8),
-
               const Text(
-                'Selecione uma foto de rosto para analisar',
+                'Selecione uma foto de rosto (mesmo fluxo do app mobile).',
                 style: TextStyle(fontSize: 14, color: Color(0xFF8A7A6E)),
-              ).animate().fadeIn(delay: 200.ms),
-
+              ),
               const SizedBox(height: 32),
-
-              if (_isLoading) ...[
-                // Loading state
+              if (loading)
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: AppTheme.border),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Column(
                     children: [
@@ -273,18 +140,22 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        _status,
+                        scan.statusMessage.isNotEmpty
+                            ? scan.statusMessage
+                            : 'Processando...',
                         style: const TextStyle(
-                            color: Color(0xFFF5F0EC), fontSize: 14),
+                          color: AppTheme.textPrimary,
+                          fontSize: 14,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
                   ),
-                ),
-              ] else ...[
-                // Upload button
+                )
+              else
                 GestureDetector(
-                  onTap: _runAnalysisFromPicker,
+                  onTap: () =>
+                      ref.read(scanProvider.notifier).pickFromGallery(),
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
@@ -295,104 +166,44 @@ class _WebTestScreenState extends ConsumerState<WebTestScreen> {
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFC8714A).withAlpha(75),
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
-                        )
-                      ],
                     ),
-                    child: Column(
-                      children: const [
+                    child: const Column(
+                      children: [
                         Text('📁', style: TextStyle(fontSize: 40)),
                         SizedBox(height: 12),
                         Text(
-                          'Selecionar Foto do Rosto',
+                          'Selecionar foto do rosto',
                           style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'JPG, PNG — a IA vai analisar oleosidade,\nacne, manchas e risco UV',
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 12),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ).animate().fadeIn(delay: 300.ms).scale(
-                      begin: const Offset(0.95, 0.95),
-                      end: const Offset(1, 1),
-                    ),
-
-                if (_errorMsg != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD96B6B).withAlpha(30),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: const Color(0xFFD96B6B).withAlpha(75)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('❌ ', style: TextStyle(fontSize: 16)),
-                        Expanded(
-                          child: Text(
-                            _errorMsg!,
-                            style: const TextStyle(
-                                color: Color(0xFFD96B6B), fontSize: 13),
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-
-                const SizedBox(height: 24),
-
-                // Dicas
+                ),
+              if (scan.step == ScanStep.error &&
+                  (scan.errorMessage?.isNotEmpty ?? false)) ...[
+                const SizedBox(height: 16),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(16),
+                    color: const Color(0xFFD96B6B).withAlpha(30),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: AppTheme.border),
+                      color: const Color(0xFFD96B6B).withAlpha(75),
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '💡 3 Regras de Ouro para Análise Confiável:',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary),
-                      ),
-                      const SizedBox(height: 10),
-                      ...[
-                        '☀️ Fique de frente para luz natural (evite luz de costas)',
-                        '✨ Desative o modo embelezador/filtro da câmera',
-                        '🧼 Rosto limpo e sem maquiagem para ver os poros reais',
-                        '📐 Rosto centralizado e alinhado na altura dos olhos',
-                      ].map((tip) => Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Text(
-                              tip,
-                              style: const TextStyle(
-                                  fontSize: 12, color: Color(0xFF8A7A6E)),
-                            ),
-                          )),
-                    ],
+                  child: Text(
+                    scan.errorMessage!,
+                    style: const TextStyle(
+                      color: Color(0xFFD96B6B),
+                      fontSize: 13,
+                    ),
                   ),
-                ).animate().fadeIn(delay: 400.ms),
+                ),
               ],
             ],
           ),

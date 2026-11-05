@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/config/remote_config_service.dart';
 import 'core/localization/app_translations.dart';
@@ -19,12 +18,7 @@ import 'core/services/revenuecat_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Carrega variáveis de ambiente (.env) — ignora erro no web (não tem filesystem)
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (_) {
-    // Web: usa variáveis embutidas ou deixa vazio (usuário configura depois)
-  }
+  // Config via --dart-define / --dart-define-from-file=.env (never ship .env as asset).
 
   // Força orientação portrait (selfie) — só funciona em mobile
   if (!kIsWeb) {

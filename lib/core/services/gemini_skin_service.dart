@@ -4,12 +4,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../features/scan/data/skin_analysis_result.dart';
+import '../config/env_values.dart';
 import '../profile/user_profile.dart';
 import 'auth_service.dart';
 import 'comparison_service.dart';
@@ -35,15 +35,7 @@ class GeminiSkinService {
   bool get lastCallUsedProxy => _usedProxy;
 
   void initialize() {
-    try {
-      _proxyUrl = dotenv.env['GEMINI_PROXY_URL'] ?? '';
-    } catch (_) {}
-    if (_proxyUrl.isEmpty) _proxyUrl = const String.fromEnvironment('GEMINI_PROXY_URL');
-    if (_proxyUrl.isEmpty || _proxyUrl.contains('proxy.peleia.com')) {
-      _proxyUrl = 'https://peleia-gemini-proxy.lin030682.workers.dev';
-    }
-    if (_proxyUrl.endsWith('/')) _proxyUrl = _proxyUrl.substring(0, _proxyUrl.length - 1);
-    if (_proxyUrl.endsWith('/analyze')) _proxyUrl = _proxyUrl.substring(0, _proxyUrl.length - '/analyze'.length);
+    _proxyUrl = EnvValues.normalizeProxyBase(EnvValues.geminiProxyUrl);
   }
 
   Future<SkinAnalysisRaw> analyzeImageBytes(
@@ -188,22 +180,14 @@ class GeminiSkinService {
         'Configuração de API não encontrada. Defina GEMINI_PROXY_URL.',
       );
     }
-    var apiKey = '';
-    try {
-      apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    } catch (_) {}
-    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY');
+    final apiKey = EnvValues.geminiApiKey;
     if (apiKey.isEmpty) {
-      throw AnalysisException('Dev local: adicione GEMINI_API_KEY no .env ou GEMINI_PROXY_URL.');
+      throw AnalysisException(
+        'Dev local: defina GEMINI_PROXY_URL ou GEMINI_API_KEY via --dart-define / .env.',
+      );
     }
 
-    var model = '';
-    try {
-      model = dotenv.env['GEMINI_MODEL'] ?? '';
-    } catch (_) {}
-    if (model.isEmpty) {
-      model = const String.fromEnvironment('GEMINI_MODEL', defaultValue: 'gemini-3.8-flash');
-    }
+    final model = EnvValues.geminiModel;
 
     http.Response res;
     try {

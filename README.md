@@ -1,17 +1,66 @@
-# peleia
+# PeleIA
 
-A new Flutter project.
+Skincare com IA para o mercado brasileiro (`com.peleia.app`).
 
-## Getting Started
+Selfie → Cloudflare Worker (Gemini) → scores + rotina PT-BR + produtos afiliados. Free / Pro / SOS via RevenueCat. Auth Firebase (anônimo + Google opcional).
 
-This project is a starting point for a Flutter application.
+## Stack
 
-A few resources to get you started if this is your first Flutter project:
+| Camada | Tech |
+|--------|------|
+| App | Flutter (Riverpod, go_router) |
+| Proxy IA | Cloudflare Worker + Durable Objects (cota) |
+| Config | KV `/config` + asset fallback |
+| Billing | RevenueCat + Play Billing |
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Closed testing vs production
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+| Mode | `PELEIA_ENV` / Worker `ENVIRONMENT` | Free lifetime |
+|------|--------------------------------------|---------------|
+| Closed testing | `closed_testing` | 20 |
+| Launch | `production` (release default) | 1 |
+
+Detalhes: [`docs/GO_LIVE.md`](docs/GO_LIVE.md).
+
+## Setup local
+
+```bash
+cp .env.example .env   # preencha GEMINI_PROXY_URL + REVENUECAT (opcional)
+# google-services.json → android/app/ (Firebase Console)
+# key.properties → android/ (from key.properties.example); .jks fora do git
+
+flutter pub get
+flutter run --dart-define-from-file=.env
+```
+
+Worker:
+
+```bash
+cd server/cloudflare-worker
+cp .dev.vars.example .dev.vars
+npm install && npm test
+npx wrangler dev
+```
+
+**Nunca** liste `.env` em `pubspec.yaml` assets — keys iriam no APK.
+
+## Export de source limpo
+
+```bash
+./scripts/export_source.sh
+```
+
+Ver [`docs/SECRETS_AND_EXPORT.md`](docs/SECRETS_AND_EXPORT.md).
+
+## Testes
+
+```bash
+flutter test
+cd server/cloudflare-worker && npm test
+```
+
+## Docs
+
+- [`docs/GO_LIVE.md`](docs/GO_LIVE.md) — flip closed testing → production
+- [`docs/SECRETS_AND_EXPORT.md`](docs/SECRETS_AND_EXPORT.md) — keystore / zip
+- [`docs/google_play_submission.md`](docs/google_play_submission.md) — Play Console

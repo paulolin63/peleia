@@ -125,15 +125,19 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
 }
 
 async function post(env: Env, body: unknown, token?: string, headers: Record<string, string> = {}) {
+  const merged: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-App-Build': '1',
+    // Free path exige device id; testes passam um fingerprint estável por padrão.
+    'X-Device-Id': 'testdevice-fingerprint-default',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...headers,
+  };
+  if (headers['X-Device-Id'] === '') delete merged['X-Device-Id'];
   return worker.fetch(
     new Request('http://worker/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-App-Build': '1',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...headers,
-      },
+      headers: merged,
       body: JSON.stringify(body),
     }),
     env,
@@ -455,17 +459,80 @@ describe('Prompts', () => {
 });
 
 describe('delete_account', () => {
-  it('purge o Durable Object do usuário autenticado', async () => {
+  it('purge o Durable Object do usuário; device binding impede reset da cota free', async () => {
     const env = makeEnv();
     const token = await signToken(claims('u-del'));
+    const device = { 'X-Device-Id': 'testdevice-fingerprint-udel' };
     net.geminiResponses.push(GOOD_ANALYSIS);
-    expect((await post(env, { task: 'vision', image_base64: 'aGVsbG8=' }, token)).status).toBe(200);
-    expect((await post(env, { task: 'vision', image_base64: 'aGVsbG8=' }, token)).status).toBe(403);
+    expect((await post(env, { task: 'vision', image_base64: 'aGVsbG8=' }, token, device)).status).toBe(200);
+    expect((await post(env, { task: 'vision', image_base64: 'aGVsbG8=' }, token, device)).status).toBe(403);
 
     const purged = await post(env, { task: 'delete_account' }, token);
     expect(purged.status).toBe(200);
 
+    // Mesmo aparelho: cota free do device permanece consumida.
     net.geminiResponses.push(GOOD_ANALYSIS);
-    expect((await post(env, { task: 'vision', image_base64: 'aGVsbG8=' }, token)).status).toBe(200);
+    const sameDevice = await post(env, { task: 'vision', image_base64: 'aGVsbG8=' }, token, device);
+    expect(sameDevice.status).toBe(403);
+    expect(((await sameDevice.json()) as any).code).toBe('DEVICE_QUOTA_EXCEEDED');
+
+    // Outro fingerprint: UID limpo pode usar free de novo.
+    net.geminiResponses.push(GOOD_ANALYSIS);
+    expect(
+      (await post(env, { task: 'vision', image_base64: 'aGVsbG8=' }, token, {
+        'X-Device-Id': 'testdevice-fingerprint-other',
+      })).status,
+    ).toBe(200);
+  });
+});
+
+describe('Device id e rate limit', () => {
+  it('rejeita vision free sem X-Device-Id', async () => {
+    const env = makeEnv();
+    const token = await signToken(claims('u-nodev'));
+    const res = await post(env, { task: 'vision', image_base64: 'aGVsbG8=' }, token, { 'X-Device-Id': '' });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).code).toBe('DEVICE_ID_REQUIRED');
+  });
+
+  it('aplica rate limit por uid em vision (11ª no mesmo minuto)', async () => {
+    const env = makeEnv();
+    net.revenueCat['u-rl-pro'] = { entitlements: { premium: { expires_date: null } } };
+    const proToken = await signToken(claims('u-rl-pro'));
+    let sawRateLimit = false;
+    for (let i = 0; i < 12; i++) {
+      net.geminiResponses.push(GOOD_ANALYSIS);
+      const res = await post(
+        env,
+        { task: 'vision', image_base64: 'aGVsbG8=' },
+        proToken,
+        { 'X-Device-Id': `testdevice-pro-rl-${i}` },
+      );
+      // Contador de rate sobe mesmo quando a cota Pro diária já esgotou.
+      if (res.status === 429) {
+        const body = (await res.json()) as any;
+        if (body.code === 'RATE_LIMITED') {
+          sawRateLimit = true;
+          break;
+        }
+      }
+    }
+    expect(sawRateLimit).toBe(true);
+  });
+
+  it('Durable Object /hit-rate bloqueia após o limite da janela', async () => {
+    const obj = new QuotaDurableObject({ storage: new MockStorage() } as any);
+    const hit = () =>
+      obj.fetch(
+        new Request('http://quota/hit-rate', {
+          method: 'POST',
+          body: JSON.stringify({ limit: 2, windowMs: 60_000, now: 1_000 }),
+        }),
+      );
+    expect((await hit()).status).toBe(200);
+    expect((await hit()).status).toBe(200);
+    const blocked = await hit();
+    expect(blocked.status).toBe(429);
+    expect(((await blocked.json()) as any).code).toBe('RATE_LIMITED');
   });
 });

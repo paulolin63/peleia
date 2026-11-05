@@ -57,8 +57,44 @@ export class QuotaDurableObject {
 
   async fetch(request: Request): Promise<Response> {
     const path = new URL(request.url).pathname;
+    if (path === '/hit-rate') {
+      const body = (await request.json()) as { limit: number; windowMs: number; now?: number };
+      return this.exclusive(() => this.hitRate(body));
+    }
     const body = (await request.json()) as QuotaRequest;
     return this.exclusive(() => this.handle(path, body));
+  }
+
+  /** Sliding window counter. One DO instance per rate-limit key (uid / ip). */
+  private async hitRate(body: { limit: number; windowMs: number; now?: number }): Promise<Response> {
+    const now = body.now ?? Date.now();
+    const limit = Math.max(1, Number(body.limit) || 1);
+    const windowMs = Math.max(1000, Number(body.windowMs) || 60_000);
+    const key = 'rate_v1';
+    const prev = (await this.state.storage.get<{ windowStart: number; count: number }>(key)) || {
+      windowStart: now,
+      count: 0,
+    };
+    let windowStart = prev.windowStart;
+    let count = prev.count;
+    if (now - windowStart >= windowMs) {
+      windowStart = now;
+      count = 0;
+    }
+    count += 1;
+    await this.state.storage.put(key, { windowStart, count });
+    if (count > limit) {
+      return json(
+        {
+          allowed: false,
+          code: 'RATE_LIMITED',
+          error: 'Muitas requisições. Aguarde um momento e tente de novo.',
+          retry_after_ms: Math.max(0, windowMs - (now - windowStart)),
+        },
+        429,
+      );
+    }
+    return json({ allowed: true, remaining: limit - count });
   }
 
   private async counters(day: string) {

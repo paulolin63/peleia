@@ -1,7 +1,7 @@
 name: peleia
 description: PeleIA — Skincare com Inteligência Artificial para o mercado brasileiro
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.1+4
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -19,13 +19,11 @@ dependencies:
   firebase_auth: ^7.0.0             # Login anônimo: identidade verificada no proxy
 
   # ── Camera / Image ────────────────────────────────
-  camera: ^0.11.0                   # Câmera nativa Android/iOS
-  image_picker: ^1.1.2              # Galeria ou câmera (fallback)
+  image_picker: ^1.1.2              # Galeria ou câmera
   image: ^4.1.7                     # Processamento de imagem (resize antes de enviar)
 
   # ── State Management ──────────────────────────────
   flutter_riverpod: ^2.5.1          # State management reativo
-  riverpod_annotation: ^2.3.5
 
   # ── Storage & Persistence ────────────────────────
   shared_preferences: ^2.2.3        # Salvar histórico de análises
@@ -35,10 +33,7 @@ dependencies:
   purchases_flutter: ^10.18.1        # RevenueCat (Google Play Billing)
 
   # ── UI / Animations ───────────────────────────────
-  lottie: ^3.1.2                    # Animações (scan loading)
   flutter_animate: ^4.5.0           # Micro-animações
-  cached_network_image: ^3.3.1
-  shimmer: ^3.0.0                   # Loading skeleton
 
   # ── Utils ─────────────────────────────────────────
   go_router: ^13.2.5                # Navegação declarativa
@@ -46,7 +41,6 @@ dependencies:
   crypto: ^3.0.3                    # Hashing SHA-256 para ancoragem de dispositivo
   permission_handler: ^11.3.1       # Permissão de câmera Android
   url_launcher: ^6.2.6              # Links afiliados (Shopee, Mercado Livre)
-  flutter_dotenv: ^5.1.0
   package_info_plus: ^10.2.2        # Build do app (versão mínima exigida pela config)
   share_plus: ^13.3.1
   pdf: ^3.13.1
@@ -61,9 +55,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  build_runner: ^2.4.9
-  riverpod_generator: ^2.4.0
-  json_serializable: ^6.7.1
 
 flutter:
   uses-material-design: true
@@ -71,4 +62,3 @@ flutter:
     - assets/images/
     - assets/animations/
     - assets/config/
-    - .env

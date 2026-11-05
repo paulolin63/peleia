@@ -50,7 +50,8 @@ class HttpError extends Error {
 function corsHeaders(request: Request, env: Env, isPublic: boolean): Record<string, string> {
   const headers: Record<string, string> = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-App-Build, If-None-Match',
+    'Access-Control-Allow-Headers':
+      'Content-Type, Authorization, X-App-Build, X-Device-Id, If-None-Match',
     'Access-Control-Expose-Headers': 'ETag',
     Vary: 'Origin',
   };
@@ -151,6 +152,48 @@ async function callQuota(stub: DurableObjectStub, path: string, body: QuotaReque
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+}
+
+function clientIp(request: Request): string {
+  const cf = request.headers.get('CF-Connecting-IP');
+  if (cf && cf.trim()) return cf.trim().slice(0, 64);
+  const xff = request.headers.get('X-Forwarded-For');
+  if (xff) {
+    const first = xff.split(',')[0]?.trim();
+    if (first) return first.slice(0, 64);
+  }
+  return 'unknown';
+}
+
+function parseDeviceId(request: Request, body: Record<string, unknown>): string | null {
+  const raw = request.headers.get('X-Device-Id') || body.device_id;
+  if (typeof raw !== 'string') return null;
+  const id = raw.trim();
+  if (id.length < 8 || id.length > 128) return null;
+  return id;
+}
+
+/** Burst limits: 10/min per uid, 30/min per IP (vision/report burn Gemini). */
+async function assertRateLimits(env: Env, uid: string, request: Request): Promise<void> {
+  const checks: Array<{ name: string; limit: number }> = [
+    { name: `rl:uid:${uid}`, limit: 10 },
+    { name: `rl:ip:${clientIp(request)}`, limit: 30 },
+  ];
+  for (const check of checks) {
+    const stub = env.QUOTA_DO.get(env.QUOTA_DO.idFromName(check.name));
+    const res = await stub.fetch('http://quota/hit-rate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limit: check.limit, windowMs: 60_000 }),
+    });
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      throw new HttpError(429, {
+        code: 'RATE_LIMITED',
+        error: (payload.error as string) || 'Muitas requisições. Aguarde um momento e tente de novo.',
+      });
+    }
+  }
 }
 
 async function callGemini(
@@ -264,19 +307,20 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
       throw new HttpError(400, { error: 'Requisição inválida: envie a imagem.' });
     }
 
-    const deviceIdRaw = request.headers.get('X-Device-Id') || body.device_id;
-    const deviceId =
-      typeof deviceIdRaw === 'string' && deviceIdRaw.length >= 8 && deviceIdRaw.length <= 128
-        ? deviceIdRaw
-        : null;
+    await assertRateLimits(env, uid, request);
 
+    const deviceId = parseDeviceId(request, body);
     const ent = await entitlementsFor(uid, env, config);
 
-    // ── Anti-abuso: Verificação de Cota por Aparelho Físico (Device-Binding) ──
-    // Se o usuário NÃO for assinante Pro nem tiver créditos SOS comprados,
-    // garantimos que o mesmo aparelho físico não possa reutilizar a análise gratuita.
+    // Free/SOS-empty: device id obrigatório — sem header a binding era pulada (abuso de anônimo).
     let deviceStub: DurableObjectStub | null = null;
-    if (!ent.isPro && ent.sosPurchased <= 0 && deviceId) {
+    if (!ent.isPro && ent.sosPurchased <= 0) {
+      if (!deviceId) {
+        throw new HttpError(400, {
+          code: 'DEVICE_ID_REQUIRED',
+          error: 'Identificador de aparelho ausente. Atualize o app e tente novamente.',
+        });
+      }
       deviceStub = env.QUOTA_DO.get(env.QUOTA_DO.idFromName(`device:${deviceId}`));
       const deviceStatusRes = await callQuota(deviceStub, '/status', {
         limits: config.quota,
@@ -366,6 +410,7 @@ async function handleTask(request: Request, env: Env, cors: Record<string, strin
     if (typeof body.analysis_id !== 'string') {
       throw new HttpError(400, { error: 'Requisição inválida: análise ausente.' });
     }
+    await assertRateLimits(env, uid, request);
     const quotaReq: QuotaRequest = {
       limits: config.quota, isPro: false, sosPurchased: 0, day, analysisId: body.analysis_id,
     };

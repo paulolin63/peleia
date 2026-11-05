@@ -9,11 +9,17 @@ import '../theme/app_theme.dart';
 import 'app_translations.dart';
 
 class LanguageToggleButton extends ConsumerWidget {
+  /// EN UI is incomplete (onboarding/profile/scan still PT-hardcoded).
+  /// Flip to true when translations cover those surfaces.
+  static const bool enabled = false;
+
   final bool compact;
   const LanguageToggleButton({super.key, this.compact = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!enabled) return const SizedBox.shrink();
+
     final lang = ref.watch(appLanguageProvider);
     final isEn = lang == AppLanguage.en;
 

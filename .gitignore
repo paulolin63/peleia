@@ -1,9 +1,11 @@
 # Git ignore — PeleIA
 # Segurança
 .env
+.dart_defines.env
 *.keystore
 *.jks
 key.properties
+android/key.properties
 
 # Flutter/Dart
 .dart_tool/
@@ -14,12 +16,19 @@ build/
 .pub-cache/
 .pub/
 pubspec.lock
+dist/
 
 # Android
 android/.gradle/
 android/local.properties
 android/app/google-services.json
 android/captures/
+android/build/
+android/.kotlin/
+
+# Cloudflare Worker local state
+server/cloudflare-worker/.wrangler/
+server/cloudflare-worker/.dev.vars
 
 # IDE
 .idea/

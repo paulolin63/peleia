@@ -5,6 +5,7 @@ account_id = "ab48f7a2be15e4a97cc32e5d303f185a"
 
 [vars]
 # closed_testing → free_lifetime 20 | production → free_lifetime 1
+# Go-live: set ENVIRONMENT = "production" (see docs/GO_LIVE.md)
 ENVIRONMENT = "closed_testing"
 # ID do projeto Firebase (o mesmo do google-services.json do app).
 FIREBASE_PROJECT_ID = "peleia-e0b3a"
