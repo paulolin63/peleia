@@ -13,6 +13,7 @@ cd "$(dirname "$ROOT")"
 zip -r "$OUT_ZIP" "$(basename "$ROOT")" \
   -x "$(basename "$ROOT")/.git/*" \
   -x "$(basename "$ROOT")/.env" \
+  -x "$(basename "$ROOT")/.dart_defines.env" \
   -x "$(basename "$ROOT")/*.jks" \
   -x "$(basename "$ROOT")/*.keystore" \
   -x "$(basename "$ROOT")/android/key.properties" \
@@ -34,11 +35,11 @@ zip -r "$OUT_ZIP" "$(basename "$ROOT")" \
 echo "Wrote $OUT_ZIP"
 # Fail only on real secret paths (allow *.example and Flutter ephemeral *.env tooling files).
 BAD=$(unzip -l "$OUT_ZIP" | awk '{print $4}' | grep -E \
-  '(^|/)[^/]+\.jks$|(^|/)key\.properties$|(^|/)\.env$|(^|/)\.wrangler/|(^|/)google-services\.json$' \
+  '(^|/)[^/]+\.jks$|(^|/)key\.properties$|(^|/)\.env$|(^|/)\.dart_defines\.env$|(^|/)\.wrangler/|(^|/)google-services\.json$|(^|/)[^/]+\.keystore$' \
   || true)
 if [[ -n "$BAD" ]]; then
   echo "ERROR: secrets still in zip:" >&2
   echo "$BAD" >&2
   exit 1
 fi
-echo "OK: no keystore/.env/key.properties/.wrangler/google-services in zip"
+echo "OK: no keystore/.env/.dart_defines.env/key.properties/.wrangler/google-services in zip"

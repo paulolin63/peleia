@@ -1,18 +1,8 @@
-// ============================================================
-//  lib/features/scan/presentation/scan_screen.dart
-//
-//  Tela principal de captura + animação de análise
-// ============================================================
-import 'dart:async';
-
+// Scan: one primary action (camera). Gallery + back are secondary.
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/localization/app_translations.dart';
-import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../paywall/presentation/quota_upsell_dialog.dart';
@@ -25,919 +15,163 @@ class ScanScreen extends ConsumerStatefulWidget {
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
 }
 
-class _ScanScreenState extends ConsumerState<ScanScreen>
-    with TickerProviderStateMixin {
-  late final AnimationController _pulseController;
-  late final AnimationController _scanLineController;
-  Timer? _stepTimer;
-  int _activeStepIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-
-    _scanLineController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-  }
-
-  void _startStepAnimation() {
-    _stepTimer?.cancel();
-    _activeStepIndex = 0;
-    _stepTimer = Timer.periodic(const Duration(milliseconds: 1300), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      final scanState = ref.read(scanProvider);
-      if (!scanState.isLoading) {
-        timer.cancel();
-        return;
-      }
-      if (_activeStepIndex < 4) {
-        setState(() {
-          _activeStepIndex++;
-        });
-        HapticFeedback.lightImpact();
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-
-  void _stopStepAnimation() {
-    _stepTimer?.cancel();
-    _stepTimer = null;
-  }
-
-  @override
-  void dispose() {
-    _stopStepAnimation();
-    _pulseController.dispose();
-    _scanLineController.dispose();
-    super.dispose();
-  }
-
-  void _showDailyLimitDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Text('🌙 ', style: TextStyle(fontSize: 22)),
-            Text(
-              'Limite Diário',
-              style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w800),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              message,
-              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.5),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'A pele precisa de tempo para responder à rotina. Volte amanhã para uma nova análise.',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.5),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-  }
-
+class _ScanScreenState extends ConsumerState<ScanScreen> {
   @override
   Widget build(BuildContext context) {
-    final scanState = ref.watch(scanProvider);
+    final state = ref.watch(scanProvider);
 
-    // Navega para resultado ou Paywall quando necessário
     ref.listen<ScanState>(scanProvider, (prev, next) {
-      if (prev?.isLoading != true && next.isLoading) {
-        _startStepAnimation();
-      } else if (prev?.isLoading == true && !next.isLoading) {
-        _stopStepAnimation();
-      }
-
-      if (next.step == ScanStep.done) {
+      if (next.step == ScanStep.done && prev?.step != ScanStep.done) {
         context.push('/result');
-      } else if (next.step == ScanStep.quotaBlocked) {
+      } else if (next.step == ScanStep.quotaBlocked &&
+          prev?.step != ScanStep.quotaBlocked) {
         if (next.quotaReason == QuotaBlockReason.proDailyExceeded) {
-          _showDailyLimitDialog(context, next.errorMessage ?? '');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(next.errorMessage ?? '')),
+          );
         } else {
-          final tr = ref.read(trProvider);
           showQuotaUpsellDialog(
             context,
-            message: next.errorMessage ??
-                tr.dashQuotaDialogContentWith(QuotaService.freeLifetime),
+            message: next.errorMessage ?? '',
           );
         }
       }
     });
 
-    return Scaffold(
+    void goBack() {
+      ref.read(scanProvider.notifier).reset();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/');
+      }
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) goBack();
+      },
+      child: Scaffold(
       backgroundColor: AppTheme.bg,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Column(
             children: [
-              const SizedBox(height: 20),
-              _buildHeader(),
-              const SizedBox(height: 32),
-              Expanded(
-                child: _buildContent(scanState),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: goBack,
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                    color: AppTheme.textPrimary,
+                  ),
+                  const Spacer(),
+                  if (!state.isLoading)
+                    TextButton(
+                      onPressed: () =>
+                          ref.read(scanProvider.notifier).pickFromGallery(),
+                      child: const Text(
+                        'Galeria',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(height: 24),
-              _buildActions(scanState),
-              const SizedBox(height: 32),
+              Expanded(child: _body(state)),
+              if (!state.isLoading && state.step != ScanStep.error)
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () =>
+                        ref.read(scanProvider.notifier).captureAndAnalyze(),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.textPrimary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Tirar selfie',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              if (state.step == ScanStep.error) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () {
+                      ref.read(scanProvider.notifier).reset();
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.textPrimary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text('Tentar de novo'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
+    ),
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primary, AppTheme.primaryLight],
+  Widget _body(ScanState state) {
+    if (state.isLoading || state.step == ScanStep.capturing) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primary.withAlpha(50),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Text('🌿', style: TextStyle(fontSize: 18)),
-          ),
-        ),
-        const SizedBox(width: 10),
-        RichText(
-          text: const TextSpan(
-            children: [
-              TextSpan(
-                text: 'Pele',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              TextSpan(
-                text: 'IA',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.primaryDark,
+            if (state.statusMessage.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                state.statusMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14,
                 ),
               ),
             ],
-          ),
+          ],
         ),
-        const Spacer(),
-        const LanguageToggleButton(compact: true),
-        const SizedBox(width: 8),
-        GestureDetector(
-          onTap: () => context.push('/history'),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(6),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                const Text('📈', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 6),
-                Text(
-                  ref.watch(trProvider).isEn ? 'History' : 'Evolução',
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0);
-  }
-
-  Widget _buildContent(ScanState state) {
-    if (state.isLoading) {
-      return _buildScanAnimation(state);
+      );
     }
 
     if (state.step == ScanStep.error) {
-      return _buildError(state.errorMessage ?? 'Erro desconhecido');
+      return Center(
+        child: Text(
+          state.errorMessage ?? 'Erro',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 16,
+            height: 1.4,
+          ),
+        ),
+      );
     }
 
-    return _buildIdleState();
-  }
-
-  Widget _buildIdleState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Ilustração do rosto com overlay de scan
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer pulse ring
-            AnimatedBuilder(
-              animation: _pulseController,
-              builder: (_, __) {
-                final value = _pulseController.value;
-                return Container(
-                  width: 230 + (value * 30),
-                  height: 280 + (value * 30),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: AppTheme.primary
-                          .withAlpha((200 * (1 - value)).round()),
-                      width: 2,
-                    ),
-                    borderRadius: BorderRadius.circular(115),
-                  ),
-                );
-              },
-            ),
-
-            // Face container
-            Container(
-              width: 200,
-              height: 250,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFEBF5E6), Color(0xFFF2F7EF)],
-                ),
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(
-                  color: AppTheme.primary.withAlpha(120),
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withAlpha(25),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text('👤', style: TextStyle(fontSize: 80)),
-              ),
-            ),
-
-            // Corner markers
-            ..._buildCornerMarkers(),
-          ],
-        )
-            .animate()
-            .fadeIn(duration: 800.ms)
-            .scale(begin: const Offset(0.9, 0.9)),
-
-        const SizedBox(height: 32),
-
-        Text(
-          ref.watch(trProvider).scanTitle,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: AppTheme.textPrimary,
-          ),
-          textAlign: TextAlign.center,
-        ).animate().fadeIn(delay: 200.ms),
-
-        const SizedBox(height: 12),
-
-        Text(
-          ref.watch(trProvider).scanSubtitle,
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppTheme.textSecondary,
-            height: 1.6,
-          ),
-          textAlign: TextAlign.center,
-        ).animate().fadeIn(delay: 400.ms),
-
-        const SizedBox(height: 24),
-
-        // Feature tags
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _FeatureTag(emoji: '🛢️', label: ref.watch(trProvider).indicatorOiliness),
-            _FeatureTag(emoji: '😤', label: ref.watch(trProvider).indicatorAcne),
-            _FeatureTag(emoji: '☀️', label: ref.watch(trProvider).indicatorSpots),
-            _FeatureTag(emoji: '💧', label: ref.watch(trProvider).indicatorHydration),
-          ],
-        ).animate().fadeIn(delay: 600.ms),
-
-        const SizedBox(height: 20),
-
-        // ── Dicas de Ouro para Foto Precisa ──────────────
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(5),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('💡 ', style: TextStyle(fontSize: 14)),
-                  Text(
-                    ref.watch(trProvider).scanAccuracyTitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _CaptureMiniTip(emoji: '☀️', label: ref.watch(trProvider).scanTipLight),
-                  _CaptureMiniTip(emoji: '✨', label: ref.watch(trProvider).scanTipFilter),
-                  _CaptureMiniTip(emoji: '🧼', label: ref.watch(trProvider).scanTipMake),
-                ],
-              ),
-            ],
-          ),
-        ).animate().fadeIn(delay: 700.ms),
-      ],
-    );
-  }
-
-  Widget _buildScanAnimation(ScanState state) {
-    final tr = ref.watch(trProvider);
-    final steps = [
-      tr.stepSkinType,
-      tr.stepOiliness,
-      tr.stepAcne,
-      tr.stepUv,
-      tr.stepRoutine,
-    ];
-
-    final chips = [
-      ('🔬', tr.indicatorSkinType),
-      ('💧', tr.indicatorOiliness),
-      ('😤', tr.indicatorAcne),
-      ('☀️', tr.indicatorSpots),
-      ('✨', tr.isEn ? 'Routine' : 'Rotina'),
-    ];
-
-    final currentStepIndex = state.step == ScanStep.generatingReport ? 4 : _activeStepIndex;
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Foto com overlay de scan
-          if (state.imageBytes != null)
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Hero(
-                  tag: 'skin_analysis_selfie',
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
-                    child: Image.memory(
-                      state.imageBytes!,
-                      width: 200,
-                      height: 250,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-
-                // Scan beam + sweeping vignette
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(100),
-                  child: AnimatedBuilder(
-                    animation: _scanLineController,
-                    builder: (_, __) {
-                      final linePos = _scanLineController.value * 2 - 1;
-                      return SizedBox(
-                        width: 200,
-                        height: 250,
-                        child: Stack(
-                          children: [
-                            // Sweeping light vignette / beam around laser
-                            Align(
-                              alignment: Alignment(0, linePos),
-                              child: Container(
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.transparent,
-                                      AppTheme.primary.withAlpha(25),
-                                      AppTheme.primaryLight.withAlpha(50),
-                                      AppTheme.primary.withAlpha(25),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // High-intensity laser line
-                            Align(
-                              alignment: Alignment(0, linePos),
-                              child: Container(
-                                height: 2.5,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      AppTheme.primary,
-                                      Colors.white,
-                                      AppTheme.primaryLight,
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.primary.withAlpha(180),
-                                      blurRadius: 14,
-                                      spreadRadius: 2,
-                                    ),
-                                    const BoxShadow(
-                                      color: Colors.white,
-                                      blurRadius: 5,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                // Vignette / subtle ambient shadow around oval
-                Container(
-                  width: 200,
-                  height: 250,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(
-                      color: AppTheme.primary.withAlpha(120),
-                      width: 2,
-                    ),
-                    gradient: RadialGradient(
-                      center: Alignment.center,
-                      radius: 0.85,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withAlpha(60),
-                      ],
-                    ),
-                  ),
-                ),
-
-                ..._buildCornerMarkers(),
-              ],
-            ),
-
-          // Chips caindo (metáfora bacon-do-Foomy)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            constraints: const BoxConstraints(minHeight: 38),
-            margin: const EdgeInsets.only(top: 14, bottom: 8),
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                for (int i = 0; i < currentStepIndex && i < chips.length; i++)
-                  _buildLandedChip(chips[i].$1, chips[i].$2, key: ValueKey('chip_$i')),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Status steps
-          ...List.generate(steps.length, (i) {
-            final isDone = i < currentStepIndex;
-            final isActive = i == currentStepIndex;
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  AnimatedScale(
-                    scale: isDone ? 1.05 : 1.0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOutBack,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 350),
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isDone
-                            ? AppTheme.primarySoft
-                            : isActive
-                                ? AppTheme.primarySoft
-                                : Colors.transparent,
-                        border: Border.all(
-                          color: isDone
-                              ? AppTheme.primary
-                              : isActive
-                                  ? AppTheme.primary
-                                  : AppTheme.border,
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: isDone
-                            ? const Icon(
-                                Icons.check,
-                                size: 14,
-                                color: AppTheme.primary,
-                              )
-                            : isActive
-                                ? const SizedBox(
-                                    width: 10,
-                                    height: 10,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppTheme.primary,
-                                    ),
-                                  )
-                                : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    steps[i],
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDone
-                          ? AppTheme.primaryDark
-                          : isActive
-                              ? AppTheme.textPrimary
-                              : AppTheme.textMuted,
-                      fontWeight:
-                          isActive ? FontWeight.w700 : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLandedChip(String emoji, String label, {Key? key}) {
-    return Container(
-      key: key,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.border,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withAlpha(25),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    )
-        .animate()
-        .slideY(begin: -1.8, end: 0, duration: 420.ms, curve: Curves.easeOutBack)
-        .fadeIn(duration: 200.ms)
-        .scale(begin: const Offset(0.75, 0.75), end: const Offset(1, 1), curve: Curves.easeOutBack);
-  }
-
-  Widget _buildError(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('❌', style: TextStyle(fontSize: 48)),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: const TextStyle(
-              color: AppTheme.error,
-              fontSize: 15,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          TextButton(
-            onPressed: () => ref.read(scanProvider.notifier).reset(),
-            child: const Text(
-              'Tentar novamente',
-              style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActions(ScanState state) {
-    if (state.isLoading) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      children: [
-        // Botão principal — câmera
-        GestureDetector(
-          onTap: () => ref.read(scanProvider.notifier).captureAndAnalyze(),
-          child: Container(
-            height: 58,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primary, AppTheme.primaryLight],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primary.withAlpha(80),
-                  blurRadius: 20,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('📸', style: TextStyle(fontSize: 20)),
-                const SizedBox(width: 10),
-                Text(
-                  ref.watch(trProvider).scanMainBtn,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ).animate().slideY(begin: 0.3, end: 0).fadeIn(delay: 800.ms),
-
-        const SizedBox(height: 12),
-
-        // Botão secundário — galeria
-        GestureDetector(
-          onTap: () => ref.read(scanProvider.notifier).pickFromGallery(),
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              border: Border.all(
-                color: AppTheme.border,
-              ),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(5),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('🖼️', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 8),
-                Text(
-                  ref.watch(trProvider).scanGalleryBtn,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ).animate().fadeIn(delay: 900.ms),
-      ],
-    );
-  }
-
-  List<Widget> _buildCornerMarkers() {
-    const size = 20.0;
-    const thickness = 3.0;
-    const offset = -4.0;
-    const color = AppTheme.primary;
-
-    return [
-      Positioned(
-        top: offset,
-        left: offset,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(color: color, width: thickness),
-              left: BorderSide(color: color, width: thickness),
-            ),
-            borderRadius: BorderRadius.only(topLeft: Radius.circular(4)),
-          ),
-        ),
-      ),
-      Positioned(
-        top: offset,
-        right: offset,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(color: color, width: thickness),
-              right: BorderSide(color: color, width: thickness),
-            ),
-            borderRadius: BorderRadius.only(topRight: Radius.circular(4)),
-          ),
-        ),
-      ),
-      Positioned(
-        bottom: offset,
-        left: offset,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: color, width: thickness),
-              left: BorderSide(color: color, width: thickness),
-            ),
-            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(4)),
-          ),
-        ),
-      ),
-      Positioned(
-        bottom: offset,
-        right: offset,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: color, width: thickness),
-              right: BorderSide(color: color, width: thickness),
-            ),
-            borderRadius: BorderRadius.only(bottomRight: Radius.circular(4)),
-          ),
-        ),
-      ),
-    ];
+    return const SizedBox.expand();
   }
 }
-
-// ── Widget auxiliar: feature tag ─────────────────────────
-class _FeatureTag extends StatelessWidget {
-  final String emoji;
-  final String label;
-
-  const _FeatureTag({required this.emoji, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppTheme.primarySoft,
-        border: Border.all(color: AppTheme.border),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.primaryDark,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Widget auxiliar: dica rápida de captura ──────────────
-class _CaptureMiniTip extends StatelessWidget {
-  final String emoji;
-  final String label;
-  const _CaptureMiniTip({required this.emoji, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 13)),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-

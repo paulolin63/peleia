@@ -142,7 +142,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
       state = state.copyWith(
         step: ScanStep.analyzing,
-        statusMessage: '🔬 Analisando sua pele com IA...',
+        statusMessage: '',
       );
 
       final config = await RemoteConfigService.load();
@@ -152,7 +152,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
       state = state.copyWith(
         analysis: analysis,
-        statusMessage: '📋 Consultando histórico e gerando relatório...',
+        statusMessage: '',
         step: ScanStep.generatingReport,
       );
 
@@ -206,7 +206,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
         avoidedLabels: recommendation.avoidedLabels,
         previousEntry: previousEntry,
         comparison: comparison,
-        statusMessage: '✅ Pronto!',
+        statusMessage: '',
       );
     } on AnalysisException catch (e) {
       final blocked = switch (e.code) {
@@ -253,7 +253,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
     state = state.copyWith(
       step: ScanStep.capturing,
-      statusMessage: 'Abrindo câmera...',
+      statusMessage: '',
     );
 
     final picked = await _picker.pickImage(
@@ -288,7 +288,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
 
     state = state.copyWith(
       step: ScanStep.capturing,
-      statusMessage: 'Escolhendo foto...',
+      statusMessage: '',
     );
 
     final picked = await _picker.pickImage(

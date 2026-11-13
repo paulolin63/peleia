@@ -1,32 +1,17 @@
-// ============================================================
-//  lib/features/dashboard/presentation/dashboard_screen.dart
-//
-//  Painel Diário de Skincare (Dashboard)
-//  - Saudação personalizada e status da pele
-//  - Alerta UV e clima brasileiro do dia
-//  - Checklist diário de rotina (Manhã e Noite com checkboxes)
-//  - Atalhos para Nova Análise, Evolução Antes & Depois e Premium
-// ============================================================
-import 'dart:math' as math;
-
+// Home: purpose in 3s, one primary action. Secondary in overflow.
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/config/app_config.dart';
-import '../../../core/config/remote_config_service.dart';
-import '../../../core/localization/app_translations.dart';
-import '../../../core/localization/language_toggle_button.dart';
-import '../../../core/profile/user_profile.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/revenuecat_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../history/data/history_entry.dart';
 import '../../profile/avoidance_fields.dart';
+import '../../../core/profile/user_profile.dart';
+import '../../../core/config/remote_config_service.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -36,1276 +21,272 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  HistoryEntry? _latestEntry;
-  bool _isLoading = true;
+  HistoryEntry? _latest;
+  bool _loading = true;
   bool _isPro = false;
-  QuotaStatus? _quotaStatus;
-  String? _ageGroup;
-  String? _outdoorExposure;
-  UserProfile _profile = const UserProfile();
-  AppConfig? _config;
-
-  // Checklist da rotina de hoje
-  bool _isMorningTab = true;
-  Set<int> _morningChecked = {};
-  Set<int> _nightChecked = {};
-  bool _showStreakConfetti = false;
-  int _confettiKey = 0;
+  QuotaStatus? _quota;
 
   @override
   void initState() {
     super.initState();
-    _loadDashboardData();
+    _reload();
   }
 
-  Future<void> _loadDashboardData() async {
-    setState(() => _isLoading = true);
-
-    final prefs = await SharedPreferences.getInstance();
-    final remotePro = await RevenueCatService.isPremium();
-    if (remotePro) {
-      _isPro = true;
-      await prefs.setBool('is_premium', true);
-    } else {
-      _isPro = prefs.getBool('is_premium') ?? false;
-    }
-    _config = await RemoteConfigService.load();
-    _profile = await UserProfileStore.load();
-
-    // Carrega última análise do histórico
+  Future<void> _reload() async {
+    setState(() => _loading = true);
+    final pro = await RevenueCatService.isPremium();
     final entries = await HistoryService.getEntries();
-    if (entries.isNotEmpty) {
-      _latestEntry = entries.first;
-    }
-
-    // Carrega status da cota
-    _quotaStatus = await QuotaService.checkQuota(isPro: _isPro);
-
-    // Carrega perfil declarado
-    _ageGroup = _profile.ageGroup ?? '20_35';
-    _outdoorExposure = _profile.outdoorExposure ?? 'outdoor_moderate';
-
-    // Carrega checklist do dia atual
-    final today = _getTodayKey();
-    final morningSaved = prefs.getStringList('routine_morning_$today') ?? [];
-    final nightSaved = prefs.getStringList('routine_night_$today') ?? [];
-
-    _morningChecked = morningSaved.map(int.parse).toSet();
-    _nightChecked = nightSaved.map(int.parse).toSet();
-
-    setState(() => _isLoading = false);
-  }
-
-  String _getTodayKey() {
-    final now = DateTime.now();
-    return '${now.year}_${now.month}_${now.day}';
-  }
-
-  Future<void> _toggleStep(int index, bool isMorning) async {
-    final prefs = await SharedPreferences.getInstance();
-    final today = _getTodayKey();
-
-    final prevChecked = isMorning ? _morningChecked : _nightChecked;
-    final totalSteps = (isMorning
-        ? (_config?.morning.isNotEmpty == true ? _config!.morning.length : 3)
-        : (_config?.night.isNotEmpty == true ? _config!.night.length : 3));
-    final wasComplete = totalSteps > 0 && prevChecked.length >= totalSteps;
-
+    final quota = await QuotaService.checkQuota(isPro: pro);
+    if (!mounted) return;
     setState(() {
-      if (isMorning) {
-        if (_morningChecked.contains(index)) {
-          _morningChecked.remove(index);
-        } else {
-          _morningChecked.add(index);
-        }
-        prefs.setStringList(
-          'routine_morning_$today',
-          _morningChecked.map((i) => i.toString()).toList(),
-        );
-      } else {
-        if (_nightChecked.contains(index)) {
-          _nightChecked.remove(index);
-        } else {
-          _nightChecked.add(index);
-        }
-        prefs.setStringList(
-          'routine_night_$today',
-          _nightChecked.map((i) => i.toString()).toList(),
-        );
-      }
+      _isPro = pro;
+      _latest = entries.isEmpty ? null : entries.first;
+      _quota = quota;
+      _loading = false;
     });
-
-    final currentChecked = isMorning ? _morningChecked : _nightChecked;
-    final nowComplete = totalSteps > 0 && currentChecked.length >= totalSteps;
-
-    if (!wasComplete && nowComplete) {
-      HapticFeedback.mediumImpact();
-      setState(() {
-        _showStreakConfetti = true;
-        _confettiKey++;
-      });
-      Future.delayed(const Duration(milliseconds: 1600), () {
-        if (mounted) setState(() => _showStreakConfetti = false);
-      });
-    } else {
-      HapticFeedback.lightImpact();
-    }
   }
 
-  String _getGreeting(AppTranslations tr) {
-    final hour = DateTime.now().hour;
-    if (hour >= 5 && hour < 12) return tr.dashGreetingMorning;
-    if (hour >= 12 && hour < 18) return tr.dashGreetingAfternoon;
-    return tr.dashGreetingEvening;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tr = ref.watch(trProvider);
-
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: AppTheme.bg,
-        body: Center(
-          child: CircularProgressIndicator(color: AppTheme.primary),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: AppTheme.bg,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: RefreshIndicator(
-              color: AppTheme.primary,
-              backgroundColor: AppTheme.surface,
-              onRefresh: _loadDashboardData,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        // ── 1. Header Superior com Saudação e Score ─
-                        _buildTopHeader(tr),
-
-                        const SizedBox(height: 12),
-
-                        // ── 2. Perfil Declarado do Usuário (Ajuste rápido) ─
-                        _buildUserProfileBadge(tr),
-
-                        const SizedBox(height: 12),
-
-                        // ── 3. Cápsula Integrada de UV e Clima BR ─
-                        _buildUvAlertCapsule(tr),
-
-                        const SizedBox(height: 16),
-
-                        // ── 4. Checklist da Rotina de Hoje (Destaque Principal) ─
-                        _buildDailyRoutineSection(tr),
-
-                        const SizedBox(height: 14),
-
-                        // ── 5. Cartão Compacto de Evolução (Marco Zero / 2ª Selfie) ─
-                        _buildEvolutionSummaryCard(tr),
-
-                        const SizedBox(height: 18),
-
-                        // ── 6. Botão Principal: Nova Análise com IA ─
-                        _buildScanCTA(tr),
-
-                        const SizedBox(height: 32),
-                      ]),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_showStreakConfetti)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: _TerracottaConfetti(key: ValueKey(_confettiKey)),
-              ),
-            ),
-        ],
+  Future<void> _openMore() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                title: const Text('Historico'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/history').then((_) => _reload());
+                },
+              ),
+              ListTile(
+                title: Text(_isPro ? 'Assinatura' : 'Premium'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/premium').then((_) => _reload());
+                },
+              ),
+              ListTile(
+                title: const Text('Perfil'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _editProfile();
+                },
+              ),
+              ListTile(
+                title: Text(
+                  AuthService.isGoogleUser
+                      ? (AuthService.userEmail ?? 'Conta Google')
+                      : 'Entrar com Google',
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  if (AuthService.isGoogleUser) return;
+                  try {
+                    final cred = await AuthService.signInWithGoogle();
+                    if (!mounted) return;
+                    setState(() {});
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          cred != null ? 'Conta conectada.' : 'Login cancelado.',
+                        ),
+                      ),
+                    );
+                  } catch (_) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Falha ao entrar.')),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  // ── 1. Header Superior com Saudação e Badges ──────────────
-  Widget _buildTopHeader(AppTranslations tr) {
-    return Row(
-      children: [
-        // Avatar ou Logo
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primary, AppTheme.primaryLight],
-            ),
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primary.withAlpha(50),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Text('🌿', style: TextStyle(fontSize: 22)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${_getGreeting(tr)}${tr.dashGreetingSuffix}',
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              tr.dashDailyHeader,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-        const Spacer(),
-
-        // Score Badge Compacto (se já tiver análise)
-        if (_latestEntry != null) ...[
-          GestureDetector(
-            onTap: () => context.push('/history').then((_) => _loadDashboardData()),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppTheme.primarySoft,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🌱', style: TextStyle(fontSize: 11)),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${_latestEntry!.scoreGeral}',
-                    style: const TextStyle(
-                      color: AppTheme.primaryDark,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-        ],
-
-        // Alternador de Idioma (PT / EN)
-        const LanguageToggleButton(compact: true),
-        const SizedBox(width: 4),
-
-        // Botão Histórico
-        IconButton(
-          onPressed: () => context.push('/history').then((_) => _loadDashboardData()),
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(8),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.history, color: AppTheme.primary, size: 20),
-          ),
-        ),
-
-        // Badge Pro ou Botão Assinar
-        GestureDetector(
-          onTap: () => context.push('/premium').then((_) => _loadDashboardData()),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: _isPro
-                  ? const LinearGradient(colors: [AppTheme.primaryDark, AppTheme.primary])
-                  : const LinearGradient(colors: [AppTheme.primary, AppTheme.primaryLight]),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primary.withAlpha(60),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Text(_isPro ? tr.dashProBadge : tr.dashSubscribeBtn,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    )),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 400.ms);
-  }
-
-  // ── Perfil Declarado do Usuário ───────────────────────────
-  Widget _buildUserProfileBadge(AppTranslations tr) {
-    String ageText;
-    switch (_ageGroup) {
-      case 'under_20':
-        ageText = tr.isEn ? '< 20 yrs' : '< 20 anos';
-        break;
-      case '36_50':
-        ageText = tr.isEn ? '36-50 yrs' : '36-50 anos';
-        break;
-      case '50_plus':
-        ageText = tr.isEn ? '50+ yrs' : '50+ anos';
-        break;
-      case '20_35':
-      default:
-        ageText = tr.isEn ? '20-35 yrs' : '20-35 anos';
-        break;
-    }
-
-    String outdoorText;
-    switch (_outdoorExposure) {
-      case 'outdoor_high':
-        outdoorText = tr.isEn ? '☀️ Frequent Sun & Sports' : '☀️ Sol & Esporte Frequente';
-        break;
-      case 'outdoor_low':
-        outdoorText = tr.isEn ? '💻 Home Office / Low Sun' : '💻 Home Office / Pouco Sol';
-        break;
-      case 'outdoor_moderate':
-      default:
-        outdoorText = tr.isEn ? '🚴 Moderate Sun' : '🚴 Sol Moderado';
-        break;
-    }
-
-    return InkWell(
-      onTap: () => _showEditProfileModal(context),
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(6),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.tune, color: AppTheme.primary, size: 16),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                '${tr.dashProfilePrefix} $ageText • $outdoorText${_profile.note.isEmpty && _profile.avoidIngredients.isEmpty && _profile.conditions.isEmpty ? '' : ' • ${tr.dashWithRestrictions}'}',
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Text(
-              tr.dashAdjustProfile,
-              style: const TextStyle(
-                color: AppTheme.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 450.ms);
-  }
-
-  void _showEditProfileModal(BuildContext context) {
-    String tempAge = _ageGroup ?? '20_35';
-    String tempOutdoor = _outdoorExposure ?? 'outdoor_moderate';
-    final tempAvoid = _profile.avoidIngredients.toSet();
-    final tempConditions = _profile.conditions.toSet();
-    final noteCtrl = TextEditingController(text: _profile.note);
-
-    showModalBottomSheet(
-      isDismissible: true,
+  Future<void> _editProfile() async {
+    final config = await RemoteConfigService.load();
+    final profile = await UserProfileStore.load();
+    final avoid = profile.avoidIngredients.toSet();
+    final conditions = profile.conditions.toSet();
+    final note = TextEditingController(text: profile.note);
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppTheme.surface,
       isScrollControlled: true,
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (modalCtx, setModalState) {
+          builder: (ctx, setModal) {
+            Future<void> persist() async {
+              await UserProfileStore.save(profile.copyWith(
+                avoidIngredients: avoid.toList(),
+                conditions: conditions.toList(),
+                note: note.text,
+              ));
+            }
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
                 right: 20,
-                top: 20,
-                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 24,
+                top: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppTheme.border,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Perfil e Hábitos de Sol',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Personaliza a análise do Gemini e a escolha do protetor solar ideal.',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Faixa Etária',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildChip(
-                        label: '< 20 anos',
-                        selected: tempAge == 'under_20',
-                        onTap: () => setModalState(() => tempAge = 'under_20'),
-                      ),
-                      _buildChip(
-                        label: '20 a 35 anos',
-                        selected: tempAge == '20_35',
-                        onTap: () => setModalState(() => tempAge = '20_35'),
-                      ),
-                      _buildChip(
-                        label: '36 a 50 anos',
-                        selected: tempAge == '36_50',
-                        onTap: () => setModalState(() => tempAge = '36_50'),
-                      ),
-                      _buildChip(
-                        label: 'Mais de 50 anos',
-                        selected: tempAge == '50_plus',
-                        onTap: () => setModalState(() => tempAge = '50_plus'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Exposição Solar & Esportes ao Ar Livre',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Column(
-                    children: [
-                      _buildRadioTile(
-                        icon: '☀️',
-                        title: 'Alta exposição solar',
-                        subtitle: 'Esportes ao ar livre, praia ou sol forte frequente',
-                        selected: tempOutdoor == 'outdoor_high',
-                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_high'),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildRadioTile(
-                        icon: '🚴',
-                        title: 'Exposição moderada',
-                        subtitle: 'Finais de semana, lazer e trajetos urbanos',
-                        selected: tempOutdoor == 'outdoor_moderate',
-                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_moderate'),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildRadioTile(
-                        icon: '💻',
-                        title: 'Baixa exposição solar',
-                        subtitle: 'Rotina em ambientes fechados / home office',
-                        selected: tempOutdoor == 'outdoor_low',
-                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_low'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  if (_config != null)
-                    AvoidanceFields(
-                      config: _config!,
-                      avoid: tempAvoid,
-                      conditions: tempConditions,
-                      note: noteCtrl,
-                      onChanged: (fn) => setModalState(fn),
-                    ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        await UserProfileStore.save(_profile.copyWith(
-                          ageGroup: tempAge,
-                          outdoorExposure: tempOutdoor,
-                          avoidIngredients: tempAvoid.toList(),
-                          conditions: tempConditions.toList(),
-                          note: noteCtrl.text.trim(),
-                        ));
-                        if (mounted && ctx.mounted) {
-                          Navigator.pop(ctx);
-                          _loadDashboardData();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        'Salvar Preferências',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ],
+              child: SingleChildScrollView(
+                child: AvoidanceFields(
+                  config: config,
+                  avoid: avoid,
+                  conditions: conditions,
+                  note: note,
+                  onChanged: (fn) {
+                    setModal(fn);
+                    persist();
+                  },
+                ),
               ),
             );
           },
         );
       },
-    ).whenComplete(noteCtrl.dispose);
-  }
-
-  Widget _buildChip({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.primarySoft : AppTheme.surfaceMuted,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? AppTheme.primary : AppTheme.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppTheme.primaryDark : AppTheme.textSecondary,
-            fontSize: 13,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-          ),
-        ),
-      ),
     );
-  }
-
-  Widget _buildRadioTile({
-    required String icon,
-    required String title,
-    required String subtitle,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.primarySoft : AppTheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppTheme.primary : AppTheme.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: selected ? AppTheme.textPrimary : AppTheme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              selected ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: selected ? AppTheme.primary : AppTheme.textMuted,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── 2. Cápsula Compacta de UV e Clima Tropical BR ─────────
-  Widget _buildUvAlertCapsule(AppTranslations tr) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF5E6DA)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFEAA07A).withAlpha(15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFDF4ED),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text('☀️', style: TextStyle(fontSize: 18)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      tr.isEn ? 'UV 8 • Very High (Brazil)' : 'UV 8 • Muito Alto (Brasil)',
-                      style: const TextStyle(
-                        color: Color(0xFFB8652A),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  tr.isEn
-                      ? 'Essential: Dry-touch SPF 50+ recommended today'
-                      : 'Toque seco e FPS 50+ recomendados para seu perfil',
-                  style: const TextStyle(
-                    color: Color(0xFF7A6A5E),
-                    fontSize: 11,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFDF4ED),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFF5D5C2)),
-            ),
-            child: const Text(
-              'FPS 50+',
-              style: TextStyle(
-                color: Color(0xFFB8652A),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 150.ms);
-  }
-
-  // ── 3. Resumo Compacto de Evolução (Marco Zero / 2ª Selfie) ─
-  Widget _buildEvolutionSummaryCard(AppTranslations tr) {
-    if (_latestEntry == null) {
-      return GestureDetector(
-        onTap: () => context.push('/scan').then((_) => _loadDashboardData()),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(5),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Text('🌱', style: TextStyle(fontSize: 20)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tr.dashNewUserTitle,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      tr.dashNewUserDesc,
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, color: AppTheme.textMuted, size: 13),
-            ],
-          ),
-        ),
-      ).animate().fadeIn(delay: 350.ms);
-    }
-
-    return GestureDetector(
-      onTap: () => context.push('/history').then((_) => _loadDashboardData()),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(5),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: AppTheme.primarySoft,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text('🌱', style: TextStyle(fontSize: 16)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '${tr.dashCurrentSkinPrefix}${tr.translateSkinType(_latestEntry!.skinType)}',
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '(${_latestEntry!.scoreGeral} pts)',
-                        style: const TextStyle(
-                          color: AppTheme.primaryDark,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    tr.isEn
-                        ? 'Follow-up evolution selfie recommended in 7 days'
-                        : '2ª Selfie de evolução: acompanhe seu Antes & Depois',
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios, color: AppTheme.textMuted, size: 13),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(delay: 350.ms);
-  }
-
-  // ── 4. Checklist da Rotina de Hoje (Manhã / Noite) ────────
-  Widget _buildDailyRoutineSection(AppTranslations tr) {
-    final currentChecked = _isMorningTab ? _morningChecked : _nightChecked;
-    final completedCount = currentChecked.length;
-
-    final avoided = _config == null ? _profile.avoidIngredients.toSet() : _profile.avoidedIds(_config!);
-    final morningSource = _config?.morning ?? const <RoutineStepConfig>[];
-    final nightSource = _config?.night ?? const <RoutineStepConfig>[];
-    final morningSteps = morningSource.isEmpty
-        ? [
-            ('🧴', tr.isEn ? 'Facial Cleansing' : 'Limpeza Facial', tr.isEn ? 'Gentle cleansing gel' : 'Gel de limpeza suave'),
-            ('💧', tr.isEn ? 'Treatment Serum' : 'Sérum de Tratamento', tr.isEn ? 'Lightweight serum compatible with your skin' : 'Sérum leve compatível com o seu perfil'),
-            ('☀️', tr.isEn ? 'SPF 50+ Sunscreen' : 'Protetor Solar FPS 50+', tr.isEn ? 'Dry touch. Do not skip this step!' : 'Toque seco. Não pule este passo!'),
-          ]
-        : [
-            for (final step in morningSource) (step.emoji, step.title, step.textFor(avoided)),
-          ];
-    final nightSteps = nightSource.isEmpty
-        ? [
-            ('🧼', tr.isEn ? 'Cleansing' : 'Limpeza', tr.isEn ? 'Removal of sunscreen & impurities' : 'Remoção do protetor solar e da poluição'),
-            ('✨', tr.isEn ? 'Night Treatment' : 'Tratamento Noturno', tr.isEn ? 'Gentle active suited to your skin' : 'Ativo suave compatível com o seu perfil'),
-            ('💦', tr.isEn ? 'Light Moisturizer' : 'Hidratação Leve', tr.isEn ? 'Facial gel that feels weightless in the heat' : 'Gel facial que não pesa no calor'),
-          ]
-        : [
-            for (final step in nightSource) (step.emoji, step.title, step.textFor(avoided)),
-          ];
-
-    final activeSteps = _isMorningTab ? morningSteps : nightSteps;
-    final totalSteps = activeSteps.length;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(6),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                tr.dashTodayRoutine,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const Spacer(),
-              // Toggle Manhã / Noite
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceMuted,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.all(3),
-                child: Row(
-                  children: [
-                    _buildRoutineToggle(tr.dashMorning, _isMorningTab, () {
-                      setState(() => _isMorningTab = true);
-                    }),
-                    _buildRoutineToggle(tr.dashNight, !_isMorningTab, () {
-                      setState(() => _isMorningTab = false);
-                    }),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Barra de progresso da rotina
-          Row(
-            children: [
-              Text(
-                tr.dashStepsCompleted(completedCount, totalSteps),
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              if (completedCount == totalSteps)
-                Text(tr.dashAllDone, style: const TextStyle(color: AppTheme.primaryDark, fontSize: 11, fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(
-                begin: 0.0,
-                end: totalSteps > 0 ? completedCount / totalSteps : 0.0,
-              ),
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeOutCubic,
-              builder: (context, val, _) {
-                return LinearProgressIndicator(
-                  value: val,
-                  backgroundColor: AppTheme.surfaceMuted,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    val >= 1.0 ? AppTheme.primaryDark : AppTheme.primary,
-                  ),
-                  minHeight: 7,
-                );
-              },
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Lista interativa de passos com bounce no check
-          ...activeSteps.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final (emoji, title, desc) = entry.value;
-            final isChecked = currentChecked.contains(idx);
-
-            return GestureDetector(
-              onTap: () => _toggleStep(idx, _isMorningTab),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isChecked ? AppTheme.primarySoft : AppTheme.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isChecked ? AppTheme.primary.withAlpha(80) : AppTheme.border,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Text(emoji, style: const TextStyle(fontSize: 20)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              color: isChecked ? AppTheme.textMuted : AppTheme.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              decoration: isChecked ? TextDecoration.lineThrough : null,
-                            ),
-                          ),
-                          Text(
-                            desc,
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 11,
-                              decoration: isChecked ? TextDecoration.lineThrough : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    AnimatedScale(
-                      scale: isChecked ? 1.05 : 0.95,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.elasticOut,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                        child: Icon(
-                          isChecked ? Icons.check_circle : Icons.radio_button_unchecked,
-                          key: ValueKey<bool>(isChecked),
-                          color: isChecked ? AppTheme.primary : AppTheme.textMuted,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    ).animate().fadeIn(delay: 350.ms);
-  }
-
-  Widget _buildRoutineToggle(String text, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppTheme.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── 5. Botão de Destaque: Nova Análise com IA ─────────────
-  Widget _buildScanCTA(AppTranslations tr) {
-    return GestureDetector(
-      onTap: () => context.push('/scan').then((_) => _loadDashboardData()),
-      child: Container(
-        height: 62,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppTheme.primary, AppTheme.primaryLight],
-          ),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primary.withAlpha(70),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('📸', style: TextStyle(fontSize: 22)),
-            const SizedBox(width: 10),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr.dashScanCTA,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  _quotaStatus?.statusText ?? tr.dashScanCTAHint,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(delay: 450.ms).scale(begin: const Offset(0.98, 0.98), end: const Offset(1, 1));
-  }
-}
-
-// ── Confetti leve de streak (partículas botânicas & pêssego, sem emoji spam) ──
-class _TerracottaConfetti extends StatefulWidget {
-  const _TerracottaConfetti({super.key});
-
-  @override
-  State<_TerracottaConfetti> createState() => _TerracottaConfettiState();
-}
-
-class _TerracottaConfettiState extends State<_TerracottaConfetti>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final List<_ConfettiParticle> _particles;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..forward();
-
-    final rnd = math.Random();
-    const colors = [
-      AppTheme.primary, // Verde botânico
-      AppTheme.primaryLight, // Matcha
-      AppTheme.peach, // Pêssego suave
-      AppTheme.gold, // Dourado radiante
-      Color(0xFFEBF5E6), // Pérola botânica
-    ];
-
-    _particles = List.generate(24, (i) {
-      final angle = (rnd.nextDouble() * 2 * math.pi);
-      final speed = 120.0 + rnd.nextDouble() * 220.0;
-      final size = 4.0 + rnd.nextDouble() * 5.0;
-      final color = colors[i % colors.length];
-      final isCircle = rnd.nextBool();
-      return _ConfettiParticle(
-        angle: angle,
-        speed: speed,
-        size: size,
-        color: color,
-        isCircle: isCircle,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
+    note.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, _) {
-        final progress = _ctrl.value;
-        final opacity = (1.0 - progress).clamp(0.0, 1.0);
-        return CustomPaint(
-          size: Size.infinite,
-          painter: _ConfettiPainter(
-            particles: _particles,
-            progress: progress,
-            opacity: opacity,
-          ),
-        );
-      },
+    return Scaffold(
+      backgroundColor: AppTheme.bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: _loading
+              ? const Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'PeleIA',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.8,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: _openMore,
+                          icon: const Icon(Icons.more_horiz),
+                          color: AppTheme.textSecondary,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    if (_latest == null)
+                      const Text(
+                        'Analise sua pele com uma selfie.',
+                        style: TextStyle(
+                          fontSize: 22,
+                          height: 1.3,
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      )
+                    else ...[
+                      Text(
+                        '${_latest!.scoreGeral}',
+                        style: const TextStyle(
+                          fontSize: 64,
+                          height: 1,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -2,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _latest!.skinType,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                    if (_quota != null && !_quota!.canScan) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        _quota!.statusText,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton(
+                        onPressed: () {
+                          if (_quota != null && !_quota!.canScan) {
+                            context.push('/premium').then((_) => _reload());
+                            return;
+                          }
+                          context.push('/scan').then((_) => _reload());
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.textPrimary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          _latest == null ? 'Analisar' : 'Nova analise',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
     );
   }
-}
-
-class _ConfettiParticle {
-  final double angle;
-  final double speed;
-  final double size;
-  final Color color;
-  final bool isCircle;
-
-  const _ConfettiParticle({
-    required this.angle,
-    required this.speed,
-    required this.size,
-    required this.color,
-    required this.isCircle,
-  });
-}
-
-class _ConfettiPainter extends CustomPainter {
-  final List<_ConfettiParticle> particles;
-  final double progress;
-  final double opacity;
-
-  _ConfettiPainter({
-    required this.particles,
-    required this.progress,
-    required this.opacity,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.45);
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    for (final p in particles) {
-      final dist = p.speed * progress * (1.0 - progress * 0.3);
-      final dx = center.dx + math.cos(p.angle) * dist;
-      // Adiciona gravidade suave puxando para baixo
-      final dy = center.dy + math.sin(p.angle) * dist + (progress * progress * 90);
-
-      paint.color = p.color.withAlpha((opacity * 0.9 * 255).round());
-
-      if (p.isCircle) {
-        canvas.drawCircle(Offset(dx, dy), p.size / 2, paint);
-      } else {
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(dx, dy), width: p.size * 1.5, height: p.size * 0.7),
-            const Radius.circular(2),
-          ),
-          paint,
-        );
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ConfettiPainter old) =>
-      old.progress != progress || old.opacity != opacity;
 }
