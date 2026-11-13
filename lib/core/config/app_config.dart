@@ -239,7 +239,7 @@ class AppConfig {
         proDaily: _asInt(quota['pro_daily'], 2),
         sosCredits: _asInt(quota['sos_credits'], 3),
       ),
-      maxProducts: _asInt(rec['max_products'], 4),
+      maxProducts: _asInt(rec['max_products'], 6),
       requiredCategories: _strings(rec['required_categories']),
       plans: [
         for (final item in (json['plans'] as List? ?? const []))

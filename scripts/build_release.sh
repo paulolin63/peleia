@@ -29,13 +29,13 @@ flutter pub get
 flutter build appbundle \
   --release \
   --android-skip-build-dependency-validation \
-  --dart-define=PELEIA_ENV=closed_testing
+  --dart-define-from-file=.dart_defines.env
 
 # Build APK (para teste direto no celular se desejar)
 flutter build apk \
   --release \
   --android-skip-build-dependency-validation \
-  --dart-define=PELEIA_ENV=closed_testing
+  --dart-define-from-file=.dart_defines.env
 
 # Copia para /Users/paulolin/Projects para fácil upload no Play Console
 mkdir -p /Users/paulolin/Projects

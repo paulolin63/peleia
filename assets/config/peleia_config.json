@@ -9,7 +9,7 @@
     "sos_credits": 3
   },
   "recommendation": {
-    "max_products": 4,
+    "max_products": 6,
     "required_categories": [
       "protetor"
     ]

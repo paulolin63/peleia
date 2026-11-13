@@ -26,6 +26,7 @@ void main() {
           'name': 'Gel salicílico',
           'brand': 'Principia',
           'category': 'limpeza',
+          'store': 'shopee',
           'ingredients': ['acido_salicilico'],
           'priority': 10,
           'active': true,
@@ -36,6 +37,7 @@ void main() {
           'name': 'Sérum retinol',
           'brand': 'Sallve',
           'category': 'serum',
+          'store': 'amazon',
           'ingredients': ['retinoides'],
           'priority': 20,
           'active': true,
@@ -46,6 +48,7 @@ void main() {
           'name': 'Protetor FPS 60',
           'brand': 'Episol',
           'category': 'protetor',
+          'store': 'mercadolivre',
           'ingredients': [],
           'priority': 5,
           'active': true,
@@ -56,8 +59,42 @@ void main() {
           'name': 'Protetor com retinol',
           'brand': 'MarcaX',
           'category': 'protetor',
+          'store': 'amazon',
           'ingredients': ['retinoides'],
           'priority': 50,
+          'active': true,
+          'for_skin_types': ['oleosa'],
+        },
+        {
+          'id': 'ml_clean',
+          'name': 'Limpeza ML',
+          'brand': 'Needs',
+          'category': 'limpeza',
+          'store': 'mercadolivre',
+          'ingredients': [],
+          'priority': 8,
+          'active': true,
+          'for_skin_types': ['oleosa'],
+        },
+        {
+          'id': 'amz_clean',
+          'name': 'Limpeza Amazon',
+          'brand': 'CeraVe',
+          'category': 'limpeza',
+          'store': 'amazon',
+          'ingredients': [],
+          'priority': 9,
+          'active': true,
+          'for_skin_types': ['oleosa'],
+        },
+        {
+          'id': 'shp_extra',
+          'name': 'Extra Shopee',
+          'brand': 'Actine',
+          'category': 'serum',
+          'store': 'shopee',
+          'ingredients': [],
+          'priority': 30,
           'active': true,
           'for_skin_types': ['oleosa'],
         },
@@ -112,5 +149,15 @@ void main() {
     expect(result.products.map((p) => p.id), isNot(contains('sun')));
     expect(result.products.map((p) => p.id), isNot(contains('sun_bad')));
     expect(result.missingSunscreen, isTrue);
+  });
+
+  test('lista cobre Shopee, Mercado Livre e Amazon', () {
+    final result = recommendProducts(
+      config: config(),
+      analysis: analysis,
+      profile: const UserProfile(),
+    );
+    final stores = result.products.map((p) => p.store).toSet();
+    expect(stores, containsAll(['shopee', 'mercadolivre', 'amazon']));
   });
 }

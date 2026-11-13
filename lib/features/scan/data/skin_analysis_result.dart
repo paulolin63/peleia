@@ -295,3 +295,21 @@ class AffiliateProduct {
     return colors[store] ?? const Color(0xFF6AB187);
   }
 }
+
+// ── Catálogo dinâmico (com Fallback local offline) ────────
+class ProductCatalog {
+  static List<AffiliateProduct>? _remoteProducts;
+
+  static String remoteUrl =
+      'https://raw.githubusercontent.com/paulolin/peleia-config/main/products.json';
+
+  static void setProducts(List<AffiliateProduct> products) {
+    if (products.isNotEmpty) {
+      _remoteProducts = products;
+    }
+  }
+
+  static List<AffiliateProduct> get currentCatalog =>
+      _remoteProducts ?? const [];
+}
+

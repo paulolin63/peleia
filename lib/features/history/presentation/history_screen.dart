@@ -1,9 +1,20 @@
-// History: list of scores. Detail on tap. One back path.
+// ============================================================
+//  lib/features/history/presentation/history_screen.dart
+//
+//  Álbum de Evolução da Pele — Antes & Depois interativo
+//  + Linha do tempo completa de análises
+// ============================================================
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_translations.dart';
+import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/services/history_service.dart';
+import '../../../core/services/privacy_service.dart';
 import '../../../core/services/report_export_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/history_entry.dart';
@@ -15,278 +26,1094 @@ class HistoryScreen extends ConsumerStatefulWidget {
   ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+class _HistoryScreenState extends ConsumerState<HistoryScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   List<HistoryEntry> _entries = [];
-  bool _loading = true;
+  bool _isLoading = true;
+
+  // Posição da barra de comparação Antes/Depois (0.0 a 1.0)
+  double _sliderPosition = 0.5;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadHistory();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() => _isLoading = true);
     final list = await HistoryService.getEntries();
-    if (!mounted) return;
     setState(() {
       _entries = list;
-      _loading = false;
+      _isLoading = false;
     });
   }
 
-  Future<void> _clearAll() async {
-    final ok = await showDialog<bool>(
+  Future<void> _showClearHistoryDialog() async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surface,
-        title: const Text('Apagar historico?'),
-        content: const Text('Todas as analises neste aparelho serao removidas.'),
+        title: const Text(
+          'Excluir Histórico (Privacidade LGPD)',
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Deseja apagar permanentemente todas as fotos e avaliações salvas no seu aparelho?\n\n'
+          'Suas fotos são mantidas exclusivamente na memória local do seu dispositivo e essa exclusão é definitiva.',
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.error,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
-              'Apagar',
-              style: TextStyle(color: AppTheme.error),
+              'Excluir Tudo',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
       ),
     );
-    if (ok == true) {
+
+    if (confirmed == true) {
       await HistoryService.clearAllHistory();
-      await _load();
-    }
-  }
-
-  void _openDetail(HistoryEntry entry) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppTheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.72,
-          minChildSize: 0.4,
-          maxChildSize: 0.92,
-          builder: (_, scroll) {
-            return ListView(
-              controller: scroll,
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppTheme.border,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  '${entry.scoreGeral}',
-                  style: const TextStyle(
-                    fontSize: 56,
-                    height: 1,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -2,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${entry.skinType} · ${entry.formattedDate}',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _row('Oleosidade', entry.oleosidade),
-                _row('Acne', entry.acne),
-                _row('Manchas', entry.manchas),
-                _row('Hidratacao', entry.hidratacao),
-                if (entry.fullReport.isNotEmpty ||
-                    entry.reportSnippet.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Theme(
-                    data: Theme.of(ctx)
-                        .copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Rotina',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            entry.fullReport.isNotEmpty
-                                ? entry.fullReport
-                                : entry.reportSnippet,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.5,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () {
-                    ReportExportService.shareToSocial(
-                      score: entry.scoreGeral,
-                      skinType: entry.skinType,
-                      oleosidade: entry.oleosidade,
-                      acne: entry.acne,
-                      hidratacao: entry.hidratacao,
-                      products: entry.products,
-                      reportSnippet: entry.reportSnippet,
-                    );
-                  },
-                  child: const Text(
-                    'Compartilhar',
-                    style: TextStyle(color: AppTheme.textSecondary),
-                  ),
-                ),
-              ],
-            );
-          },
+      _loadHistory();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Todo o histórico de fotos foi apagado com sucesso.'),
+            backgroundColor: AppTheme.primaryDark,
+          ),
         );
-      },
-    );
-  }
-
-  Widget _row(String label, int value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-          ),
-          Text(
-            '$value',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/');
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                    color: AppTheme.textPrimary,
-                  ),
-                  const Spacer(),
-                  if (_entries.isNotEmpty)
-                    TextButton(
-                      onPressed: _clearAll,
-                      child: const Text(
-                        'Apagar',
-                        style: TextStyle(color: AppTheme.textSecondary),
+      appBar: AppBar(
+        backgroundColor: AppTheme.bg,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.primary),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          ref.watch(trProvider).historyTitle,
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
+        actions: [
+          const LanguageToggleButton(compact: true),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.shield_outlined, color: AppTheme.textSecondary),
+            tooltip: 'Privacidade de Dados (LGPD)',
+            onPressed: () => PrivacyService.showPrivacyNoticeModal(context),
+          ),
+          if (_entries.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppTheme.textSecondary),
+              tooltip: 'Excluir Histórico (LGPD)',
+              onPressed: _showClearHistoryDialog,
+            ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: AppTheme.primary,
+          indicatorWeight: 3,
+          labelColor: AppTheme.primaryDark,
+          unselectedLabelColor: AppTheme.textSecondary,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          tabs: const [
+            Tab(text: '✨ Antes & Depois'),
+            Tab(text: '📅 Linha do Tempo'),
+          ],
+        ),
+      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.primary),
+            )
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildBeforeAfterTab(),
+                _buildTimelineTab(),
+              ],
+            ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  TAB 1: ANTES & DEPOIS (SLIDER INTERATIVO)
+  // ══════════════════════════════════════════════════════════
+  Widget _buildBeforeAfterTab() {
+    if (_entries.isEmpty) {
+      return _buildEmptyState(
+        title: 'Nenhuma análise ainda',
+        desc: 'Faça sua primeira análise com IA para começar a acompanhar sua evolução!',
+        buttonText: 'Fazer Análise Agora ✨',
+        onTap: () => context.pop(),
+      );
+    }
+
+    if (_entries.length == 1) {
+      return _buildSingleEntryGuide();
+    }
+
+    // Mais antiga (antes) e mais recente (depois)
+    final before = _entries.last;
+    final after = _entries.first;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header de progresso
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(5),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Text('📈', style: TextStyle(fontSize: 32)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Progresso da sua Pele',
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
                       ),
-                    ),
-                ],
+                      const SizedBox(height: 3),
+                      Text(
+                        'Comparando ${before.formattedDate} com ${after.formattedDate}',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ).animate().fadeIn(),
+
+          const SizedBox(height: 20),
+
+          // ── Slider Visual Antes & Depois ─────────────────
+          if (before.imageBytes != null && after.imageBytes != null) ...[
+            const Text(
+              'Arraste a barra para comparar:',
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            Expanded(
-              child: _loading
-                  ? const Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : _entries.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Nenhuma analise ainda.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
+            const SizedBox(height: 10),
+            _buildInteractiveSlider(before, after),
+            const SizedBox(height: 20),
+          ],
+
+          // ── Métricas de Evolução ──────────────────────────
+          const Text(
+            'Comparativo de Scores:',
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          _buildScoreComparisonCard(
+            label: 'Score Geral de Saúde',
+            emoji: '🌟',
+            beforeVal: before.scoreGeral,
+            afterVal: after.scoreGeral,
+            higherIsBetter: true,
+            maxVal: 100,
+          ),
+          const SizedBox(height: 8),
+
+          _buildScoreComparisonCard(
+            label: 'Oleosidade',
+            emoji: '🛢️',
+            beforeVal: before.oleosidade,
+            afterVal: after.oleosidade,
+            higherIsBetter: false,
+            maxVal: 10,
+          ),
+          const SizedBox(height: 8),
+
+          _buildScoreComparisonCard(
+            label: 'Acne e Cravos',
+            emoji: '😤',
+            beforeVal: before.acne,
+            afterVal: after.acne,
+            higherIsBetter: false,
+            maxVal: 10,
+          ),
+          const SizedBox(height: 8),
+
+          _buildScoreComparisonCard(
+            label: 'Manchas Solares',
+            emoji: '☀️',
+            beforeVal: before.manchas,
+            afterVal: after.manchas,
+            higherIsBetter: false,
+            maxVal: 10,
+          ),
+
+          const SizedBox(height: 30),
+        ],
+      ),
+    );
+  }
+
+  // ── Slider Interativo Dividido ──────────────────────────
+  Widget _buildInteractiveSlider(HistoryEntry before, HistoryEntry after) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        const height = 340.0;
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            height: height,
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFC8714A).withAlpha(60)),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Stack(
+              children: [
+                // Imagem "Antes" (Fundo total)
+                Positioned.fill(
+                  child: Image.memory(
+                    before.imageBytes!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+
+                // Imagem "Depois" (Recortada pela posição do slider)
+                Positioned.fill(
+                  child: ClipRect(
+                    clipper: _SliderClipper(_sliderPosition),
+                    child: Image.memory(
+                      after.imageBytes!,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+
+                // Labels de data
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(180),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Antes (${before.formattedDate})',
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC8714A).withAlpha(200),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Depois (${after.formattedDate})',
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+
+                // Linha divisória e puxador (Slider Handle)
+                Positioned(
+                  left: (width * _sliderPosition) - 1.5,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 3,
+                    color: Colors.white,
+                  ),
+                ),
+                Positioned(
+                  left: (width * _sliderPosition) - 18,
+                  top: (height / 2) - 18,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC8714A),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(150),
+                          blurRadius: 8,
                         )
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                          itemCount: _entries.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (_, i) {
-                            final e = _entries[i];
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                '${e.scoreGeral}',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: -0.5,
-                                  color: AppTheme.textPrimary,
-                                ),
-                              ),
-                              subtitle: Text(
-                                '${e.skinType} · ${e.formattedDate}',
-                                style: const TextStyle(
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                              trailing: const Icon(
-                                Icons.chevron_right,
-                                color: AppTheme.textMuted,
-                              ),
-                              onTap: () => _openDetail(e),
-                            );
-                          },
-                        ),
+                      ],
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.compare_arrows, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+
+                // Detector de arrasto transparente
+                Positioned.fill(
+                  child: GestureDetector(
+                    onHorizontalDragUpdate: (details) {
+                      setState(() {
+                        _sliderPosition =
+                            (details.localPosition.dx / width).clamp(0.05, 0.95);
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Card de Comparação de Score ──────────────────────────
+  Widget _buildScoreComparisonCard({
+    required String label,
+    required String emoji,
+    required int beforeVal,
+    required int afterVal,
+    required bool higherIsBetter,
+    required int maxVal,
+  }) {
+    final diff = afterVal - beforeVal;
+    final isImproved = higherIsBetter ? diff > 0 : diff < 0;
+    final isSame = diff == 0;
+
+    Color badgeColor;
+    String diffText;
+
+    if (isSame) {
+      badgeColor = AppTheme.textSecondary;
+      diffText = 'Estável';
+    } else if (isImproved) {
+      badgeColor = AppTheme.success;
+      diffText = higherIsBetter ? '+$diff' : '$diff';
+    } else {
+      badgeColor = AppTheme.error;
+      diffText = higherIsBetter ? '$diff' : '+$diff';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            '$beforeVal ➔ $afterVal',
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: badgeColor.withAlpha(20),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: badgeColor.withAlpha(60)),
+            ),
+            child: Text(
+              diffText,
+              style: TextStyle(
+                color: badgeColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Guia para usuário que só tem 1 análise ────────────────
+  Widget _buildSingleEntryGuide() {
+    final first = _entries.first;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('🌱', style: TextStyle(fontSize: 64))
+                .animate()
+                .scale(curve: Curves.elasticOut),
+            const SizedBox(height: 16),
+            const Text(
+              'Sua jornada de pele começou!',
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Primeira análise registrada em ${first.formattedDate}.\n\n'
+              'Siga sua rotina de skincare recomendada e volte daqui a alguns dias para sua 2ª análise. '
+              'A barra de comparação interativa Antes & Depois será ativada automaticamente!',
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+                height: 1.6,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => _tabController.animateTo(1),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Ver Detalhes da 1ª Análise ➔'),
             ),
           ],
         ),
       ),
     );
   }
+
+  // ══════════════════════════════════════════════════════════
+  //  TAB 2: LINHA DO TEMPO COMPLETA
+  // ══════════════════════════════════════════════════════════
+  Widget _buildTimelineTab() {
+    if (_entries.isEmpty) {
+      return _buildEmptyState(
+        title: 'Nenhuma análise salva',
+        desc: 'Suas análises concluídas aparecerão aqui organizadas por data.',
+        buttonText: 'Fazer Diagnóstico ✨',
+        onTap: () => context.pop(),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: _entries.length,
+      itemBuilder: (context, index) {
+        final entry = _entries[index];
+        return _buildTimelineCard(entry, isLatest: index == 0);
+      },
+    );
+  }
+
+  Future<void> _openProductLink(String url) async {
+    if (url.trim().isEmpty) return;
+    try {
+      final uri = Uri.parse(url.trim());
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) await launchUrl(uri, mode: LaunchMode.platformDefault);
+    } catch (_) {}
+  }
+
+  void _showEntryDetail(HistoryEntry entry) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (_, scrollController) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: ListView(
+            controller: scrollController,
+            children: [
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Cabeçalho da Análise
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Análise de ${entry.formattedDate}',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Pele ${_capitalize(entry.skinType)}',
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${entry.scoreGeral} PTS',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Métricas
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceMuted,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildMetricDetailItem('🛢️ Óleo', '${entry.oleosidade}/10'),
+                    _buildMetricDetailItem('😤 Acne', '${entry.acne}/10'),
+                    _buildMetricDetailItem('☀️ Manchas', '${entry.manchas}/10'),
+                    _buildMetricDetailItem('💧 Hidratação', '${entry.hidratacao}/10'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Ações rápidas: PDF e Compartilhar
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.surface,
+                        foregroundColor: AppTheme.textPrimary,
+                        side: const BorderSide(color: AppTheme.border),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.picture_as_pdf, size: 16),
+                      label: Text(ref.watch(trProvider).downloadPdf, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      onPressed: () {
+                        ReportExportService.exportAndDownloadPdf(
+                          context: context,
+                          score: entry.scoreGeral,
+                          skinType: ref.read(trProvider).translateSkinType(entry.skinType),
+                          oleosidade: entry.oleosidade,
+                          acne: entry.acne,
+                          manchas: entry.manchas,
+                          hidratacao: entry.hidratacao,
+                          fullReport: entry.fullReport,
+                          products: entry.products,
+                          dateFormatted: entry.formattedDate,
+                          isEn: ref.read(trProvider).isEn,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.share, size: 16),
+                      label: Text(ref.watch(trProvider).share, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      onPressed: () {
+                        ReportExportService.shareToSocial(
+                          score: entry.scoreGeral,
+                          skinType: ref.read(trProvider).translateSkinType(entry.skinType),
+                          oleosidade: entry.oleosidade,
+                          acne: entry.acne,
+                          hidratacao: entry.hidratacao,
+                          products: entry.products,
+                          isEn: ref.read(trProvider).isEn,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Produtos recomendados
+              if (entry.products.isNotEmpty) ...[
+                const Text(
+                  '🌿 Produtos Recomendados',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...entry.products.map((p) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: InkWell(
+                    onTap: () => _openProductLink(p.affiliateUrl),
+                    child: Row(
+                      children: [
+                        Text(p.emoji, style: const TextStyle(fontSize: 22)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                p.name,
+                                style: const TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '${p.brand} • ${p.storeLabel}',
+                                style: const TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primarySoft,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            p.priceFormatted,
+                            style: const TextStyle(
+                              color: AppTheme.primaryDark,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.primary),
+                      ],
+                    ),
+                  ),
+                )),
+                const SizedBox(height: 16),
+              ],
+
+              // Relatório da IA completo
+              if (entry.fullReport.isNotEmpty) ...[
+                const Text(
+                  '📋 Relatório e Rotina da IA',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Text(
+                    entry.fullReport,
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricDetailItem(String title, String val) {
+    return Column(
+      children: [
+        Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+        const SizedBox(height: 2),
+        Text(val, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
+
+  Widget _buildTimelineCard(HistoryEntry entry, {required bool isLatest}) {
+    return InkWell(
+      onTap: () => _showEntryDetail(entry),
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isLatest
+                ? AppTheme.primary
+                : AppTheme.border,
+            width: isLatest ? 1.5 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(isLatest ? 12 : 5),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Foto miniatura ou ícone
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 60,
+                    height: 75,
+                    color: AppTheme.primarySoft,
+                    child: entry.imageBytes != null
+                        ? Image.memory(entry.imageBytes!, fit: BoxFit.cover)
+                        : const Center(
+                            child: Text('👤', style: TextStyle(fontSize: 24)),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Informações da análise
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            entry.formattedDate,
+                            style: const TextStyle(
+                              color: Color(0xFF8A7A6E),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (isLatest) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFC8714A).withAlpha(40),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Mais Recente',
+                                style: TextStyle(
+                                  color: Color(0xFFC8714A),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pele ${_capitalize(entry.skinType)}',
+                        style: const TextStyle(
+                          color: Color(0xFFF5F0EC),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Tags de métricas
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          _buildMetricTag('🌟 ${entry.scoreGeral} pts'),
+                          _buildMetricTag('🛢️ Óleo: ${entry.oleosidade}/10'),
+                          _buildMetricTag('😤 Acne: ${entry.acne}/10'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Botão deletar
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppTheme.textMuted, size: 18),
+                  onPressed: () => _confirmDelete(entry.id),
+                ),
+              ],
+            ),
+
+            // Prévia dos produtos recomendados
+            if (entry.products.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Divider(color: AppTheme.border, height: 1),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text('🌿 Produtos: ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text(
+                      entry.products.map((p) => '${p.emoji} ${p.name}').join(' • '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.primary),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricTag(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppTheme.primarySoft,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(color: AppTheme.primaryDark, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({
+    required String title,
+    required String desc,
+    required String buttonText,
+    required VoidCallback onTap,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('📋', style: TextStyle(fontSize: 56)),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              desc,
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: Text(buttonText),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(String id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Excluir análise?', style: TextStyle(color: AppTheme.textPrimary)),
+        content: const Text(
+          'Esta análise será removida permanentemente do seu histórico.',
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await HistoryService.deleteEntry(id);
+              _loadHistory();
+            },
+            child: const Text('Excluir', style: TextStyle(color: Color(0xFFD96B6B))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
+  }
+}
+
+// ── Clipper para o Slider Dividido ────────────────────────
+class _SliderClipper extends CustomClipper<Rect> {
+  final double position; // 0.0 a 1.0
+  _SliderClipper(this.position);
+
+  @override
+  Rect getClip(Size size) {
+    // Revela do lado direito até a posição do slider
+    return Rect.fromLTRB(size.width * position, 0, size.width, size.height);
+  }
+
+  @override
+  bool shouldReclip(_SliderClipper oldClipper) => oldClipper.position != position;
 }

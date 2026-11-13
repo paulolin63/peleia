@@ -1,232 +1,1693 @@
-// Result: score first. Report/products folded. Back returns home.
+// ============================================================
+//  lib/features/report/presentation/result_screen.dart
+//
+//  Tela de resultados — scores + relatório PT-BR + produtos afiliados
+// ============================================================
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/config/remote_config_service.dart';
+import '../../../core/localization/app_translations.dart';
+import '../../../core/localization/language_toggle_button.dart';
+import '../../../core/services/comparison_service.dart';
 import '../../../core/services/report_export_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../history/data/history_entry.dart';
+import '../../scan/data/skin_analysis_result.dart';
 import '../../scan/presentation/scan_provider.dart';
 
-class ResultScreen extends ConsumerWidget {
+class ResultScreen extends ConsumerStatefulWidget {
   const ResultScreen({super.key});
 
-  void _back(BuildContext context, WidgetRef ref) {
-    ref.read(scanProvider.notifier).reset();
-    context.go('/');
-  }
+  @override
+  ConsumerState<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends ConsumerState<ResultScreen> {
+  int _selectedTab = 0; // 0: Diagnóstico, 1: Produtos, 2: Relatório
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final state = ref.watch(scanProvider);
+    final texts = ref.watch(appConfigProvider).valueOrNull?.texts ?? AppTexts.fallback;
+    final tr = ref.watch(trProvider);
     final analysis = state.analysis;
 
     if (analysis == null) {
       return Scaffold(
         backgroundColor: AppTheme.bg,
-        body: SafeArea(
-          child: Center(
-            child: TextButton(
-              onPressed: () => context.go('/'),
-              child: const Text('Voltar'),
-            ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('⚠️', style: TextStyle(fontSize: 40)),
+              const SizedBox(height: 12),
+              const Text(
+                'Nenhuma análise encontrada',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+              TextButton(
+                onPressed: () => context.go('/'),
+                child: const Text(
+                  'Fazer nova análise',
+                  style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
         ),
       );
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _back(context, ref);
-      },
-      child: Scaffold(
+    return Scaffold(
       backgroundColor: AppTheme.bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => _back(context, ref),
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                    color: AppTheme.textPrimary,
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      ReportExportService.shareToSocial(
-                        score: analysis.scoreGeral,
-                        skinType: analysis.skinType,
-                        oleosidade: analysis.scores.oleosidade,
-                        acne: analysis.scores.acneCravos,
-                        hidratacao: analysis.scores.hidratacao,
-                        products: state.products,
-                        reportSnippet: state.report,
-                      );
-                    },
-                    child: const Text(
-                      'Compartilhar',
-                      style: TextStyle(color: AppTheme.textSecondary),
-                    ),
-                  ),
-                ],
-              ),
+      body: CustomScrollView(
+        slivers: [
+          // ── App Bar ──────────────────────────────────────────
+          SliverAppBar(
+            expandedHeight: 220,
+            pinned: true,
+            backgroundColor: AppTheme.bg,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: AppTheme.primary),
+              onPressed: () {
+                ref.read(scanProvider.notifier).reset();
+                context.go('/');
+              },
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                children: [
-                  Text(
-                    '${analysis.scoreGeral}',
-                    style: const TextStyle(
-                      fontSize: 72,
-                      height: 1,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -2,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    analysis.skinType,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  _ScoreRow('Oleosidade', analysis.scores.oleosidade),
-                  _ScoreRow('Acne', analysis.scores.acneCravos),
-                  _ScoreRow('Manchas', analysis.scores.manchasSolares),
-                  _ScoreRow('Hidratacao', analysis.scores.hidratacao),
-                  _ScoreRow('Poros', analysis.scores.porosDilatados),
-                  _ScoreRow('Sensibilidade', analysis.scores.sensibilidade),
-                  if (state.report != null && state.report!.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        tilePadding: EdgeInsets.zero,
-                        childrenPadding: const EdgeInsets.only(bottom: 8),
-                        title: const Text(
-                          'Rotina',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              state.report!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                height: 1.5,
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (state.products.isNotEmpty) ...[
-                    Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        tilePadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Produtos',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        children: [
-                          for (final p in state.products)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(p.name),
-                              subtitle: Text(p.brand),
-                              trailing: const Icon(Icons.open_in_new, size: 16),
-                              onTap: () async {
-                                final uri = Uri.tryParse(p.affiliateUrl);
-                                if (uri != null) {
-                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                }
-                              },
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton(
-                  onPressed: () => _back(context, ref),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.textPrimary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Concluir',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-    );
-  }
-}
-
-class _ScoreRow extends StatelessWidget {
-  final String label;
-  final int value;
-  const _ScoreRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppTheme.textSecondary,
-              ),
+            actions: const [
+              LanguageToggleButton(compact: true),
+              SizedBox(width: 12),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: _buildHeroHeader(analysis, state.imageBytes != null
+                  ? Image.memory(state.imageBytes!, fit: BoxFit.cover)
+                  : null),
             ),
           ),
-          Text(
-            '$value',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                const SizedBox(height: 16),
+
+                // ── Score geral (Resumo visual rápido) ───────
+                _buildOverallScore(analysis)
+                    .animate()
+                    .fadeIn(delay: 100.ms)
+                    .slideY(begin: 0.1),
+
+                const SizedBox(height: 16),
+
+                // ── Tab Bar de 3 Abas ─────────────────────────
+                _buildTabBar(tr),
+
+                const SizedBox(height: 16),
+
+                // ── Conteúdo da Aba Ativa ────────────────────
+                if (_selectedTab == 0) ...[
+                  // Aba 1: Diagnóstico visual
+                  _buildScoreBreakdown(analysis)
+                      .animate()
+                      .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 14),
+                  _buildEvolutionCard(
+                    analysis,
+                    state.previousEntry,
+                    state.comparison,
+                  ).animate().fadeIn(duration: 250.ms),
+                  if (state.comparison == null || !state.comparison!.hasPrevious) ...[
+                    const SizedBox(height: 12),
+                    _buildFirstScanNextStep(context)
+                        .animate()
+                        .fadeIn(duration: 250.ms),
+                  ],
+                ] else if (_selectedTab == 1) ...[
+                  // Aba 2: Produtos & Prescrição
+                  if (state.products.isNotEmpty || state.hiddenProducts > 0 || state.missingSunscreen)
+                    _buildProducts(state)
+                        .animate()
+                        .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 14),
+                  _buildPremiumBanner(context, texts, analysis, state)
+                      .animate()
+                      .fadeIn(duration: 250.ms),
+                ] else ...[
+                  // Aba 3: Relatório Clínico Completo
+                  if (state.report != null)
+                    _buildReport(state.report!)
+                        .animate()
+                        .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 14),
+                  _buildExportActions(context, analysis, state, tr)
+                      .animate()
+                      .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 14),
+                  _buildRegulatoryDisclaimer()
+                      .animate()
+                      .fadeIn(duration: 250.ms),
+                ],
+
+                const SizedBox(height: 24),
+
+                // ── Ações Fixas de Navegação ─────────────────
+                _buildBottomNavActions(context),
+
+                const SizedBox(height: 36),
+              ]),
             ),
           ),
         ],
       ),
     );
   }
+
+  // ── Tab Bar de 3 Abas ─────────────────────────────────────
+  Widget _buildTabBar(AppTranslations tr) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          _buildTabItem(0, '📊 ${tr.tabDiagnosis}'),
+          _buildTabItem(1, '🛍️ ${tr.tabProducts}'),
+          _buildTabItem(2, '📋 ${tr.tabReport}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabItem(int index, String label) {
+    final isSelected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_selectedTab != index) {
+            HapticFeedback.lightImpact();
+            setState(() => _selectedTab = index);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Botões de Exportar & Compartilhar ──────────────────────
+  Widget _buildExportActions(
+    BuildContext context,
+    SkinAnalysisRaw analysis,
+    ScanState state,
+    AppTranslations tr,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              final now = DateTime.now();
+              final dateStr =
+                  '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+              ReportExportService.exportAndDownloadPdf(
+                context: context,
+                score: analysis.scoreGeral,
+                skinType: tr.translateSkinType(analysis.skinType),
+                oleosidade: analysis.scores.oleosidade,
+                acne: analysis.scores.acneCravos,
+                manchas: analysis.scores.manchasSolares,
+                hidratacao: analysis.scores.hidratacao,
+                fullReport: state.report ?? '',
+                products: state.products,
+                dateFormatted: dateStr,
+                isEn: tr.isEn,
+              );
+            },
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppTheme.border,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(5),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.picture_as_pdf, color: AppTheme.primary, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    tr.downloadPdf,
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              ReportExportService.shareToSocial(
+                score: analysis.scoreGeral,
+                skinType: tr.translateSkinType(analysis.skinType),
+                oleosidade: analysis.scores.oleosidade,
+                acne: analysis.scores.acneCravos,
+                hidratacao: analysis.scores.hidratacao,
+                products: state.products,
+                isEn: tr.isEn,
+              );
+            },
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primary,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(60),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.share, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    tr.share,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Botões de Navegação Inferior ──────────────────────────
+  Widget _buildBottomNavActions(BuildContext context) {
+    return Row(
+      children: [
+        // Nova Análise
+        Expanded(
+          flex: 2,
+          child: GestureDetector(
+            onTap: () {
+              ref.read(scanProvider.notifier).reset();
+              context.go('/');
+            },
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                border: Border.all(
+                  color: AppTheme.border,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(6),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('🔄', style: TextStyle(fontSize: 15)),
+                  SizedBox(width: 6),
+                  Text(
+                    'Nova Análise',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Ver Evolução
+        Expanded(
+          flex: 3,
+          child: GestureDetector(
+            onTap: () => context.push('/history'),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, AppTheme.primaryLight],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(70),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('📈', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 6),
+                  Text(
+                    'Ver Evolução',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroHeader(SkinAnalysisRaw analysis, Widget? photo) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.primarySoft,
+            AppTheme.bg,
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 60, 24, 16),
+          child: Row(
+            children: [
+              // Foto ou ícone com Hero transition
+              Hero(
+                tag: 'skin_analysis_selfie',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: Container(
+                    width: 80,
+                    height: 96,
+                    color: AppTheme.surfaceMuted,
+                    child: photo ??
+                        const Center(
+                          child: Text('👤', style: TextStyle(fontSize: 40)),
+                        ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: analysis.skinTypeColor.withAlpha(40),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: analysis.skinTypeColor.withAlpha(75),
+                        ),
+                      ),
+                      child: Text(
+                        'Análise Concluída ✓',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: analysis.skinTypeColor,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      analysis.skinTypeLabel,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    if (analysis.problemasDetectados.isNotEmpty)
+                      Text(
+                        'com ${_formatProblemas(analysis.problemasDetectados)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverallScore(SkinAnalysisRaw analysis) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.border,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(6),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Circular progress com animação count-up e preenchimento suave
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: analysis.scoreGeral.toDouble()),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutCubic,
+            onEnd: () {
+              HapticFeedback.lightImpact();
+            },
+            builder: (context, animatedScore, _) {
+              final scoreInt = animatedScore.round();
+              return SizedBox(
+                width: 80,
+                height: 80,
+                child: CustomPaint(
+                  painter: _ScoreRingPainter(
+                    score: animatedScore,
+                    color: analysis.scoreColor,
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$scoreInt',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: analysis.scoreColor,
+                          ),
+                        ),
+                        const Text(
+                          '/100',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Indicador Visual da Pele',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Referência cosmética • Não é diagnóstico clínico',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _getScoreMessage(analysis.scoreGeral),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primarySoft,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: AppTheme.border,
+                    ),
+                  ),
+                  child: Text(
+                    'Confiança da IA: ${(analysis.confianca * 100).toInt()}%',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryDark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEvolutionCard(
+    SkinAnalysisRaw analysis,
+    HistoryEntry? prev,
+    SkinComparisonResult? comp,
+  ) {
+    if (prev != null) {
+      final scoreDelta = analysis.scoreGeral - prev.scoreGeral;
+      final daysDiff = DateTime.now().difference(prev.date).inDays;
+      final timeAgoStr = daysDiff == 0
+          ? 'Hoje mais cedo'
+          : daysDiff == 1
+              ? 'Ontem'
+              : 'Há $daysDiff dias (${prev.formattedDate})';
+
+      final isWithinVariance = comp?.isWithinNormalVariance ?? (scoreDelta.abs() <= 2);
+
+      final isBetter = scoreDelta > 0 && !isWithinVariance;
+
+      final deltaColor = isWithinVariance
+          ? AppTheme.gold
+          : (isBetter ? AppTheme.success : AppTheme.error);
+
+      final deltaText = isWithinVariance
+          ? 'Variação pequena • Inconclusivo'
+          : (isBetter
+              ? '+$scoreDelta pts (Tendência de melhora)'
+              : '$scoreDelta pts (Oscilação visual)');
+
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.border,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(6),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primarySoft,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Text('🧠', style: TextStyle(fontSize: 16)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Acompanhamento de Rotina PeleIA',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'Comparado com: $timeAgoStr',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: deltaColor.withAlpha(20),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: deltaColor.withAlpha(80)),
+                  ),
+                  child: Text(
+                    deltaText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: deltaColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // Linha com comparação de métricas chave
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceMuted,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildMetricDelta(
+                    label: 'Indicador',
+                    oldVal: '${prev.scoreGeral}',
+                    newVal: '${analysis.scoreGeral}',
+                    improved: analysis.scoreGeral >= prev.scoreGeral,
+                  ),
+                  _buildMetricDivider(),
+                  _buildMetricDelta(
+                    label: 'Acne',
+                    oldVal: '${prev.acne}',
+                    newVal: '${analysis.scores.acneCravos}',
+                    improved: analysis.scores.acneCravos <= prev.acne,
+                  ),
+                  _buildMetricDivider(),
+                  _buildMetricDelta(
+                    label: 'Oleosidade',
+                    oldVal: '${prev.oleosidade}',
+                    newVal: '${analysis.scores.oleosidade}',
+                    improved: analysis.scores.oleosidade <= prev.oleosidade,
+                  ),
+                  _buildMetricDivider(),
+                  _buildMetricDelta(
+                    label: 'Hidratação',
+                    oldVal: '${prev.hidratacao}',
+                    newVal: '${analysis.scores.hidratacao}',
+                    improved: analysis.scores.hidratacao >= prev.hidratacao,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.info_outline, size: 13, color: AppTheme.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    isWithinVariance
+                        ? 'Variação pequena que não permite concluir melhora ou piora. Acompanhe nas próximas semanas sob luz similar.'
+                        : 'Tendência calculada matematicamente. As orientações cosméticas foram adaptadas abaixo.',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Primeira análise (Marco Zero / Baseline)
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.primary.withAlpha(80),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withAlpha(20),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                color: AppTheme.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Text('🌱', style: TextStyle(fontSize: 20)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Primeira Análise Concluída!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Seu indicador inicial (${analysis.scoreGeral}/100) foi salvo de forma privada no aparelho. Em selfies futuras sob condições similares, mostraremos sua evolução visual.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      )
+          .animate()
+          .scale(begin: const Offset(0.96, 0.96), end: const Offset(1.0, 1.0), curve: Curves.easeOutBack, duration: 450.ms)
+          .shimmer(delay: 350.ms, duration: 1000.ms, color: const Color(0xFF6AB187).withAlpha(120));
+    }
+  }
+
+  Widget _buildMetricDivider() {
+    return Container(
+      width: 1,
+      height: 28,
+      color: Colors.white.withAlpha(15),
+    );
+  }
+
+  Widget _buildMetricDelta({
+    required String label,
+    required String oldVal,
+    required String newVal,
+    required bool improved,
+  }) {
+    final color = improved ? const Color(0xFF6AB187) : const Color(0xFFE05353);
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Color(0xFF8A7A6E),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              oldVal,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF8A7A6E),
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
+            const SizedBox(width: 3),
+            const Icon(Icons.arrow_forward, size: 10, color: Color(0xFF8A7A6E)),
+            const SizedBox(width: 3),
+            Text(
+              newVal,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegulatoryDisclaimer() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('🩺', style: TextStyle(fontSize: 16)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Aviso Regulatório & Médico (ANVISA / CFM)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            'O PeleIA é um assistente de rotina de cuidados cosméticos e higiene pessoal. '
+            'As avaliações visuais por IA são estimativas orientativas de referência e NÃO '
+            'constituem diagnóstico médico, exame clínico ou prescrição dermatológica.\n\n'
+            'Em caso de dor, inflamação ativa, lesões irregulares que sangram ou mudam de cor, '
+            'consulte sempre presencialmente um médico dermatologista credenciado pela SBD.',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppTheme.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreBreakdown(SkinAnalysisRaw analysis) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '📊 Análise Detalhada',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...analysis.scores.items.asMap().entries.map(
+            (entry) => _buildScoreRow(entry.value, entry.key),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreRow(ScoreItem item, int index) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(item.emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Text(
+                item.scoreLabel,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: item.color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: item.normalized),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutCubic,
+              builder: (context, val, _) {
+                return LinearProgressIndicator(
+                  value: val,
+                  backgroundColor: AppTheme.surfaceMuted,
+                  valueColor: AlwaysStoppedAnimation<Color>(item.color),
+                  minHeight: 8,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    )
+        .animate()
+        .fadeIn(delay: (80 * index).ms, duration: 400.ms)
+        .slideX(begin: -0.05, end: 0, delay: (80 * index).ms, curve: Curves.easeOut);
+  }
+
+  Widget _buildReport(String report) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '📋 Seu Relatório Personalizado',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Renderiza o texto markdown simples
+          Text(
+            report,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.textPrimary,
+              height: 1.7,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProducts(ScanState state) {
+    final products = state.products;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                '🛍️ Produtos Recomendados',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primarySoft,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: const Text(
+                  'PARCEIRO',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.primaryDark,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (state.hiddenProducts > 0 || state.missingSunscreen)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                _avoidanceNotice(state),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+              ),
+            ),
+          if (products.isNotEmpty)
+            _buildHeroProductCard(products.first, state.analysis)
+                .animate()
+                .fadeIn(delay: 100.ms, duration: 500.ms)
+                .slideY(begin: 0.15, end: 0, delay: 100.ms, curve: Curves.easeOutQuad),
+          ...products.skip(1).toList().asMap().entries.map(
+                (entry) => _buildProductCard(entry.value)
+                    .animate()
+                    .fadeIn(delay: (160 + entry.key * 80).ms, duration: 450.ms)
+                    .slideY(begin: 0.12, end: 0, delay: (160 + entry.key * 80).ms, curve: Curves.easeOutQuad),
+              ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primarySoft,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '💰 Rotina completa estimada: ~R\$ ${_calcTotal(products).toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryDark,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '*Preços estimados. Valores sujeitos a alteração e promoções na loja parceira.',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroProductCard(AffiliateProduct product, SkinAnalysisRaw? analysis) {
+    final why = _productWhy(product, analysis);
+    return GestureDetector(
+      onTap: () => _openAffiliateLink(product.affiliateUrl),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withAlpha(15),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'RECOMENDADO PARA VOCÊ',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.primaryDark,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(product.emoji, style: const TextStyle(fontSize: 26)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        '${product.brand} · ${product.storeLabel}',
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        product.priceFormatted,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.primaryDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (why.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                why,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, AppTheme.primaryLight],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(50),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'Ver na loja',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _productWhy(AffiliateProduct product, SkinAnalysisRaw? analysis) {
+    if (analysis == null) return '';
+    if (product.category == 'protetor') {
+      return 'Prioridade: UV alto no Brasil + sua urgência de protetor (${analysis.urgenciaProtetorSolar}).';
+    }
+    if (analysis.problemasDetectados.any((p) => p.contains('acne') || p.contains('cravo'))) {
+      return 'Combina com o foco da análise em acne/cravos no seu perfil.';
+    }
+    if (analysis.scores.oleosidade >= 7) {
+      return 'Escolhido para ajudar no controle de oleosidade detectado na selfie.';
+    }
+    if (analysis.scores.manchasSolares >= 6) {
+      return 'Alinhado ao cuidado com manchas solares na sua análise.';
+    }
+    return 'Selecionado para o tipo ${analysis.skinType} da sua análise.';
+  }
+
+  Widget _buildProductCard(AffiliateProduct product) {
+    return GestureDetector(
+      onTap: () => _openAffiliateLink(product.affiliateUrl),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppTheme.border,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(4),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceMuted,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(
+                  product.emoji,
+                  style: const TextStyle(fontSize: 22),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    product.brand,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primarySoft,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppTheme.border,
+                          ),
+                        ),
+                        child: Text(
+                          product.priceFormatted,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryDark,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        product.storeLabel,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: AppTheme.textMuted,
+              size: 14,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+
+  Widget _buildFirstScanNextStep(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Marco zero salvo',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primaryDark,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Daqui 7 dias compare oleosidade, acne e manchas com a mesma luz. A 2ª análise é o que mostra se a rotina está funcionando — e te avisamos com um lembrete.',
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.45),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                    side: const BorderSide(color: AppTheme.primary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => context.push('/premium'),
+                  child: const Text('Ver planos', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumBanner(
+    BuildContext context,
+    AppTexts texts,
+    SkinAnalysisRaw analysis,
+    ScanState state,
+  ) {
+    final firstScan = state.comparison == null || !state.comparison!.hasPrevious;
+    String title = texts.premiumBannerTitle;
+    String subtitle = texts.premiumBannerSubtitle;
+    if (firstScan) {
+      title = 'Próximo passo: evolução';
+      subtitle = 'Volte em 7 dias e compare. Pro libera a próxima análise.';
+    } else if (analysis.problemasDetectados.any((p) => p.contains('acne') || p.contains('cravo'))) {
+      title = 'Quer ver a acne cair semana a semana?';
+      subtitle = 'Pro libera o ritual de acompanhamento manhã + noite.';
+    } else if (analysis.scores.manchasSolares >= 6) {
+      title = 'Compare manchas com a mesma luz em 14 dias';
+      subtitle = 'A evolução visual é o motivo de assinar — não a cota.';
+    } else if (analysis.scores.oleosidade >= 7) {
+      title = 'Acompanhe a oleosidade ao longo da rotina';
+      subtitle = 'Pro libera novas análises para ver se o brilho está baixando.';
+    }
+
+    return GestureDetector(
+      onTap: () => context.push('/premium'),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(6),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Text('💎', style: TextStyle(fontSize: 32)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, AppTheme.primaryLight],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withAlpha(50),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'Ver planos',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Helpers originais ─────────────────────────────────────
+
+  String _formatProblemas(List<String> problemas) {
+    if (problemas.isEmpty) return '';
+    final labels = {
+      'acne_ativa': 'tendência à acne',
+      'cravos': 'cravos',
+      'manchas_solares': 'manchas solares',
+      'oleosidade_excessiva': 'oleosidade excessiva',
+      'poros_dilatados': 'poros dilatados',
+      'melasma': 'melasma',
+      'vermelhidao': 'vermelhidão',
+    };
+    return labels[problemas.first] ?? problemas.first.replaceAll('_', ' ');
+  }
+
+  String _getScoreMessage(int score) {
+    if (score >= 85) return 'Sua pele está ótima! Continue com a rotina.';
+    if (score >= 70) return 'Pele em bom estado com alguns pontos de atenção.';
+    if (score >= 55) return 'Sua pele precisa de cuidados específicos. Veja a rotina.';
+    return 'Atenção! Sua pele precisa de cuidados urgentes.';
+  }
+
+  String _avoidanceNotice(ScanState state) {
+    final labels = state.avoidedLabels.join(', ');
+    final hidden = state.hiddenProducts > 0
+        ? 'Ocultamos ${state.hiddenProducts} produto(s)${labels.isEmpty ? '' : ' com $labels'}.'
+        : '';
+    final sun = state.missingSunscreen
+        ? ' Nenhum protetor do catálogo serve ao seu perfil. Procure um FPS 50+ sem esses ingredientes e confira o rótulo (INCI).'
+        : ' Confira o rótulo (INCI) antes de comprar.';
+    return '$hidden$sun'.trim();
+  }
+
+  double _calcTotal(List<AffiliateProduct> products) {
+    return products.fold(0.0, (sum, p) => sum + p.priceEstimated);
+  }
+
+  Future<void> _openAffiliateLink(String url) async {
+    if (url.trim().isEmpty) return;
+    try {
+      final uri = Uri.parse(url.trim());
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Erro ao abrir link de produto: $e');
+    }
+  }
+}
+
+// ── Custom painter para o ring de score ──────────────────
+class _ScoreRingPainter extends CustomPainter {
+  final double score;
+  final Color color;
+
+  _ScoreRingPainter({required this.score, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 6;
+
+    // Background ring
+    final bgPaint = Paint()
+      ..color = color.withAlpha(40)
+      ..strokeWidth = 8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, bgPaint);
+
+    // Score arc
+    final scorePaint = Paint()
+      ..color = color
+      ..strokeWidth = 8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final sweepAngle = (score.clamp(0.0, 100.0) / 100) * 2 * pi;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -pi / 2,
+      sweepAngle,
+      false,
+      scorePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScoreRingPainter old) =>
+      old.score != score || old.color != color;
 }
