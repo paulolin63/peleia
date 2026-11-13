@@ -17,7 +17,7 @@
   "affiliate_tags": {
     "shopee": "",
     "amazon": "",
-    "mercadolivre": ""
+    "mercadolivre": "97951676"
   },
   "plans": [
     {
@@ -303,7 +303,7 @@
       "price_display": "A partir de R$ 44",
       "price_estimated": 44.0,
       "store": "mercadolivre",
-      "affiliate_url": "https://lista.mercadolivre.com.br/principia-gl-01",
+      "affiliate_url": "https://lista.mercadolivre.com.br/principia-gl-01?matt_tool=97951676",
       "emoji": "🧴",
       "for_skin_types": [
         "oleosa",
@@ -371,7 +371,7 @@
       "price_display": "A partir de R$ 59",
       "price_estimated": 59.0,
       "store": "mercadolivre",
-      "affiliate_url": "https://lista.mercadolivre.com.br/principia-vitamina-c",
+      "affiliate_url": "https://lista.mercadolivre.com.br/principia-vitamina-c?matt_tool=97951676",
       "emoji": "🍋",
       "for_skin_types": [
         "manchas",
@@ -456,7 +456,7 @@
       "price_display": "A partir de R$ 64",
       "price_estimated": 64.9,
       "store": "mercadolivre",
-      "affiliate_url": "https://lista.mercadolivre.com.br/sallve-protetor-solar",
+      "affiliate_url": "https://lista.mercadolivre.com.br/sallve-protetor-solar?matt_tool=97951676",
       "emoji": "🌞",
       "for_skin_types": [
         "morena",
