@@ -178,6 +178,14 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
           errorMessage: 'Compra não completada. Tente novamente.',
         );
       }
+    } on PurchaseCancelledException {
+      // Usuário cancelou ou fechou a tela de compra — volta para idle sem erro
+      state = state.copyWith(step: PurchaseStep.idle);
+    } on PurchaseFailureException catch (e) {
+      state = state.copyWith(
+        step: PurchaseStep.error,
+        errorMessage: e.message,
+      );
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('cancelled') || msg.contains('cancel')) {
@@ -201,20 +209,32 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
       return;
     }
 
-    final success = await RevenueCatService.restorePurchases();
-    final prefs = await SharedPreferences.getInstance();
-    if (success) {
-      await _savePremiumLocally();
-      state = state.copyWith(
-        step: PurchaseStep.restored,
-        isPremium: true,
-      );
-    } else {
-      if (kReleaseMode) await prefs.setBool('is_premium', false);
+    try {
+      final success = await RevenueCatService.restorePurchases();
+      final prefs = await SharedPreferences.getInstance();
+      if (success) {
+        await _savePremiumLocally();
+        state = state.copyWith(
+          step: PurchaseStep.restored,
+          isPremium: true,
+        );
+      } else {
+        if (kReleaseMode) await prefs.setBool('is_premium', false);
+        state = state.copyWith(
+          step: PurchaseStep.error,
+          isPremium: false,
+          errorMessage: 'Nenhuma assinatura anterior encontrada.',
+        );
+      }
+    } on PurchaseFailureException catch (e) {
       state = state.copyWith(
         step: PurchaseStep.error,
-        isPremium: false,
-        errorMessage: 'Nenhuma compra anterior encontrada.',
+        errorMessage: e.message,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        step: PurchaseStep.error,
+        errorMessage: 'Erro ao restaurar compras: $e',
       );
     }
   }

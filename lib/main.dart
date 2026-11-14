@@ -38,8 +38,12 @@ void main() async {
     ),
   );
 
-  // Inicializa RevenueCat (só Android/iOS, ignorado no Web automaticamente)
-  await RevenueCatService.initialize();
+  // Inicializa RevenueCat (protegido contra exceções para não abortar o bootstrap)
+  try {
+    await RevenueCatService.initialize();
+  } catch (e, stack) {
+    debugPrint('⚠️ Erro ao inicializar RevenueCat no bootstrap: $e\n$stack');
+  }
 
   // Identidade do Firebase (uid compartilhado com o Worker e o RevenueCat).
   await AuthService.idToken();
