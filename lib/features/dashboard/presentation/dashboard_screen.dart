@@ -1282,6 +1282,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               return _buildDashboardProductCard(product);
             },
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.info_outline, size: 12, color: AppTheme.textSecondary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  tr.isEn
+                      ? 'Recommended partner links. May earn commissions at no extra cost to you.'
+                      : 'Links de parceiros oficiais. O PeleIA pode receber comissão sem custo adicional para você.',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     ).animate().fadeIn(delay: 350.ms);

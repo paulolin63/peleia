@@ -1198,6 +1198,15 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Transparência: links recomendados podem gerar comissão de afiliados sem custo adicional para você.',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),

@@ -165,6 +165,15 @@ class PrivacyService {
                 desc: 'Você pode excluir seu histórico a qualquer momento pelo botão de lixeira no app. '
                     'Ao confirmar, todas as fotos e índices são apagados definitivamente do seu telefone.',
               ),
+              const SizedBox(height: 14),
+
+              _buildPrivacyPoint(
+                emoji: '🤝',
+                title: 'Transparência de Links de Afiliados',
+                desc: 'O PeleIA participa de programas de afiliados (Mercado Livre, Amazon e Shopee). '
+                    'Recomendamos produtos adequados à sua análise de pele. '
+                    'Caso realize uma compra através dos nossos links, podemos receber uma comissão sem qualquer custo adicional para você.',
+              ),
               const SizedBox(height: 24),
 
               SizedBox(
