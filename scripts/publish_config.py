@@ -228,7 +228,8 @@ def publish_to_kv(config):
     try:
         cmd = [
             "npx", "wrangler", "kv", "key", "put", KV_KEY,
-            "--path", tmp_path, "--namespace-id", "c6c94e668f604e18adc74bbfb88b7413"
+            "--path", tmp_path, "--namespace-id", "c6c94e668f604e18adc74bbfb88b7413",
+            "--remote"
         ]
         res = subprocess.run(cmd, cwd=WORKER_DIR, capture_output=True, text=True)
         if res.returncode != 0:
