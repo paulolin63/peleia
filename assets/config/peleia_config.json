@@ -15,8 +15,8 @@
     ]
   },
   "affiliate_tags": {
-    "shopee": "",
-    "amazon": "",
+    "shopee": "18367081351",
+    "amazon": "lin63-20",
     "mercadolivre": "97951676"
   },
   "plans": [
@@ -259,7 +259,7 @@
       "price_display": "A partir de R$ 59",
       "price_estimated": 64.9,
       "store": "amazon",
-      "affiliate_url": "https://www.amazon.com.br/s?k=cerave+gel+de+limpeza",
+      "affiliate_url": "https://www.amazon.com.br/s?k=cerave+gel+de+limpeza&tag=lin63-20",
       "emoji": "🧴",
       "for_skin_types": [
         "oleosa",
@@ -280,7 +280,7 @@
       "price_display": "A partir de R$ 44",
       "price_estimated": 47.9,
       "store": "shopee",
-      "affiliate_url": "https://shopee.com.br/search?keyword=actine+darrow+gel",
+      "affiliate_url": "https://shopee.com.br/search?keyword=actine+darrow+gel&af=18367081351",
       "emoji": "🧼",
       "for_skin_types": [
         "oleosa",
@@ -325,7 +325,7 @@
       "price_display": "A partir de R$ 54",
       "price_estimated": 54.9,
       "store": "amazon",
-      "affiliate_url": "https://www.amazon.com.br/s?k=sallve+limpador+facial",
+      "affiliate_url": "https://www.amazon.com.br/s?k=sallve+limpador+facial&tag=lin63-20",
       "emoji": "🌿",
       "for_skin_types": [
         "normal",
@@ -348,7 +348,7 @@
       "price_display": "A partir de R$ 54",
       "price_estimated": 54.0,
       "store": "shopee",
-      "affiliate_url": "https://shopee.com.br/search?keyword=principia+niacinamida",
+      "affiliate_url": "https://shopee.com.br/search?keyword=principia+niacinamida&af=18367081351",
       "emoji": "✨",
       "for_skin_types": [
         "oleosa",
@@ -394,7 +394,7 @@
       "price_display": "A partir de R$ 64",
       "price_estimated": 64.9,
       "store": "amazon",
-      "affiliate_url": "https://www.amazon.com.br/s?k=sallve+serum+antiacne",
+      "affiliate_url": "https://www.amazon.com.br/s?k=sallve+serum+antiacne&tag=lin63-20",
       "emoji": "🎯",
       "for_skin_types": [
         "acne",
@@ -414,7 +414,7 @@
       "price_display": "A partir de R$ 89",
       "price_estimated": 92.9,
       "store": "amazon",
-      "affiliate_url": "https://www.amazon.com.br/s?k=isdin+fusion+water+magic+fps+50",
+      "affiliate_url": "https://www.amazon.com.br/s?k=isdin+fusion+water+magic+fps+50&tag=lin63-20",
       "emoji": "☀️",
       "for_skin_types": [
         "oleosa",
@@ -436,7 +436,7 @@
       "price_display": "A partir de R$ 89",
       "price_estimated": 94.9,
       "store": "shopee",
-      "affiliate_url": "https://shopee.com.br/search?keyword=anthelios+airlicium+70",
+      "affiliate_url": "https://shopee.com.br/search?keyword=anthelios+airlicium+70&af=18367081351",
       "emoji": "🛡️",
       "for_skin_types": [
         "oleosa",
@@ -477,7 +477,7 @@
       "price_display": "A partir de R$ 69",
       "price_estimated": 72.9,
       "store": "amazon",
-      "affiliate_url": "https://www.amazon.com.br/s?k=neutrogena+hydro+boost+water+gel",
+      "affiliate_url": "https://www.amazon.com.br/s?k=neutrogena+hydro+boost+water+gel&tag=lin63-20",
       "emoji": "💧",
       "for_skin_types": [
         "oleosa",
@@ -498,7 +498,7 @@
       "price_display": "A partir de R$ 69",
       "price_estimated": 69.9,
       "store": "amazon",
-      "affiliate_url": "https://www.amazon.com.br/s?k=cerave+locao+facial",
+      "affiliate_url": "https://www.amazon.com.br/s?k=cerave+locao+facial&tag=lin63-20",
       "emoji": "🧴",
       "for_skin_types": [
         "seca",
