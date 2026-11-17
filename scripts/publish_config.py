@@ -197,7 +197,11 @@ def inject_affiliate_tags(config, environ=None):
     result = copy.deepcopy(config)
     cfg_tags = result.get("affiliate_tags", {})
     for product in result.get("products", []):
-        host = urlsplit(product.get("affiliate_url", "")).netloc
+        url = product.get("affiliate_url", "")
+        # Se já for um shortlink oficial gerado (ex: s.shopee.com.br), mantém intocado
+        if "s.shopee.com.br" in url or "mercadolivre.com/sec" in url or "amzn.to" in url:
+            continue
+        host = urlsplit(url).netloc
         for domain, (env_name, param) in AFFILIATE_PARAMS.items():
             store_key = domain.split(".")[0]
             tag = environ.get(env_name, "") or cfg_tags.get(store_key, "") or cfg_tags.get(env_name, "")
