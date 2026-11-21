@@ -272,6 +272,32 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   // ── PLAN CARDS ───────────────────────────────────────────
   Widget _buildPlanCards(PaywallState state, WidgetRef ref) {
+    if (state.isLoadingPackages) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: CircularProgressIndicator(color: AppTheme.primary),
+        ),
+      );
+    }
+    if (state.plans.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: const Center(
+          child: Text(
+            'Carregando opções de planos...',
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
     return Column(
       children: state.plans.asMap().entries.map((entry) {
         final plan = entry.value;

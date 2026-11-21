@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build AAB local (closed testing). Equivalente pratico do: eas build --local
+# Build AAB local (production). Equivalente pratico do: eas build --local
 # Uso: ./scripts/with-java17.sh ./scripts/build_aab_local.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -30,7 +30,7 @@ echo "=== flutter build appbundle $VER ==="
 flutter build appbundle --release --dart-define-from-file=.dart_defines.env
 
 mkdir -p dist
-OUT="dist/peleia-${VER}-closed_testing.aab"
+OUT="dist/peleia-${VER}-production.aab"
 cp -f build/app/outputs/bundle/release/app-release.aab "$OUT"
 ls -lah "$OUT"
 echo "OK: $OUT"

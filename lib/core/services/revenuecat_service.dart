@@ -32,8 +32,8 @@ class RevenueCatService {
     if (kIsWeb || !_isMobile) return;
 
     final apiKey = EnvValues.revenueCatAndroidKey;
-    if (apiKey.isEmpty) {
-      debugPrint('ℹ️ RevenueCat API key vazia (dev mode). Ignorando inicialização.');
+    if (apiKey.isEmpty || apiKey == 'sua_chave_revenuecat_aqui' || apiKey.startsWith('sua_')) {
+      debugPrint('ℹ️ RevenueCat API key vazia ou placeholder. Ignorando inicialização.');
       return;
     }
 
