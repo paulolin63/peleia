@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "config_version": "2026-10-22.1",
+  "config_version": "2026-11-22.1",
   "min_app_build": 1,
   "notice": null,
   "quota": {
@@ -77,7 +77,7 @@
     "onboarding_products_subtitle": "Recomendamos marcas brasileiras e importadas\nnas principais lojas online.",
     "onboarding_products_bullets": [
       "🛍️ Shopee, Mercado Livre e Amazon Brasil",
-      "💚 Principia, Sallve, CeraVe, La Roche-Posay",
+      "💚 La Roche-Posay, ISDIN, Vichy, CeraVe, Neutrogena, The Ordinary e mais",
       "✅ Sem os ingredientes que você evitar"
     ],
     "dashboard_sun_title": "Proteção solar todos os dias",
@@ -504,6 +504,270 @@
         "seca",
         "sensivel",
         "normal"
+      ]
+    },
+    {
+      "id": "laroche_effaclar_gel",
+      "name": "Effaclar Gel de Limpeza Purificante",
+      "brand": "La Roche-Posay",
+      "description": "Gel de limpeza dermatológico para pele oleosa com tendência a acne — sem sabão",
+      "category": "limpeza",
+      "ingredients": [],
+      "priority": 80,
+      "active": true,
+      "price_display": "A partir de R$ 54",
+      "price_estimated": 59.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=la+roche+posay+effaclar+gel+de+limpeza&tag=lin63-20",
+      "emoji": "🧼",
+      "for_skin_types": [
+        "oleosa",
+        "mista",
+        "acne",
+        "acne_ativa",
+        "poros_dilatados"
+      ]
+    },
+    {
+      "id": "laroche_toleriane",
+      "name": "Toleriane Hydrating Gentle Cleanser",
+      "brand": "La Roche-Posay",
+      "description": "Limpeza ultra-suave para pele sensível: remove impurezas sem agredir a barreira cutânea",
+      "category": "limpeza",
+      "ingredients": [],
+      "priority": 72,
+      "active": true,
+      "price_display": "A partir de R$ 79",
+      "price_estimated": 84.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=la+roche+posay+toleriane+gentle+cleanser&tag=lin63-20",
+      "emoji": "🌸",
+      "for_skin_types": [
+        "sensivel",
+        "seca",
+        "rosacea",
+        "normal"
+      ]
+    },
+    {
+      "id": "isdin_acniben",
+      "name": "Acniben Gel de Limpeza Purificante",
+      "brand": "ISDIN",
+      "description": "Controla a oleosidade e previne a acne com ação antibacteriana dermatologicamente testada",
+      "category": "limpeza",
+      "ingredients": [],
+      "priority": 68,
+      "active": true,
+      "price_display": "A partir de R$ 59",
+      "price_estimated": 64.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=isdin+acniben+gel+limpeza&tag=lin63-20",
+      "emoji": "🎯",
+      "for_skin_types": [
+        "oleosa",
+        "acne",
+        "acne_ativa",
+        "mista"
+      ]
+    },
+    {
+      "id": "avene_cleanance",
+      "name": "Cleanance Gel de Limpeza Facial",
+      "brand": "Avène",
+      "description": "Feito com Água Termal de Avène — acalma pele oleosa e irritada durante a limpeza",
+      "category": "limpeza",
+      "ingredients": [],
+      "priority": 65,
+      "active": true,
+      "price_display": "A partir de R$ 69",
+      "price_estimated": 74.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=avene+cleanance+gel+limpeza&tag=lin63-20",
+      "emoji": "💧",
+      "for_skin_types": [
+        "sensivel",
+        "oleosa",
+        "acne",
+        "rosacea"
+      ]
+    },
+    {
+      "id": "the_ordinary_niacinamide",
+      "name": "Niacinamida 10% + Zinco 1%",
+      "brand": "The Ordinary",
+      "description": "O sérum de niacinamida mais famoso do mundo — reduz poros, oleosidade e manchas pós-acne",
+      "category": "serum",
+      "ingredients": [
+        "niacinamida"
+      ],
+      "priority": 88,
+      "active": true,
+      "price_display": "A partir de R$ 54",
+      "price_estimated": 54.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=the+ordinary+niacinamida+10+zinco&tag=lin63-20",
+      "emoji": "✨",
+      "for_skin_types": [
+        "oleosa",
+        "mista",
+        "acne",
+        "poros_dilatados",
+        "manchas"
+      ]
+    },
+    {
+      "id": "the_ordinary_aha_bha",
+      "name": "AHA 30% + BHA 2% Peeling Solution",
+      "brand": "The Ordinary",
+      "description": "Esfoliante químico de alta potência para renovar a pele, clarear manchas e afinar poros",
+      "category": "serum",
+      "ingredients": [
+        "acidos_esfoliantes",
+        "acido_salicilico"
+      ],
+      "priority": 70,
+      "active": true,
+      "price_display": "A partir de R$ 79",
+      "price_estimated": 79.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=the+ordinary+aha+bha+peeling+solution&tag=lin63-20",
+      "emoji": "🔬",
+      "for_skin_types": [
+        "manchas",
+        "manchas_solares",
+        "oleosa",
+        "poros_dilatados",
+        "cravos"
+      ]
+    },
+    {
+      "id": "vichy_mineral_89",
+      "name": "Mineral 89 Sérum Hidratante Fortalecedor",
+      "brand": "Vichy",
+      "description": "Booster diário com 89% de Água Mineral Vulcânica e Ácido Hialurônico puro — fortalece a barreira",
+      "category": "serum",
+      "ingredients": [],
+      "priority": 75,
+      "active": true,
+      "price_display": "A partir de R$ 99",
+      "price_estimated": 109.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=vichy+mineral+89+serum&tag=lin63-20",
+      "emoji": "💎",
+      "for_skin_types": [
+        "sensivel",
+        "seca",
+        "normal",
+        "mista",
+        "rosacea"
+      ]
+    },
+    {
+      "id": "laroche_cicaplast",
+      "name": "Cicaplast Baume B5+ Multi-Reparador",
+      "brand": "La Roche-Posay",
+      "description": "Bálsamo cicatrizante e reparador para peles irritadas, ressecadas ou com barreira comprometida",
+      "category": "hidratante",
+      "ingredients": [],
+      "priority": 78,
+      "active": true,
+      "price_display": "A partir de R$ 89",
+      "price_estimated": 94.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=la+roche+posay+cicaplast+baume+b5&tag=lin63-20",
+      "emoji": "🩹",
+      "for_skin_types": [
+        "sensivel",
+        "seca",
+        "rosacea",
+        "pos_procedimento"
+      ]
+    },
+    {
+      "id": "eucerin_hyaluron_filler",
+      "name": "Hyaluron-Filler Sérum Concentrado",
+      "brand": "Eucerin",
+      "description": "Sérum com Ácido Hialurônico de baixo e alto peso molecular que preenche e firma a pele",
+      "category": "serum",
+      "ingredients": [],
+      "priority": 72,
+      "active": true,
+      "price_display": "A partir de R$ 119",
+      "price_estimated": 124.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=eucerin+hyaluron+filler+serum&tag=lin63-20",
+      "emoji": "💉",
+      "for_skin_types": [
+        "seca",
+        "normal",
+        "sensivel",
+        "manchas"
+      ]
+    },
+    {
+      "id": "eucerin_dermopure",
+      "name": "Dermopure Oil Control Fluid FPS 30",
+      "brand": "Eucerin",
+      "description": "Hidratante com proteção solar para pele acneica: controla a oleosidade e mata bactérias",
+      "category": "protetor",
+      "ingredients": [],
+      "priority": 68,
+      "active": true,
+      "price_display": "A partir de R$ 94",
+      "price_estimated": 99.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=eucerin+dermopure+oil+control+fluid+fps+30&tag=lin63-20",
+      "emoji": "🛡️",
+      "for_skin_types": [
+        "oleosa",
+        "acne",
+        "acne_ativa",
+        "mista"
+      ]
+    },
+    {
+      "id": "vichy_capital_soleil",
+      "name": "Capital Soleil UV-Clear FPS 50+",
+      "brand": "Vichy",
+      "description": "Protetor solar anti-manchas com Niacinamida — ideal para pele sensível e com tendência a acne",
+      "category": "protetor",
+      "ingredients": [
+        "niacinamida"
+      ],
+      "priority": 85,
+      "active": true,
+      "price_display": "A partir de R$ 99",
+      "price_estimated": 109.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=vichy+capital+soleil+uv+clear+fps+50&tag=lin63-20",
+      "emoji": "☀️",
+      "for_skin_types": [
+        "sensivel",
+        "acne",
+        "manchas_solares",
+        "melasma",
+        "rosacea"
+      ]
+    },
+    {
+      "id": "isdin_eryfotona",
+      "name": "Eryfotona Actinica Mineral FPS 100+",
+      "brand": "ISDIN",
+      "description": "Proteção ultraalta com filtro 100% mineral — ideal para pele sensível e pós-procedimento",
+      "category": "protetor",
+      "ingredients": [],
+      "priority": 82,
+      "active": true,
+      "price_display": "A partir de R$ 129",
+      "price_estimated": 139.9,
+      "store": "amazon",
+      "affiliate_url": "https://www.amazon.com.br/s?k=isdin+eryfotona+actinica+mineral&tag=lin63-20",
+      "emoji": "⚡",
+      "for_skin_types": [
+        "sensivel",
+        "rosacea",
+        "pos_procedimento",
+        "manchas_solares"
       ]
     }
   ]
