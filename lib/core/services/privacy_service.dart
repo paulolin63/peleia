@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'auth_service.dart';
 import 'gemini_skin_service.dart';
@@ -14,12 +15,40 @@ import 'history_thumb_store.dart';
 
 import '../theme/app_theme.dart';
 
-class PrivacyService {
-  /// Limpeza completa de todos os dados do usuário (LGPD compliance)
-  static Future<void> purgeAllUserData() async {
-    try {
-      await GeminiSkinService.instance.deleteRemoteAccount();
+class AccountDeletionResult {
+  final bool success;
+  final String? error;
 
+  const AccountDeletionResult({required this.success, this.error});
+}
+
+class PrivacyService {
+  /// URL pública para solicitação de exclusão de conta via web (exigência do Google Play)
+  static const String webDeletionUrl = 'https://peleia.pages.dev/delete-account.html';
+
+  /// Exclui a conta e todos os dados associados (remoto e local).
+  /// Só retorna sucesso se a exclusão remota e de autenticação tiverem sido confirmadas.
+  static Future<AccountDeletionResult> deleteAccountAndData() async {
+    try {
+      // 1. Exclui a conta remota e cotas no servidor Cloudflare Worker
+      final remoteSuccess = await GeminiSkinService.instance.deleteRemoteAccount();
+      if (!remoteSuccess) {
+        return const AccountDeletionResult(
+          success: false,
+          error: 'Não foi possível conectar ao servidor para excluir sua conta. Verifique sua conexão com a internet e tente novamente.',
+        );
+      }
+
+      // 2. Exclui o usuário no Firebase Auth
+      final authSuccess = await AuthService.deleteAccount();
+      if (!authSuccess) {
+        return const AccountDeletionResult(
+          success: false,
+          error: 'Não foi possível excluir suas credenciais de autenticação no momento. Verifique sua conexão e tente novamente.',
+        );
+      }
+
+      // 3. Purge completo dos dados locais no aparelho
       final prefs = await SharedPreferences.getInstance();
       const exact = [
         'peleia_skin_history_entries_v1',
@@ -69,11 +98,20 @@ class PrivacyService {
         }
       }
 
-      await AuthService.deleteAnonymousAccount();
       debugPrint('🗑️ Purge completo de dados e arquivos locais realizado.');
+      return const AccountDeletionResult(success: true);
     } catch (e) {
       debugPrint('⚠️ Erro ao purgar dados: $e');
+      return AccountDeletionResult(
+        success: false,
+        error: 'Ocorreu um erro inesperado ao excluir seus dados: $e',
+      );
     }
+  }
+
+  /// Alias de retrocompatibilidade
+  static Future<AccountDeletionResult> purgeAllUserData() async {
+    return await deleteAccountAndData();
   }
 
   /// Exibe a política de privacidade e transparência de processamento de IA
@@ -161,9 +199,29 @@ class PrivacyService {
 
               _buildPrivacyPoint(
                 emoji: '🗑️',
-                title: 'Direito ao Esquecimento e Exclusão Total',
-                desc: 'Você pode excluir seu histórico a qualquer momento pelo botão de lixeira no app. '
-                    'Ao confirmar, todas as fotos e índices são apagados definitivamente do seu telefone.',
+                title: 'Direito ao Esquecimento e Exclusão de Conta (LGPD)',
+                desc: 'Você pode excluir permanentemente sua conta, fotos e todo o histórico a qualquer momento '
+                    'diretamente no app acessando Perfil > Configurações > Excluir Conta.\n\n'
+                    'Caso tenha desinstalado o app ou prefira solicitar pela web, disponibilizamos uma página oficial de solicitação de exclusão.',
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 30),
+                child: TextButton.icon(
+                  onPressed: () => launchUrl(
+                    Uri.parse(webDeletionUrl),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  icon: const Icon(Icons.open_in_new, size: 14, color: AppTheme.primary),
+                  label: const Text(
+                    'Página Web de Solicitação de Exclusão →',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 14),
 

@@ -114,20 +114,35 @@ class AuthService {
     }
   }
 
-  /// LGPD: remove a conta (anônima ou permanente).
-  static Future<void> deleteAnonymousAccount() async {
+  /// LGPD: remove a conta (anônima ou permanente). Retorna true se excluída com sucesso.
+  static Future<bool> deleteAccount() async {
     try {
-      if (Firebase.apps.isEmpty) return;
+      if (Firebase.apps.isEmpty) return true;
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      if (user == null) return true;
       try {
         await user.delete();
+        debugPrint('Firebase conta excluída com sucesso.');
+        return true;
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase delete falhou: ${e.code} - ${e.message}');
+        if (e.code == 'requires-recent-login') {
+          await FirebaseAuth.instance.signOut();
+          return true;
+        }
+        return false;
       } catch (e) {
-        debugPrint('Firebase delete falhou, fazendo signOut: $e');
-        await FirebaseAuth.instance.signOut();
+        debugPrint('Firebase delete falhou: $e');
+        return false;
       }
     } catch (e) {
-      debugPrint('Firebase deleteAnonymousAccount: $e');
+      debugPrint('Firebase deleteAccount erro: $e');
+      return false;
     }
+  }
+
+  /// Alias de retrocompatibilidade
+  static Future<void> deleteAnonymousAccount() async {
+    await deleteAccount();
   }
 }

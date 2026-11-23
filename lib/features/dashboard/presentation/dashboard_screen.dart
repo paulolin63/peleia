@@ -23,6 +23,7 @@ import '../../../core/localization/app_translations.dart';
 import '../../../core/localization/language_toggle_button.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/services/history_service.dart';
+import '../../../core/services/privacy_service.dart';
 import '../../../core/services/quota_service.dart';
 import '../../../core/services/revenuecat_service.dart';
 import '../../../core/theme/app_theme.dart';
@@ -329,6 +330,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
         // Botão Histórico
         IconButton(
+          tooltip: 'Histórico de Análises',
           onPressed: () => context.push('/history').then((_) => _loadDashboardData()),
           icon: Container(
             padding: const EdgeInsets.all(8),
@@ -345,6 +347,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
             child: const Icon(Icons.history, color: AppTheme.primary, size: 20),
+          ),
+        ),
+
+        // Botão Perfil & Configurações
+        IconButton(
+          tooltip: 'Perfil & Configurações',
+          onPressed: () => _showEditProfileModal(context),
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(8),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.settings_outlined, color: AppTheme.primary, size: 20),
           ),
         ),
 
@@ -502,7 +526,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Perfil e Hábitos de Sol',
+                    'Perfil & Configurações',
                     style: TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 18,
@@ -511,7 +535,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Personaliza a análise do Gemini e a escolha do protetor solar ideal.',
+                    'Personalize suas preferências ou gerencie sua conta e privacidade (LGPD).',
                     style: TextStyle(
                       color: AppTheme.textSecondary,
                       fontSize: 13,
@@ -630,6 +654,120 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 24),
+                  const Divider(color: AppTheme.border),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Configurações & Privacidade (LGPD)',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Gerencie suas informações e controle a exclusão dos seus dados.',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Linha: Política de Privacidade
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      PrivacyService.showPrivacyNoticeModal(context);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.bg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.shield_outlined, color: AppTheme.primary, size: 20),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Aviso de Privacidade & Retenção de Dados',
+                              style: TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(Icons.chevron_right, color: AppTheme.textMuted, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Linha: Solicitar Exclusão via Web
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => launchUrl(
+                      Uri.parse(PrivacyService.webDeletionUrl),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.bg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.open_in_browser, color: AppTheme.textSecondary, size: 20),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Página Web de Exclusão de Conta (Google Play)',
+                              style: TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(Icons.open_in_new, color: AppTheme.textMuted, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Botão Excluir Conta (Destrutivo em Vermelho)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.error,
+                        side: BorderSide(color: AppTheme.error.withAlpha(120)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _confirmAndDeleteAccount(context);
+                      },
+                      icon: const Icon(Icons.delete_forever, size: 18),
+                      label: const Text(
+                        'Excluir Conta e Dados',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -637,6 +775,195 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
     ).whenComplete(noteCtrl.dispose);
+  }
+
+  Future<void> _confirmAndDeleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 24),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Excluir Conta Definitivamente?',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Esta ação é permanente e irreversível.\n\n'
+          'Serão eliminados imediatamente:\n'
+          '• Todas as fotos de selfies e histórico de análises\n'
+          '• Seu perfil cosmético e restrições declaradas\n'
+          '• Sua conta de usuário e cotas no servidor\n\n'
+          'Deseja realmente excluir sua conta e todos os dados?',
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Excluir Minha Conta',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Diálogo de progresso não-cancelável
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: Card(
+            color: AppTheme.surface,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppTheme.error),
+                  SizedBox(height: 16),
+                  Text(
+                    'Excluindo conta e dados no servidor...',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final result = await PrivacyService.deleteAccountAndData();
+
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (!result.success) {
+      // ❌ FALHA: Mostra erro explícito — NÃO finge sucesso
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline, color: AppTheme.error, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Falha na Exclusão',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            '${result.error ?? "Não foi possível concluir a exclusão da sua conta no momento."}\n\n'
+            'Seus dados permanecem seguros no seu aparelho. Você pode tentar novamente mais tarde ou solicitar a exclusão através da nossa página web oficial.',
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Fechar', style: TextStyle(color: AppTheme.textSecondary)),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                launchUrl(
+                  Uri.parse(PrivacyService.webDeletionUrl),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+              icon: const Icon(Icons.open_in_new, size: 14, color: Colors.white),
+              label: const Text(
+                'Solicitar via Web',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // ✅ SUCESSO: Notifica e redireciona para onboarding limpo
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: AppTheme.primary, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Conta Excluída',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Sua conta e todos os dados associados foram excluídos permanentemente com sucesso.',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+
+      if (mounted) {
+        context.go('/onboarding');
+      }
+    }
   }
 
   Widget _buildChip({

@@ -123,9 +123,21 @@ class HistoryService {
     }
   }
 
+  /// Apaga apenas as entradas de histórico e fotos salvas localmente
+  static Future<void> clearLocalHistoryOnly() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_storageKey);
+      await HistoryThumbStore.clearAll();
+      debugPrint('📷 Histórico de fotos local limpo.');
+    } catch (e) {
+      debugPrint('⚠️ Erro ao limpar histórico local: $e');
+    }
+  }
+
   /// LGPD / Privacidade: Exclui permanentemente todo o histórico de fotos, arquivos e dados do usuário
   static Future<void> clearAllHistory() async {
-    await PrivacyService.purgeAllUserData();
+    await PrivacyService.deleteAccountAndData();
   }
 
   static Uint8List? _generateThumbnailBytes(Uint8List? originalBytes) {

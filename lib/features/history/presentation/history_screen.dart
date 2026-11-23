@@ -63,7 +63,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surface,
         title: const Text(
-          'Excluir Histórico (Privacidade LGPD)',
+          'Limpar Fotos do Histórico',
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 16,
@@ -71,8 +71,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           ),
         ),
         content: const Text(
-          'Deseja apagar permanentemente todas as fotos e avaliações salvas no seu aparelho?\n\n'
-          'Suas fotos são mantidas exclusivamente na memória local do seu dispositivo e essa exclusão é definitiva.',
+          'Deseja apagar as fotos e avaliações salvas localmente neste aparelho?\n\n'
+          '⚠️ Atenção: Para excluir permanentemente sua conta completa e todos os dados associados no servidor (LGPD), acesse:\n'
+          'Perfil > Configurações > Excluir Conta no painel principal.',
           style: TextStyle(
             color: AppTheme.textSecondary,
             fontSize: 13,
@@ -93,7 +94,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
-              'Excluir Tudo',
+              'Limpar Fotos Locais',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
@@ -102,12 +103,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
     );
 
     if (confirmed == true) {
-      await HistoryService.clearAllHistory();
+      await HistoryService.clearLocalHistoryOnly();
       _loadHistory();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Todo o histórico de fotos foi apagado com sucesso.'),
+            content: Text('Fotos locais do histórico apagadas com sucesso.'),
             backgroundColor: AppTheme.primaryDark,
           ),
         );
@@ -145,7 +146,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           if (_entries.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline, color: AppTheme.textSecondary),
-              tooltip: 'Excluir Histórico (LGPD)',
+              tooltip: 'Limpar Fotos do Histórico',
               onPressed: _showClearHistoryDialog,
             ),
         ],

@@ -117,7 +117,7 @@ class GeminiSkinService {
 
   Future<bool> deleteRemoteAccount() async {
     initialize();
-    if (_proxyUrl.isEmpty) return false;
+    if (_proxyUrl.isEmpty) return true; // Sem proxy configurado (ex: testes locais), nada remoto a deletar
     try {
       await _post({'task': 'delete_account'}, const Duration(seconds: 15));
       return true;

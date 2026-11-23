@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exclusão de Conta e Dados | Account Deletion - PeleIA</title>
+  <style>
+    :root {
+      --primary: #2D5A43;
+      --primary-light: #E8F0EC;
+      --text: #1C2420;
+      --text-muted: #5A6660;
+      --bg: #F9FAF9;
+      --card-bg: #FFFFFF;
+      --border: #E0E5E2;
+      --accent: #D9822B;
+      --error: #C93B3B;
+      --error-light: #FDF2F2;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      color: var(--text);
+      background-color: var(--bg);
+      padding: 24px 16px;
+    }
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    }
+    header {
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    h1 {
+      font-size: 28px;
+      color: var(--primary);
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+    h2 {
+      font-size: 20px;
+      color: var(--primary);
+      margin-top: 32px;
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+    p, li {
+      font-size: 15px;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    ul, ol {
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    .nav-links {
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .nav-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-warning {
+      background: var(--error-light);
+      border: 1px solid #F5C6C6;
+    }
+    .card-warning h3 {
+      color: var(--error);
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .btn {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #234734;
+    }
+    .btn-danger {
+      background: var(--error);
+    }
+    .btn-danger:hover {
+      background: #A82B2B;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    input[type="text"], input[type="email"], textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .data-table th, .data-table td {
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      text-align: left;
+    }
+    .data-table th {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+    }
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav-links">
+      <a href="privacy.html">← Voltar para a Política de Privacidade</a>
+    </div>
+
+    <header>
+      <span class="badge">LGPD & Google Play Compliance</span>
+      <h1>Solicitação de Exclusão de Conta e Dados</h1>
+      <p style="color: var(--text-muted); font-size: 14px;">PeleIA — Skincare com Inteligência Artificial • Última atualização: 23 de Novembro de 2026</p>
+    </header>
+
+    <p>Em conformidade com as <strong>Diretrizes de Exclusão de Contas do Google Play</strong> e com o artigo 18 da <strong>Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018)</strong>, o PeleIA assegura a todos os usuários o direito de solicitar a exclusão definitiva e permanente da sua conta e de todos os dados pessoais associados.</p>
+
+    <h2>Opção 1: Exclusão Direta pelo Aplicativo (Imediata e Recomendada)</h2>
+    <div class="card">
+      <p>Se você tem o aplicativo <strong>PeleIA</strong> instalado no seu dispositivo Android, você pode realizar a exclusão total em poucos segundos:</p>
+      <ol>
+        <li>Abra o aplicativo <strong>PeleIA</strong> no seu aparelho.</li>
+        <li>No painel principal, toque no ícone de <strong>Configurações ⚙️</strong> (no canto superior) ou em <strong>Ajustar Perfil</strong>.</li>
+        <li>Role até a seção <strong>Configurações & Privacidade (LGPD)</strong>.</li>
+        <li>Toque no botão vermelho <strong>Excluir Conta e Dados</strong>.</li>
+        <li>Confirme a exclusão no diálogo de segurança.</li>
+      </ol>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">Ao confirmar no app, todos os registros remotos no servidor (cotas e identificadores) e todos os dados locais no telefone (fotos, históricos e preferências) são eliminados imediatamente de forma irreversível.</p>
+    </div>
+
+    <h2>Opção 2: Solicitação de Exclusão pela Web (Sem o Aplicativo)</h2>
+    <p>Caso você já tenha desinstalado o aplicativo, perdido o acesso ao seu dispositivo ou prefira solicitar a exclusão diretamente por este canal web, utilize o formulário abaixo. Sua solicitação será processada por nossa equipe em até <strong>7 dias úteis</strong>.</p>
+
+    <div class="card">
+      <form id="deleteForm" onsubmit="handleWebDelete(event)">
+        <div class="form-group">
+          <label for="userEmail">E-mail associado à conta (ou conta Google utilizada): *</label>
+          <input type="email" id="userEmail" required placeholder="exemplo@gmail.com">
+        </div>
+
+        <div class="form-group">
+          <label for="userId">Identificador de Usuário (UID) ou ID do Dispositivo (opcional):</label>
+          <input type="text" id="userId" placeholder="Se souber seu identificador no PeleIA">
+        </div>
+
+        <div class="form-group">
+          <label for="userReason">Motivo da solicitação (opcional):</label>
+          <textarea id="userReason" rows="3" placeholder="Conte-nos por que deseja excluir sua conta (opcional)"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-danger">Enviar Solicitação de Exclusão</button>
+      </form>
+    </div>
+
+    <div class="card card-warning">
+      <h3>⚠️ Importante: Assinaturas Ativas na Google Play Store</h3>
+      <p style="font-size: 13px; margin-bottom: 0;">A exclusão da conta no aplicativo <strong>não cancela automaticamente assinaturas ativas</strong> cobradas pelo Google Play Billing. Se você assina o <em>PeleIA Pro</em>, lembre-se de cancelar sua assinatura diretamente no aplicativo da <strong>Google Play Store &gt; Pagamentos e Assinaturas</strong> para evitar futuras cobranças automáticas pela Google.</p>
+    </div>
+
+    <h2>Quais Dados São Excluídos e Quais São Retidos?</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Tipo de Dado</th>
+          <th>Status</th>
+          <th>Justificativa / Retenção</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Fotos e Selfies</strong></td>
+          <td>Excluídas permanentemente</td>
+          <td>Suas fotos já não são armazenadas em servidores do PeleIA. Na exclusão, todos os caches e miniaturas locais são destruídos.</td>
+        </tr>
+        <tr>
+          <td><strong>Histórico de Avaliações e Scores</strong></td>
+          <td>Excluído permanentemente</td>
+          <td>Todas as pontuações de oleosidade, acne, manchas e histórico de comparações são apagados.</td>
+        </tr>
+        <tr>
+          <td><strong>Perfil e Restrições Declaradas</strong></td>
+          <td>Excluído permanentemente</td>
+          <td>Faixa etária, hábitos de sol, alergias e ingredientes evitados são apagados.</td>
+        </tr>
+        <tr>
+          <td><strong>Identificador de Acesso (UID Firebase)</strong></td>
+          <td>Excluído permanentemente</td>
+          <td>A conta de autenticação é revogada e excluída no Firebase Auth.</td>
+        </tr>
+        <tr>
+          <td><strong>Contadores de Cotas e Registro de Servidor</strong></td>
+          <td>Excluídos permanentemente</td>
+          <td>O Durable Object associado ao seu UID no Cloudflare é totalmente expurgado via comando /purge.</td>
+        </tr>
+        <tr>
+          <td><strong>Registros Financeiros de Compra</strong></td>
+          <td>Retidos pela Google Play</td>
+          <td>Históricos de transação e faturamento são mantidos exclusivamente pela Google conforme obrigações tributárias e fiscais da legislação vigente.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Canal Direto de Suporte e Privacidade</h2>
+    <div class="card">
+      <p>Você também pode enviar um e-mail diretamente ao nosso Encarregado de Proteção de Dados (DPO):</p>
+      <p><strong>E-mail:</strong> <a href="mailto:suporte.peleia@gmail.com" style="color: var(--primary); font-weight: 700;">suporte.peleia@gmail.com</a></p>
+      <p><strong>Assunto:</strong> [PeleIA] Solicitação de Exclusão de Conta e Dados (LGPD / Google Play)</p>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">Prazo de resposta e confirmação: até 7 dias úteis.</p>
+    </div>
+
+    <footer>
+      <p>&copy; 2026 PeleIA Team. Todos os direitos reservados.</p>
+      <p style="margin-top: 6px;"><a href="privacy.html" style="color: var(--primary); text-decoration: none;">Política de Privacidade</a> • <a href="delete-account.html" style="color: var(--primary); text-decoration: none;">Exclusão de Conta</a></p>
+    </footer>
+  </div>
+
+  <script>
+    function handleWebDelete(e) {
+      e.preventDefault();
+      var email = document.getElementById('userEmail').value.trim();
+      var uid = document.getElementById('userId').value.trim();
+      var reason = document.getElementById('userReason').value.trim();
+
+      var subject = encodeURIComponent("[PeleIA] Solicitacao de Exclusao de Conta e Dados (LGPD)");
+      var bodyText = "Ola equipe PeleIA,\n\n" +
+        "Solicito a exclusao permanente da minha conta e de todos os dados associados no aplicativo PeleIA.\n\n" +
+        "E-mail da conta: " + email + "\n" +
+        (uid ? "Identificador (UID/Dispositivo): " + uid + "\n" : "") +
+        (reason ? "Motivo: " + reason + "\n" : "") +
+        "\nEstou ciente de que esta acao e irreversivel.\n\nAtenciosamente.";
+
+      var mailtoUrl = "mailto:suporte.peleia@gmail.com?subject=" + subject + "&body=" + encodeURIComponent(bodyText);
+      window.location.href = mailtoUrl;
+    }
+  </script>
+</body>
+</html>
