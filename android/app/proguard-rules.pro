@@ -1,15 +1,16 @@
-# ProGuard rules para PeleIA
-# Flutter
--keep class io.flutter.** { *; }
--keep class io.flutter.embedding.** { *; }
+# ProGuard / R8 rules para PeleIA
+# Permitir que o R8 otimize, encolha e ofusque o código DEX acima de 50%+
 
-# RevenueCat
--keep class com.revenuecat.** { *; }
+# Preserva anotações e reflexão necessárias
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
 
-# Google Generative AI
--keep class com.google.** { *; }
+# Suprime avisos benignos de bibliotecas externas
 -dontwarn com.google.**
-
-# Kotlin
--keep class kotlin.** { *; }
 -dontwarn kotlin.**
+-dontwarn io.flutter.**
+-dontwarn com.revenuecat.**
+-dontwarn org.bouncycastle.**
+
+# Multidex
+-keep class androidx.multidex.** { *; }
+
