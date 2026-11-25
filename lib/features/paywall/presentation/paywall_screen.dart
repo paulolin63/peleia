@@ -289,12 +289,26 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppTheme.border),
         ),
-        child: const Center(
-          child: Text(
-            'Carregando opções de planos...',
-            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-            textAlign: TextAlign.center,
-          ),
+        child: Column(
+          children: [
+            const Text(
+              'Os planos ainda estão sincronizando com a Google Play.',
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => ref.read(paywallProvider.notifier).reload(),
+              icon: const Icon(Icons.refresh, size: 16, color: AppTheme.primaryDark),
+              label: const Text(
+                'Tentar novamente',
+                style: TextStyle(
+                  color: AppTheme.primaryDark,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }

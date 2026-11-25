@@ -2,6 +2,8 @@
 //  lib/main.dart
 //  PeleIA — Entry point
 // ============================================================
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,18 +17,37 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/revenuecat_service.dart';
 
+Future<void> _warmUpServices() async {
+  try {
+    if (!kIsWeb) {
+      unawaited(EvolutionReminderService.instance.initialize());
+    }
+    // Inicializa RevenueCat (protegido contra exceções para não abortar o bootstrap)
+    try {
+      await RevenueCatService.initialize();
+    } catch (e, stack) {
+      debugPrint('⚠️ Erro ao inicializar RevenueCat no bootstrap: $e\n$stack');
+    }
+    // Config local imediata + refresh em background
+    unawaited(RemoteConfigService.load());
+    // Identidade do Firebase (uid compartilhado com o Worker e o RevenueCat) sem travar a tela inicial.
+    await AuthService.idToken();
+  } catch (e) {
+    debugPrint('⚠️ Warm-up em background falhou: $e');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Config via --dart-define / --dart-define-from-file=.env (never ship .env as asset).
-
-  // Força orientação portrait (selfie) — só funciona em mobile
+  // Força orientação portrait (selfie) — com timeout de segurança para nunca travar o Frame 1
   if (!kIsWeb) {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-    await EvolutionReminderService.instance.initialize();
+    try {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]).timeout(const Duration(seconds: 1));
+    } catch (_) {}
   }
 
   // Configura status bar transparente e ícones escuros para tema botânico claro
@@ -38,24 +59,14 @@ void main() async {
     ),
   );
 
-  // Inicializa RevenueCat (protegido contra exceções para não abortar o bootstrap)
-  try {
-    await RevenueCatService.initialize();
-  } catch (e, stack) {
-    debugPrint('⚠️ Erro ao inicializar RevenueCat no bootstrap: $e\n$stack');
-  }
-
-  // Identidade do Firebase (uid compartilhado com o Worker e o RevenueCat).
-  await AuthService.idToken();
-
-  // Config remota: asset, cache e rede. Não bloqueia a abertura se a rede falhar.
-  RemoteConfigService.load();
-
+  // Renderiza imediatamente o Frame 1 (<100ms) sem aguardar chamadas de rede no boot
   runApp(
     const ProviderScope(
       child: PeleIAApp(),
     ),
   );
+
+  unawaited(_warmUpServices());
 }
 
 class PeleIAApp extends ConsumerWidget {

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import 'revenuecat_service.dart';
+
 /// Autenticação híbrida:
 /// - Login anônimo automático (zero fricção na abertura)
 /// - Login com Google (vínculo de conta permanente, sincronização e anti-fraude)
@@ -26,22 +28,27 @@ class AuthService {
   static Future<String?> idToken() async {
     try {
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp();
+        await Firebase.initializeApp().timeout(const Duration(seconds: 6));
       }
       var user = FirebaseAuth.instance.currentUser;
-      user ??= (await FirebaseAuth.instance.signInAnonymously()).user;
+      user ??= (await FirebaseAuth.instance
+              .signInAnonymously()
+              .timeout(const Duration(seconds: 8)))
+          .user;
       if (user == null) return null;
 
       if (!kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.android ||
               defaultTargetPlatform == TargetPlatform.iOS)) {
         try {
-          await Purchases.logIn(user.uid);
+          if (await RevenueCatService.ensureInitialized()) {
+            await Purchases.logIn(user.uid).timeout(const Duration(seconds: 5));
+          }
         } catch (e) {
           debugPrint('RevenueCat logIn ignorado: $e');
         }
       }
-      return await user.getIdToken();
+      return await user.getIdToken().timeout(const Duration(seconds: 6));
     } catch (e) {
       debugPrint('Firebase indisponível: $e');
       return null;

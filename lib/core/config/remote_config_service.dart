@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -19,6 +20,30 @@ class RemoteConfigService {
   static const _maxAge = Duration(hours: 1);
 
   static AppConfig? current;
+
+  /// Carrega imediatamente do cache/asset local sem bloquear em rede,
+  /// e dispara atualização remota em background se estiver vencida.
+  static Future<AppConfig> loadFast() async {
+    final prefs = await SharedPreferences.getInstance();
+    AppConfig? resolved = await _fromAsset();
+
+    final cachedRaw = prefs.getString(_cacheKey);
+    final cached = _parse(cachedRaw);
+    if (cached != null) resolved = cached;
+
+    resolved ??= AppConfig.tryParse(const {'schema_version': 0});
+    var config = resolved ?? _emptyFallback();
+    config = config.copyWith(quota: PeleiaEnv.applyQuota(config.quota));
+    current = config;
+    QuotaService.applyLimits(config.quota);
+
+    final fetchedAt = prefs.getInt(_fetchedAtKey) ?? 0;
+    final stale = DateTime.now().millisecondsSinceEpoch - fetchedAt > _maxAge.inMilliseconds;
+    if (stale) {
+      unawaited(load());
+    }
+    return config;
+  }
 
   static Future<AppConfig> load({bool force = false}) async {
     final prefs = await SharedPreferences.getInstance();

@@ -22,6 +22,7 @@ class PaywallState {
   final bool isPremium;
   final bool isLoadingPackages;
   final List<Package> packages;
+  final List<StoreProduct> directProducts;
   final List<SubscriptionPlan> plans;
   final String? errorMessage;
 
@@ -31,6 +32,7 @@ class PaywallState {
     this.isPremium = false,
     this.isLoadingPackages = false,
     this.packages = const [],
+    this.directProducts = const [],
     this.plans = const [],
     this.errorMessage,
   });
@@ -41,6 +43,7 @@ class PaywallState {
     bool? isPremium,
     bool? isLoadingPackages,
     List<Package>? packages,
+    List<StoreProduct>? directProducts,
     List<SubscriptionPlan>? plans,
     String? errorMessage,
   }) =>
@@ -50,6 +53,7 @@ class PaywallState {
         isPremium: isPremium ?? this.isPremium,
         isLoadingPackages: isLoadingPackages ?? this.isLoadingPackages,
         packages: packages ?? this.packages,
+        directProducts: directProducts ?? this.directProducts,
         plans: plans ?? this.plans,
         errorMessage: errorMessage,
       );
@@ -63,15 +67,14 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
     _init();
   }
 
+  Future<void> reload() => _init();
+
   Future<void> _init() async {
-    final config = await RemoteConfigService.load();
-    final premium = await RevenueCatService.isPremium();
+    final config = await RemoteConfigService.loadFast();
     final prefs = await SharedPreferences.getInstance();
-    if (premium) {
-      await prefs.setBool('is_premium', true);
-    }
 
     if (kIsWeb) {
+      final premium = await RevenueCatService.isPremium();
       state = state.copyWith(
         isPremium: premium || (!kReleaseMode && (prefs.getBool('is_premium') ?? false)),
         plans: SubscriptionPlan.fromStore(
@@ -86,17 +89,53 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
 
     state = state.copyWith(
       isLoadingPackages: true,
-      isPremium: premium || (!kReleaseMode && (prefs.getBool('is_premium') ?? false)),
+      errorMessage: null,
+      isPremium: !kReleaseMode && (prefs.getBool('is_premium') ?? false),
     );
+
     final pkgs = await RevenueCatService.getPackages();
+    final premium = await RevenueCatService.isPremium();
+    if (premium) {
+      await prefs.setBool('is_premium', true);
+    }
+
+    // Se Offerings vier vazio ou incompleto, busca diretamente na Google Play via getProducts
+    final missingSubIds = <String>[];
+    final missingInAppIds = <String>[];
+    for (final plan in config.plans) {
+      final foundInOfferings = pkgs.any(
+        (item) => SubscriptionPlan.matchesProductId(item.storeProduct.identifier, plan.productId),
+      );
+      if (!foundInOfferings) {
+        if (plan.consumable) {
+          missingInAppIds.add(plan.productId);
+        } else {
+          missingSubIds.add(plan.productId);
+        }
+      }
+    }
+
+    var directProducts = const <StoreProduct>[];
+    if (missingSubIds.isNotEmpty || missingInAppIds.isNotEmpty) {
+      directProducts = await RevenueCatService.getDirectStoreProducts(
+        missingSubIds,
+        missingInAppIds,
+      );
+    }
+
+    final plans = SubscriptionPlan.fromStore(
+      config: config,
+      packages: pkgs,
+      directProducts: directProducts,
+      allowWithoutStore: !kReleaseMode && pkgs.isEmpty && directProducts.isEmpty,
+    );
+
     state = state.copyWith(
       packages: pkgs,
+      directProducts: directProducts,
       isLoadingPackages: false,
-      plans: SubscriptionPlan.fromStore(
-        config: config,
-        packages: pkgs,
-        allowWithoutStore: !kReleaseMode && pkgs.isEmpty,
-      ),
+      isPremium: premium || (!kReleaseMode && (prefs.getBool('is_premium') ?? false)),
+      plans: plans,
     );
     _selectDefault();
   }
@@ -148,8 +187,10 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
 
     try {
       final Package? package = _findPackage(selectedPlanData.productId);
+      final StoreProduct? directProduct =
+          package == null ? _findDirectProduct(selectedPlanData.productId) : null;
 
-      if (package == null) {
+      if (package == null && directProduct == null) {
         if (kReleaseMode) {
           state = state.copyWith(
             step: PurchaseStep.error,
@@ -163,7 +204,18 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
         return;
       }
 
-      final success = await RevenueCatService.purchasePackage(package);
+      final bool success;
+      if (package != null) {
+        success = await RevenueCatService.purchasePackage(
+          package,
+          isConsumable: selectedPlanData.isConsumable,
+        );
+      } else {
+        success = await RevenueCatService.purchaseStoreProduct(
+          directProduct!,
+          isConsumable: selectedPlanData.isConsumable,
+        );
+      }
       if (success) {
         if (selectedPlanData.isConsumable) {
           await QuotaService.addSosCredits(QuotaService.sosPackSize);
@@ -259,7 +311,17 @@ class PaywallNotifier extends StateNotifier<PaywallState> {
   Package? _findPackage(String productId) {
     try {
       return state.packages.firstWhere(
-        (p) => p.storeProduct.identifier == productId,
+        (p) => SubscriptionPlan.matchesProductId(p.storeProduct.identifier, productId),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  StoreProduct? _findDirectProduct(String productId) {
+    try {
+      return state.directProducts.firstWhere(
+        (p) => SubscriptionPlan.matchesProductId(p.identifier, productId),
       );
     } catch (_) {
       return null;

@@ -9,6 +9,7 @@
 // ============================================================
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -30,7 +31,7 @@ import '../../../core/services/revenuecat_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../history/data/history_entry.dart';
 import '../../products/presentation/product_card_widgets.dart';
-import '../../profile/avoidance_fields.dart';
+import '../../profile/profile_settings_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -64,17 +65,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _loadDashboardData() async {
-    setState(() => _isLoading = true);
+    if (_config == null) {
+      setState(() => _isLoading = true);
+    }
 
     final prefs = await SharedPreferences.getInstance();
-    final remotePro = await RevenueCatService.isPremium();
-    if (remotePro) {
-      _isPro = true;
-      await prefs.setBool('is_premium', true);
-    } else {
-      _isPro = prefs.getBool('is_premium') ?? false;
-    }
-    _config = await RemoteConfigService.load();
+    _isPro = prefs.getBool('is_premium') ?? false;
+    _config = await RemoteConfigService.loadFast();
     _profile = await UserProfileStore.load();
 
     // Carrega última análise do histórico
@@ -98,7 +95,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _morningChecked = morningSaved.map(int.parse).toSet();
     _nightChecked = nightSaved.map(int.parse).toSet();
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
+
+    // Atualiza status remoto de assinatura e config sem bloquear a renderização
+    _refreshRemoteDashboardState(prefs);
+  }
+
+  Future<void> _refreshRemoteDashboardState(SharedPreferences prefs) async {
+    try {
+      final results = await Future.wait([
+        RevenueCatService.isPremium(),
+        RemoteConfigService.load(),
+      ]);
+      final remotePro = results[0] as bool;
+      final freshConfig = results[1] as AppConfig;
+
+      if (remotePro) {
+        await prefs.setBool('is_premium', true);
+      } else if (kReleaseMode) {
+        await prefs.setBool('is_premium', false);
+      }
+      final effectivePro = remotePro || (!kReleaseMode && (prefs.getBool('is_premium') ?? false));
+      final updatedQuota = await QuotaService.checkQuota(isPro: effectivePro);
+
+      if (!mounted) return;
+      setState(() {
+        _isPro = effectivePro;
+        _config = freshConfig;
+        _quotaStatus = updatedQuota;
+      });
+    } catch (e) {
+      debugPrint('⚠️ Atualização remota do dashboard ignorada: $e');
+    }
   }
 
   String _getTodayKey() {
@@ -488,13 +517,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _showEditProfileModal(BuildContext context) {
-    String tempAge = _ageGroup ?? '20_35';
-    String tempOutdoor = _outdoorExposure ?? 'outdoor_moderate';
-    final tempAvoid = _profile.avoidIngredients.toSet();
-    final tempConditions = _profile.conditions.toSet();
-    final noteCtrl = TextEditingController(text: _profile.note);
-
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       isDismissible: true,
       context: context,
       backgroundColor: AppTheme.surface,
@@ -502,281 +525,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (modalCtx, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppTheme.border,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Perfil & Configurações',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Personalize suas preferências ou gerencie sua conta e privacidade (LGPD).',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Faixa Etária',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildChip(
-                        label: '< 20 anos',
-                        selected: tempAge == 'under_20',
-                        onTap: () => setModalState(() => tempAge = 'under_20'),
-                      ),
-                      _buildChip(
-                        label: '20 a 35 anos',
-                        selected: tempAge == '20_35',
-                        onTap: () => setModalState(() => tempAge = '20_35'),
-                      ),
-                      _buildChip(
-                        label: '36 a 50 anos',
-                        selected: tempAge == '36_50',
-                        onTap: () => setModalState(() => tempAge = '36_50'),
-                      ),
-                      _buildChip(
-                        label: 'Mais de 50 anos',
-                        selected: tempAge == '50_plus',
-                        onTap: () => setModalState(() => tempAge = '50_plus'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Exposição Solar & Esportes ao Ar Livre',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Column(
-                    children: [
-                      _buildRadioTile(
-                        icon: '☀️',
-                        title: 'Alta exposição solar',
-                        subtitle: 'Esportes ao ar livre, praia ou sol forte frequente',
-                        selected: tempOutdoor == 'outdoor_high',
-                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_high'),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildRadioTile(
-                        icon: '🚴',
-                        title: 'Exposição moderada',
-                        subtitle: 'Finais de semana, lazer e trajetos urbanos',
-                        selected: tempOutdoor == 'outdoor_moderate',
-                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_moderate'),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildRadioTile(
-                        icon: '💻',
-                        title: 'Baixa exposição solar',
-                        subtitle: 'Rotina em ambientes fechados / home office',
-                        selected: tempOutdoor == 'outdoor_low',
-                        onTap: () => setModalState(() => tempOutdoor = 'outdoor_low'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  if (_config != null)
-                    AvoidanceFields(
-                      config: _config!,
-                      avoid: tempAvoid,
-                      conditions: tempConditions,
-                      note: noteCtrl,
-                      onChanged: (fn) => setModalState(fn),
-                    ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        await UserProfileStore.save(_profile.copyWith(
-                          ageGroup: tempAge,
-                          outdoorExposure: tempOutdoor,
-                          avoidIngredients: tempAvoid.toList(),
-                          conditions: tempConditions.toList(),
-                          note: noteCtrl.text.trim(),
-                        ));
-                        if (mounted && ctx.mounted) {
-                          Navigator.pop(ctx);
-                          _loadDashboardData();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        'Salvar Preferências',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-                  const Divider(color: AppTheme.border),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Configurações & Privacidade (LGPD)',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Gerencie suas informações e controle a exclusão dos seus dados.',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Linha: Política de Privacidade
-                  InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      PrivacyService.showPrivacyNoticeModal(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.bg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.shield_outlined, color: AppTheme.primary, size: 20),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Aviso de Privacidade & Retenção de Dados',
-                              style: TextStyle(
-                                color: AppTheme.textPrimary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.chevron_right, color: AppTheme.textMuted, size: 18),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Linha: Solicitar Exclusão via Web
-                  InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => launchUrl(
-                      Uri.parse(PrivacyService.webDeletionUrl),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.bg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.open_in_browser, color: AppTheme.textSecondary, size: 20),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Página Web de Exclusão de Conta (Google Play)',
-                              style: TextStyle(
-                                color: AppTheme.textPrimary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.open_in_new, color: AppTheme.textMuted, size: 16),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Botão Excluir Conta (Destrutivo em Vermelho)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.error,
-                        side: BorderSide(color: AppTheme.error.withAlpha(120)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _confirmAndDeleteAccount(context);
-                      },
-                      icon: const Icon(Icons.delete_forever, size: 18),
-                      label: const Text(
-                        'Excluir Conta e Dados',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                      ),
-                    ),
-                  ),
-                ],
+      builder: (ctx) => ProfileSettingsSheet(
+        initialProfile: _profile,
+        initialAgeGroup: _ageGroup ?? '20_35',
+        initialOutdoorExposure: _outdoorExposure ?? 'outdoor_moderate',
+        config: _config,
+        onSave: (updatedProfile) async {
+          await UserProfileStore.save(updatedProfile);
+          if (!mounted) return;
+          _loadDashboardData();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Preferências salvas com sucesso!'),
+                backgroundColor: AppTheme.primaryDark,
+                duration: Duration(seconds: 2),
               ),
             );
-          },
-        );
-      },
-    ).whenComplete(noteCtrl.dispose);
+          }
+        },
+        onOpenPrivacyNotice: () {
+          Navigator.pop(ctx);
+          PrivacyService.showPrivacyNoticeModal(context);
+        },
+        onOpenWebDeletion: () => launchUrl(
+          Uri.parse(PrivacyService.webDeletionUrl),
+          mode: LaunchMode.externalApplication,
+        ),
+        onRequestDeleteAccount: () {
+          Navigator.pop(ctx);
+          _confirmAndDeleteAccount(context);
+        },
+      ),
+    );
   }
 
   Future<void> _confirmAndDeleteAccount(BuildContext context) async {
@@ -966,90 +747,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         context.go('/onboarding');
       }
     }
-  }
-
-  Widget _buildChip({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.primarySoft : AppTheme.surfaceMuted,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? AppTheme.primary : AppTheme.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppTheme.primaryDark : AppTheme.textSecondary,
-            fontSize: 13,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRadioTile({
-    required String icon,
-    required String title,
-    required String subtitle,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.primarySoft : AppTheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppTheme.primary : AppTheme.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: selected ? AppTheme.textPrimary : AppTheme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              selected ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: selected ? AppTheme.primary : AppTheme.textMuted,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // ── 2. Cápsula Compacta de UV e Clima Tropical BR ─────────

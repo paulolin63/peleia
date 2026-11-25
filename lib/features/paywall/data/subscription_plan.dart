@@ -33,22 +33,37 @@ class SubscriptionPlan {
   String? get savings => null;
   String get monthlyEquivalent => '';
 
+  /// Android Google Play Billing v5+ retorna `<subId>:<basePlanId>`
+  /// (ex: `peleia_monthly_1990:monthly`).
+  static bool matchesProductId(String storeIdentifier, String configProductId) {
+    return storeIdentifier == configProductId ||
+        storeIdentifier.startsWith('$configProductId:');
+  }
+
   static List<SubscriptionPlan> fromStore({
     required AppConfig config,
     required List<Package> packages,
+    List<StoreProduct> directProducts = const [],
     required bool allowWithoutStore,
   }) {
     final plans = <SubscriptionPlan>[];
     for (final plan in config.plans) {
-      Package? package;
+      StoreProduct? product;
       for (final item in packages) {
-        if (item.storeProduct.identifier == plan.productId) {
-          package = item;
+        if (matchesProductId(item.storeProduct.identifier, plan.productId)) {
+          product = item.storeProduct;
           break;
         }
       }
-      if (package == null && !allowWithoutStore) continue;
-      final product = package?.storeProduct;
+      if (product == null) {
+        for (final item in directProducts) {
+          if (matchesProductId(item.identifier, plan.productId)) {
+            product = item;
+            break;
+          }
+        }
+      }
+      if (product == null && !allowWithoutStore) continue;
       final trial = _trialInfo(product);
       plans.add(SubscriptionPlan(
         productId: plan.productId,
@@ -56,7 +71,7 @@ class SubscriptionPlan {
         badge: trial.$1 ? (trial.$2 ?? 'TESTE GRÁTIS') : plan.badge,
         quotaSubtitle: plan.subtitle,
         priceLabel: product?.priceString ?? '',
-        periodLabel: plan.consumable ? 'único' : _period(product),
+        periodLabel: plan.consumable ? 'único' : _period(product, plan.productId),
         isConsumable: plan.consumable,
         isHighlighted: plan.highlight,
         isBestValue: !plan.consumable && !plan.highlight && plan.productId.contains('annual'),
@@ -91,10 +106,15 @@ class SubscriptionPlan {
     return (true, label);
   }
 
-  static String _period(StoreProduct? product) {
-    final id = product?.identifier ?? '';
+  static String _period(StoreProduct? product, String fallbackId) {
+    final period = product?.subscriptionPeriod ?? '';
+    if (period.contains('Y')) return '/ ano';
+    if (period.contains('M')) return '/ mês';
+    if (period.contains('W')) return '/ semana';
+    final id = product?.identifier ?? fallbackId;
     if (id.contains('annual')) return '/ ano';
     if (id.contains('month')) return '/ mês';
+    if (id.contains('week')) return '/ semana';
     return '';
   }
 }
