@@ -20,8 +20,10 @@ import '../../../core/services/comparison_service.dart';
 import '../../../core/services/report_export_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../history/data/history_entry.dart';
+import '../../products/presentation/product_card_widgets.dart';
 import '../../scan/data/skin_analysis_result.dart';
 import '../../scan/presentation/scan_provider.dart';
+import 'story_share_sheet.dart';
 
 class ResultScreen extends ConsumerStatefulWidget {
   const ResultScreen({super.key});
@@ -82,9 +84,26 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 context.go('/');
               },
             ),
-            actions: const [
-              LanguageToggleButton(compact: true),
-              SizedBox(width: 12),
+            actions: [
+              IconButton(
+                tooltip: tr.isEn ? 'Share Stories Card' : 'Card para Stories',
+                onPressed: () => _openStoryShare(context, analysis, state, tr),
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface.withAlpha(235),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: const Icon(
+                    Icons.ios_share_rounded,
+                    color: AppTheme.primaryDark,
+                    size: 18,
+                  ),
+                ),
+              ),
+              const LanguageToggleButton(compact: true),
+              const SizedBox(width: 12),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: _buildHeroHeader(analysis, state.imageBytes != null
@@ -118,6 +137,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   _buildScoreBreakdown(analysis)
                       .animate()
                       .fadeIn(duration: 250.ms),
+                  const SizedBox(height: 12),
+                  _buildStoriesShareCTA(context, analysis, state, tr)
+                      .animate()
+                      .fadeIn(duration: 250.ms),
                   const SizedBox(height: 14),
                   _buildEvolutionCard(
                     analysis,
@@ -133,7 +156,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 ] else if (_selectedTab == 1) ...[
                   // Aba 2: Produtos & Prescrição
                   if (state.products.isNotEmpty || state.hiddenProducts > 0 || state.missingSunscreen)
-                    _buildProducts(state)
+                    _buildProducts(state, tr)
                         .animate()
                         .fadeIn(duration: 250.ms),
                   const SizedBox(height: 14),
@@ -295,17 +318,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         const SizedBox(width: 10),
         Expanded(
           child: GestureDetector(
-            onTap: () {
-              ReportExportService.shareToSocial(
-                score: analysis.scoreGeral,
-                skinType: tr.translateSkinType(analysis.skinType),
-                oleosidade: analysis.scores.oleosidade,
-                acne: analysis.scores.acneCravos,
-                hidratacao: analysis.scores.hidratacao,
-                products: state.products,
-                isEn: tr.isEn,
-              );
-            },
+            onTap: () => _openStoryShare(context, analysis, state, tr),
             child: Container(
               height: 48,
               decoration: BoxDecoration(
@@ -322,10 +335,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.share, color: Colors.white, size: 16),
+                  const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
                   const SizedBox(width: 8),
                   Text(
-                    tr.share,
+                    tr.isEn ? 'Stories Card' : 'Card Stories',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -1098,7 +1111,115 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     );
   }
 
-  Widget _buildProducts(ScanState state) {
+  void _openStoryShare(
+    BuildContext context,
+    SkinAnalysisRaw analysis,
+    ScanState state,
+    AppTranslations tr,
+  ) {
+    StoryShareSheet.show(
+      context: context,
+      score: analysis.scoreGeral,
+      skinTypeLabel: tr.translateSkinType(analysis.skinType),
+      oleosidade: analysis.scores.oleosidade,
+      acne: analysis.scores.acneCravos,
+      manchas: analysis.scores.manchasSolares,
+      hidratacao: analysis.scores.hidratacao,
+      products: state.products,
+      selfieBytes: state.imageBytes,
+      isEn: tr.isEn,
+    );
+  }
+
+  Widget _buildStoriesShareCTA(
+    BuildContext context,
+    SkinAnalysisRaw analysis,
+    ScanState state,
+    AppTranslations tr,
+  ) {
+    return GestureDetector(
+      onTap: () => _openStoryShare(context, analysis, state, tr),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF214A31), Color(0xFF4F883B)],
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryDark.withAlpha(45),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(35),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Text('📸', style: TextStyle(fontSize: 20)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr.isEn
+                        ? 'Create 9:16 Stories Score Card'
+                        : 'Gerar Card do Score p/ Stories',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tr.isEn
+                        ? 'Private mode available (without your photo)'
+                        : 'Opção modo privado sem foto · pronto pro Instagram',
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(210),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                tr.isEn ? 'Share' : 'Criar',
+                style: const TextStyle(
+                  color: Color(0xFF214A31),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProducts(ScanState state, AppTranslations tr) {
     final products = state.products;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1119,15 +1240,31 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         children: [
           Row(
             children: [
-              const Text(
-                '🛍️ Produtos Recomendados',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr.isEn ? '🛍️ Your Skincare Routine' : '🛍️ Rotina Recomendada',
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tr.isEn
+                          ? 'Balanced 4-step picks tailored to your skin'
+                          : 'Seleção equilibrada por passo para sua pele',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 8,
@@ -1138,9 +1275,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: AppTheme.border),
                 ),
-                child: const Text(
-                  'PARCEIRO',
-                  style: TextStyle(
+                child: Text(
+                  tr.isEn ? 'PARTNER' : 'PARCEIRO',
+                  style: const TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
                     color: AppTheme.primaryDark,
@@ -1149,6 +1286,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          ProductBudgetFilterBar(
+            selected: state.budgetTier,
+            isEn: tr.isEn,
+            onChanged: (tier) => ref.read(scanProvider.notifier).setBudgetTier(tier),
           ),
           const SizedBox(height: 14),
           if (state.hiddenProducts > 0 || state.missingSunscreen)
@@ -1160,48 +1303,64 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               ),
             ),
           if (products.isNotEmpty)
-            _buildHeroProductCard(products.first, state.analysis)
+            HeroAffiliateProductCard(
+              product: products.first,
+              why: _productWhy(products.first, state.analysis),
+              isEn: tr.isEn,
+              onTap: () => _openAffiliateLink(products.first.affiliateUrl),
+            )
                 .animate()
-                .fadeIn(delay: 100.ms, duration: 500.ms)
-                .slideY(begin: 0.15, end: 0, delay: 100.ms, curve: Curves.easeOutQuad),
+                .fadeIn(delay: 80.ms, duration: 420.ms)
+                .slideY(begin: 0.12, end: 0, delay: 80.ms, curve: Curves.easeOutQuad),
           ...products.skip(1).toList().asMap().entries.map(
-                (entry) => _buildProductCard(entry.value)
+                (entry) => RoutineAffiliateProductCard(
+                  product: entry.value,
+                  isEn: tr.isEn,
+                  onTap: () => _openAffiliateLink(entry.value.affiliateUrl),
+                )
                     .animate()
-                    .fadeIn(delay: (160 + entry.key * 80).ms, duration: 450.ms)
-                    .slideY(begin: 0.12, end: 0, delay: (160 + entry.key * 80).ms, curve: Curves.easeOutQuad),
+                    .fadeIn(delay: (130 + entry.key * 70).ms, duration: 400.ms)
+                    .slideY(begin: 0.1, end: 0, delay: (130 + entry.key * 70).ms, curve: Curves.easeOutQuad),
               ),
           const SizedBox(height: 12),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppTheme.primarySoft,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.border),
             ),
             child: Column(
               children: [
                 Text(
-                  '💰 Rotina completa estimada: ~R\$ ${_calcTotal(products).toStringAsFixed(0)}',
+                  tr.isEn
+                      ? '💰 Estimated routine (${products.length} items): ~R\$ ${_calcTotal(products).toStringAsFixed(0)}'
+                      : '💰 Rotina estimada (${products.length} itens): ~R\$ ${_calcTotal(products).toStringAsFixed(0)}',
                   style: const TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: AppTheme.primaryDark,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  '*Preços estimados. Valores sujeitos a alteração e promoções na loja parceira.',
-                  style: TextStyle(
+                Text(
+                  tr.isEn
+                      ? '*Estimated prices. Subject to promotions on partner stores.'
+                      : '*Preços estimados. Valores sujeitos a alteração e promoções na loja parceira.',
+                  style: const TextStyle(
                     fontSize: 10,
                     color: AppTheme.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Transparência: links recomendados podem gerar comissão de afiliados sem custo adicional para você.',
-                  style: TextStyle(
+                Text(
+                  tr.isEn
+                      ? 'Transparency: partner links may earn affiliate commissions at no extra cost to you.'
+                      : 'Transparência: links recomendados podem gerar comissão de afiliados sem custo adicional para você.',
+                  style: const TextStyle(
                     fontSize: 10,
                     color: AppTheme.textSecondary,
                   ),
@@ -1211,122 +1370,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHeroProductCard(AffiliateProduct product, SkinAnalysisRaw? analysis) {
-    final why = _productWhy(product, analysis);
-    return GestureDetector(
-      onTap: () => _openAffiliateLink(product.affiliateUrl),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primary.withAlpha(15),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'RECOMENDADO PARA VOCÊ',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.primaryDark,
-                letterSpacing: 0.8,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primarySoft,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Center(
-                    child: Text(product.emoji, style: const TextStyle(fontSize: 26)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        '${product.brand} · ${product.storeLabel}',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        product.priceFormatted,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.primaryDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (why.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                why,
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, AppTheme.primaryLight],
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withAlpha(50),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: const Text(
-                'Ver na loja',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1346,110 +1389,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       return 'Alinhado ao cuidado com manchas solares na sua análise.';
     }
     return 'Selecionado para o tipo ${analysis.skinType} da sua análise.';
-  }
-
-  Widget _buildProductCard(AffiliateProduct product) {
-    return GestureDetector(
-      onTap: () => _openAffiliateLink(product.affiliateUrl),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppTheme.border,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(4),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceMuted,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  product.emoji,
-                  style: const TextStyle(fontSize: 22),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    product.brand,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primarySoft,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: AppTheme.border,
-                          ),
-                        ),
-                        child: Text(
-                          product.priceFormatted,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.primaryDark,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        product.storeLabel,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: AppTheme.textMuted,
-              size: 14,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // ── Helpers ──────────────────────────────────────────────

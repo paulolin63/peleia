@@ -4,6 +4,7 @@
 //  Álbum de Evolução da Pele — Antes & Depois interativo
 //  + Linha do tempo completa de análises
 // ============================================================
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +18,8 @@ import '../../../core/services/history_service.dart';
 import '../../../core/services/privacy_service.dart';
 import '../../../core/services/report_export_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../products/presentation/product_card_widgets.dart';
+import '../../report/presentation/story_share_sheet.dart';
 import '../data/history_entry.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -739,16 +742,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      icon: const Icon(Icons.share, size: 16),
-                      label: Text(ref.watch(trProvider).share, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      icon: const Icon(Icons.auto_awesome, size: 16),
+                      label: Text(
+                        ref.watch(trProvider).isEn ? 'Stories Card' : 'Card Stories',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
                       onPressed: () {
-                        ReportExportService.shareToSocial(
+                        final thumbBytes = (entry.imageBase64 != null && entry.imageBase64!.isNotEmpty)
+                            ? base64Decode(entry.imageBase64!)
+                            : null;
+                        StoryShareSheet.show(
+                          context: context,
                           score: entry.scoreGeral,
-                          skinType: ref.read(trProvider).translateSkinType(entry.skinType),
+                          skinTypeLabel: ref.read(trProvider).translateSkinType(entry.skinType),
                           oleosidade: entry.oleosidade,
                           acne: entry.acne,
+                          manchas: entry.manchas,
                           hidratacao: entry.hidratacao,
                           products: entry.products,
+                          selfieBytes: thumbBytes,
                           isEn: ref.read(trProvider).isEn,
                         );
                       },
@@ -769,63 +781,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
                   ),
                 ),
                 const SizedBox(height: 10),
-                ...entry.products.map((p) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.border),
-                  ),
-                  child: InkWell(
+                ...entry.products.map(
+                  (p) => RoutineAffiliateProductCard(
+                    product: p,
+                    isEn: ref.read(trProvider).isEn,
                     onTap: () => _openProductLink(p.affiliateUrl),
-                    child: Row(
-                      children: [
-                        Text(p.emoji, style: const TextStyle(fontSize: 22)),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                p.name,
-                                style: const TextStyle(
-                                  color: AppTheme.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              Text(
-                                '${p.brand} • ${p.storeLabel}',
-                                style: const TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primarySoft,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            p.priceFormatted,
-                            style: const TextStyle(
-                              color: AppTheme.primaryDark,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.primary),
-                      ],
-                    ),
                   ),
-                )),
+                ),
                 const SizedBox(height: 16),
               ],
 

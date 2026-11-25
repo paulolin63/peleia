@@ -25,11 +25,12 @@ import '../../../core/profile/user_profile.dart';
 import '../../../core/services/history_service.dart';
 import '../../../core/services/privacy_service.dart';
 import '../../../core/services/quota_service.dart';
+import '../../../core/services/recommendation.dart';
 import '../../../core/services/revenuecat_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../history/data/history_entry.dart';
+import '../../products/presentation/product_card_widgets.dart';
 import '../../profile/avoidance_fields.dart';
-import '../../scan/data/skin_analysis_result.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -47,6 +48,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String? _outdoorExposure;
   UserProfile _profile = const UserProfile();
   AppConfig? _config;
+  ProductBudgetTier _homeBudgetTier = ProductBudgetTier.all;
 
   // Checklist da rotina de hoje
   bool _isMorningTab = true;
@@ -1517,15 +1519,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _buildHomeProductsSection(AppTranslations tr) {
     if (_config == null || _config!.products.isEmpty) return const SizedBox.shrink();
 
-    final allProducts = _config!.products
-        .map((p) => AffiliateProduct.fromJson(p))
-        .where((p) => p.active)
-        .toList();
+    final products = pickBalancedHomeProducts(
+      config: _config!,
+      profile: _profile,
+      budgetTier: _homeBudgetTier,
+      maxProducts: 4,
+    );
 
-    if (allProducts.isEmpty) return const SizedBox.shrink();
-
-    // Diversificar lojas: Mercado Livre, Amazon e Shopee
-    final products = _pickDiverseHomeProducts(allProducts, 6);
+    if (products.isEmpty) return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1547,38 +1548,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primarySoft,
-                      borderRadius: BorderRadius.circular(10),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primarySoft,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text('🛍️', style: TextStyle(fontSize: 18)),
                     ),
-                    child: const Text('🛍️', style: TextStyle(fontSize: 18)),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tr.isEn ? 'Recommended Skincare' : 'Produtos Recomendados',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: AppTheme.textPrimary,
-                        ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr.isEn ? '4-Step Skincare Picks' : 'Rotina em 4 Passos',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            tr.isEn
+                                ? 'Curated offers across official stores'
+                                : 'Seleção equilibrada nas principais lojas',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        tr.isEn ? 'Top rated products in Brazil' : 'Melhores ofertas nas principais lojas',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1588,7 +1595,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   border: Border.all(color: AppTheme.border),
                 ),
                 child: Text(
-                  '${products.length} ofertas',
+                  tr.isEn ? '${products.length} steps' : '${products.length} passos',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -1598,7 +1605,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
+          ProductBudgetFilterBar(
+            selected: _homeBudgetTier,
+            isEn: tr.isEn,
+            onChanged: (tier) => setState(() => _homeBudgetTier = tier),
+          ),
+          const SizedBox(height: 12),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1606,7 +1619,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final product = products[index];
-              return _buildDashboardProductCard(product);
+              return RoutineAffiliateProductCard(
+                product: product,
+                compact: true,
+                isEn: tr.isEn,
+                onTap: () => _openAffiliateLink(product.affiliateUrl),
+              );
             },
           ),
           const SizedBox(height: 12),
@@ -1630,183 +1648,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
     ).animate().fadeIn(delay: 350.ms);
-  }
-
-  List<AffiliateProduct> _pickDiverseHomeProducts(List<AffiliateProduct> all, int max) {
-    const stores = ['mercadolivre', 'amazon', 'shopee'];
-    final queues = <String, List<AffiliateProduct>>{
-      for (final s in stores) s: <AffiliateProduct>[],
-    };
-    final other = <AffiliateProduct>[];
-
-    for (final p in all) {
-      final key = p.store.toLowerCase();
-      if (queues.containsKey(key)) {
-        queues[key]!.add(p);
-      } else {
-        other.add(p);
-      }
-    }
-
-    final picked = <AffiliateProduct>[];
-    final seen = <String>{};
-
-    // 1st round: 1 from each store
-    for (final s in stores) {
-      if (picked.length >= max) break;
-      final q = queues[s]!;
-      if (q.isNotEmpty) {
-        final p = q.removeAt(0);
-        if (seen.add(p.id)) picked.add(p);
-      }
-    }
-
-    // 2nd round: fill remaining
-    while (picked.length < max) {
-      var added = false;
-      for (final s in stores) {
-        if (picked.length >= max) break;
-        final q = queues[s]!;
-        if (q.isNotEmpty) {
-          final p = q.removeAt(0);
-          if (seen.add(p.id)) {
-            picked.add(p);
-            added = true;
-          }
-        }
-      }
-      if (!added) break;
-    }
-
-    for (final p in other) {
-      if (picked.length >= max) break;
-      if (seen.add(p.id)) picked.add(p);
-    }
-    return picked;
-  }
-
-  Widget _buildDashboardProductCard(AffiliateProduct product) {
-    return GestureDetector(
-      onTap: () => _openAffiliateLink(product.affiliateUrl),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppTheme.bg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: Center(
-                child: Text(product.emoji, style: const TextStyle(fontSize: 22)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(
-                        product.brand,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                        decoration: BoxDecoration(
-                          color: product.storeColor.withAlpha(35),
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(
-                            color: product.storeColor.withAlpha(120),
-                            width: 0.8,
-                          ),
-                        ),
-                        child: Text(
-                          product.storeLabel,
-                          style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w700,
-                            color: product.store == 'mercadolivre'
-                                ? const Color(0xFF2D3277)
-                                : product.storeColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    product.priceFormatted,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.primaryDark,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, AppTheme.primaryLight],
-                ),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withAlpha(50),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Comprar',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(width: 3),
-                  Icon(Icons.open_in_new, color: Colors.white, size: 11),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _openAffiliateLink(String url) async {

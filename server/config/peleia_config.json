@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "config_version": "2026-11-22.1",
+  "config_version": "2026-11-24.1",
   "min_app_build": 1,
   "notice": null,
   "quota": {
@@ -266,7 +266,8 @@
         "mista",
         "acne",
         "acne_ativa"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "darrow_actine_gel",
@@ -287,7 +288,8 @@
         "mista",
         "acne",
         "acne_ativa"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "principia_gl01",
@@ -309,7 +311,8 @@
         "oleosa",
         "cravos",
         "poros_dilatados"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "sallve_limpador",
@@ -332,7 +335,8 @@
         "sensivel",
         "seca",
         "mista"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "principia_nc01",
@@ -355,7 +359,8 @@
         "mista",
         "manchas_solares",
         "poros_dilatados"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "principia_vc10",
@@ -378,7 +383,8 @@
         "manchas_solares",
         "melasma",
         "normal"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "sallve_serum_antiacne",
@@ -400,7 +406,8 @@
         "acne",
         "acne_ativa",
         "oleosidade_excessiva"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "isdin_fusion_water",
@@ -422,7 +429,8 @@
         "sensivel",
         "normal",
         "acne"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "laroche_airlicium",
@@ -442,7 +450,8 @@
         "oleosa",
         "manchas_solares",
         "melasma"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "sallve_protetor_fps60",
@@ -463,7 +472,8 @@
         "negra",
         "mista",
         "sensivel"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "neutrogena_hydro_boost",
@@ -484,7 +494,8 @@
         "mista",
         "sensivel",
         "normal"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "cerave_locao_facial",
@@ -504,7 +515,8 @@
         "seca",
         "sensivel",
         "normal"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "laroche_effaclar_gel",
@@ -526,7 +538,8 @@
         "acne",
         "acne_ativa",
         "poros_dilatados"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "laroche_toleriane",
@@ -547,7 +560,8 @@
         "seca",
         "rosacea",
         "normal"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "isdin_acniben",
@@ -568,7 +582,8 @@
         "acne",
         "acne_ativa",
         "mista"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "avene_cleanance",
@@ -589,7 +604,8 @@
         "oleosa",
         "acne",
         "rosacea"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "the_ordinary_niacinamide",
@@ -613,7 +629,8 @@
         "acne",
         "poros_dilatados",
         "manchas"
-      ]
+      ],
+      "tier": "economica"
     },
     {
       "id": "the_ordinary_aha_bha",
@@ -638,7 +655,8 @@
         "oleosa",
         "poros_dilatados",
         "cravos"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "vichy_mineral_89",
@@ -660,7 +678,8 @@
         "normal",
         "mista",
         "rosacea"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "laroche_cicaplast",
@@ -681,7 +700,8 @@
         "seca",
         "rosacea",
         "pos_procedimento"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "eucerin_hyaluron_filler",
@@ -702,7 +722,8 @@
         "normal",
         "sensivel",
         "manchas"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "eucerin_dermopure",
@@ -723,7 +744,8 @@
         "acne",
         "acne_ativa",
         "mista"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "vichy_capital_soleil",
@@ -747,7 +769,8 @@
         "manchas_solares",
         "melasma",
         "rosacea"
-      ]
+      ],
+      "tier": "dermo"
     },
     {
       "id": "isdin_eryfotona",
@@ -768,7 +791,8 @@
         "rosacea",
         "pos_procedimento",
         "manchas_solares"
-      ]
+      ],
+      "tier": "dermo"
     }
   ],
   "server": {

@@ -38,6 +38,7 @@ class ScanState {
   final SkinAnalysisRaw? analysis;
   final String? report;
   final List<AffiliateProduct> products;
+  final ProductBudgetTier budgetTier;
   final int hiddenProducts;
   final bool missingSunscreen;
   final List<String> avoidedLabels;
@@ -53,6 +54,7 @@ class ScanState {
     this.analysis,
     this.report,
     this.products = const [],
+    this.budgetTier = ProductBudgetTier.all,
     this.hiddenProducts = 0,
     this.missingSunscreen = false,
     this.avoidedLabels = const [],
@@ -69,6 +71,7 @@ class ScanState {
     SkinAnalysisRaw? analysis,
     String? report,
     List<AffiliateProduct>? products,
+    ProductBudgetTier? budgetTier,
     int? hiddenProducts,
     bool? missingSunscreen,
     List<String>? avoidedLabels,
@@ -85,6 +88,7 @@ class ScanState {
       analysis: analysis ?? this.analysis,
       report: report ?? this.report,
       products: products ?? this.products,
+      budgetTier: budgetTier ?? this.budgetTier,
       hiddenProducts: hiddenProducts ?? this.hiddenProducts,
       missingSunscreen: missingSunscreen ?? this.missingSunscreen,
       avoidedLabels: avoidedLabels ?? this.avoidedLabels,
@@ -304,6 +308,29 @@ class ScanNotifier extends StateNotifier<ScanState> {
     }
 
     await _analyzeXFile(picked);
+  }
+
+  Future<void> setBudgetTier(ProductBudgetTier tier) async {
+    final analysis = state.analysis;
+    if (analysis == null || state.budgetTier == tier) return;
+
+    final config = await RemoteConfigService.load();
+    final profile = await UserProfileStore.load();
+    final recommendation = recommendProducts(
+      config: config,
+      analysis: analysis,
+      profile: profile,
+      budgetTier: tier,
+      maxProductsOverride: tier == ProductBudgetTier.all ? null : 4,
+    );
+
+    state = state.copyWith(
+      budgetTier: tier,
+      products: recommendation.products,
+      hiddenProducts: recommendation.hiddenCount,
+      missingSunscreen: recommendation.missingSunscreen,
+      avoidedLabels: recommendation.avoidedLabels,
+    );
   }
 
   void reset() {

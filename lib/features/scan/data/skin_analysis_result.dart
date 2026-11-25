@@ -220,6 +220,8 @@ class AffiliateProduct {
   final List<String> ingredients;
   final int priority;
   final bool active;
+  final String tier;          // 'economica' | 'dermo'
+  final String? imageUrl;     // Foto real opcional (remota via config KV)
 
   const AffiliateProduct({
     required this.id,
@@ -236,17 +238,44 @@ class AffiliateProduct {
     this.ingredients = const [],
     this.priority = 0,
     this.active = true,
+    this.tier = '',
+    this.imageUrl,
   });
 
+  static const Set<String> _dermoBrands = {
+    'la roche-posay',
+    'isdin',
+    'vichy',
+    'avène',
+    'avene',
+    'eucerin',
+  };
+
+  static String inferTier({
+    required String rawTier,
+    required String brand,
+    required double priceEstimated,
+  }) {
+    final normalized = rawTier.trim().toLowerCase();
+    if (normalized == 'economica' || normalized == 'dermo') return normalized;
+    if (_dermoBrands.contains(brand.trim().toLowerCase()) || priceEstimated >= 80.0) {
+      return 'dermo';
+    }
+    return 'economica';
+  }
+
   factory AffiliateProduct.fromJson(Map<String, dynamic> json) {
+    final brand = json['brand'] as String? ?? '';
+    final priceEstimated = (json['price_estimated'] as num?)?.toDouble() ?? 49.9;
+    final rawImageUrl = (json['image_url'] as String?)?.trim();
     return AffiliateProduct(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      brand: json['brand'] as String? ?? '',
+      brand: brand,
       description: json['description'] as String? ?? '',
       priceDisplay: json['price_display'] as String? ??
-          'R\$ ${(json['price_estimated'] ?? 49.9).toStringAsFixed(2).replaceAll('.', ',')}',
-      priceEstimated: (json['price_estimated'] as num?)?.toDouble() ?? 49.9,
+          'R\$ ${priceEstimated.toStringAsFixed(2).replaceAll('.', ',')}',
+      priceEstimated: priceEstimated,
       store: json['store'] as String? ?? 'shopee',
       affiliateUrl: json['affiliate_url'] as String? ?? '',
       emoji: json['emoji'] as String? ?? '✨',
@@ -255,6 +284,14 @@ class AffiliateProduct {
       ingredients: List<String>.from(json['ingredients'] as List? ?? []),
       priority: _asInt(json['priority'], 0),
       active: json['active'] is bool ? json['active'] as bool : true,
+      tier: inferTier(
+        rawTier: json['tier'] as String? ?? '',
+        brand: brand,
+        priceEstimated: priceEstimated,
+      ),
+      imageUrl: (rawImageUrl != null && rawImageUrl.startsWith('https://'))
+          ? rawImageUrl
+          : null,
     );
   }
 
@@ -273,7 +310,63 @@ class AffiliateProduct {
     'ingredients': ingredients,
     'priority': priority,
     'active': active,
+    'tier': effectiveTier,
+    if (imageUrl != null) 'image_url': imageUrl,
   };
+
+  String get effectiveTier => inferTier(
+        rawTier: tier,
+        brand: brand,
+        priceEstimated: priceEstimated,
+      );
+
+  bool get isDermo => effectiveTier == 'dermo';
+  bool get isEconomica => effectiveTier == 'economica';
+
+  int get routineOrder {
+    switch (category.toLowerCase()) {
+      case 'limpeza':
+        return 1;
+      case 'serum':
+        return 2;
+      case 'hidratante':
+        return 3;
+      case 'protetor':
+        return 4;
+      default:
+        return 5;
+    }
+  }
+
+  String categoryStepLabel({bool isEn = false}) {
+    switch (category.toLowerCase()) {
+      case 'limpeza':
+        return isEn ? 'STEP 1 · CLEANSER' : 'PASSO 1 · LIMPEZA';
+      case 'serum':
+        return isEn ? 'STEP 2 · SERUM' : 'PASSO 2 · SÉRUM';
+      case 'hidratante':
+        return isEn ? 'STEP 3 · MOISTURIZER' : 'PASSO 3 · HIDRATAÇÃO';
+      case 'protetor':
+        return isEn ? 'STEP 4 · SPF' : 'PASSO 4 · PROTETOR';
+      default:
+        return isEn ? 'SKINCARE' : 'CUIDADO DIÁRIO';
+    }
+  }
+
+  String? get categoryAssetPath {
+    switch (category.toLowerCase()) {
+      case 'limpeza':
+        return 'assets/images/prod_limpeza.png';
+      case 'serum':
+        return 'assets/images/prod_serum.png';
+      case 'hidratante':
+        return 'assets/images/prod_hidratante.png';
+      case 'protetor':
+        return 'assets/images/prod_protetor.png';
+      default:
+        return null;
+    }
+  }
 
   String get priceFormatted => priceDisplay;
 
@@ -284,6 +377,19 @@ class AffiliateProduct {
       'amazon': 'Amazon Brasil',
     };
     return labels[store] ?? store;
+  }
+
+  String storeActionCta({bool isEn = false}) {
+    switch (store.toLowerCase()) {
+      case 'shopee':
+        return isEn ? 'View on Shopee' : 'Ver oferta na Shopee';
+      case 'mercadolivre':
+        return isEn ? 'View on Mercado Livre' : 'Ver no Mercado Livre';
+      case 'amazon':
+        return isEn ? 'View on Amazon' : 'Ver oferta na Amazon';
+      default:
+        return isEn ? 'View offer' : 'Ver na loja';
+    }
   }
 
   Color get storeColor {
